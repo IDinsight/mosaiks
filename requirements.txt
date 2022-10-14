@@ -3,7 +3,6 @@ numpy>=1.19.4
 pandas>=1.1.4
 geopandas>=0.11.1
 rtree>=1.0.1
-# geoplot>=0.5.1
 matplotlib>=3.3.3
 seaborn>=0.11.0
 statsmodels>=0.12.1
