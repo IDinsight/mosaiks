@@ -1,17 +1,27 @@
-pre-commit>=2.8.2
+# data manipulation
 numpy>=1.19.4
 pandas>=1.1.4
 geopandas>=0.11.1
 rtree>=1.0.1
+
+# visualisation
 matplotlib>=3.3.3
 seaborn>=0.11.0
+
+# modelling
 statsmodels>=0.12.1
 scikit-learn>=0.23.2
 xgboost>=1.6.2
-pydotenv>=0.0.7
-pyyaml>=5.3.1
+
+# tools
+pre-commit>=2.8.2
+pyinstrument>=4.3.0
+# pyyaml>=5.3.1
+# code formatting
 black>=20.8b1
 flake8>=3.8.4
+
+# jupyter
 ipython>=7.19.0
 ipykernel>=6.16.0
 jupyter>=1.0.0
