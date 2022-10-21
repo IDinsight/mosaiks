@@ -147,7 +147,7 @@ def plot_prediction_maps(
     )
     axes[1].set_title("2011 Predicted")
 
-    if y_pred_scaled is not None:
+    if y_pred_scaled:
         # predicted - scaled
         plot_colored_map(
             gdf,
