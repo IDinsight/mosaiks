@@ -22,7 +22,7 @@ def main():
 
     # create lattice of point coordinates, keeping those that sit within our shrug shapes - takes around 50s
     selected_points_gdf = create_gdf_of_enclosed_points(
-        shrug_r_matched,
+        shrug_key_geoms,
         step=0.05,
         pre_calc_bounds="india",  # remove this if selection is not all-india
     )

@@ -4,6 +4,28 @@ import geopandas as gpd
 import pandas as pd
 
 
+def load_shrug_secc():
+    """
+    Import the SHRUG SECC data.
+
+    Returns
+    -------
+    pd.DataFrame
+
+    """
+
+    file_path = (
+        Path(__file__).parents[2]
+        / "data"
+        / "00_raw"
+        / "SHRUG"
+        / "shrug-v1.5.samosa-secc-csv"
+        / "shrug_secc.csv"
+    )
+
+    return pd.read_csv(file_path)
+
+
 def merge_shapes_and_keys(shrug_shp, shrug_r_keys):
     """
     Match the shapefile geometries to the SHRUG keys.
@@ -82,6 +104,24 @@ def load_shrug_rural_keys():
         / "SHRUG"
         / "shrug-v1.5.samosa-keys-csv"
         / "shrug_pc11r_key.csv"
+    )
+
+    return shrug_r_keys
+
+
+def add_unique_village_ID(shrug_r_keys):
+    """
+    Add a nationwide unique village ID to the SHRUG rural keys since
+    the given village IDs are not unique across districts etc.
+    """
+    shrug_r_keys.loc[:, "pc11_village_uid"] = (
+        shrug_r_keys["pc11_state_id"].astype(int).astype(str)
+        + "-"
+        + shrug_r_keys["pc11_district_id"].astype(int).astype(str)
+        + "-"
+        + shrug_r_keys["pc11_subdistrict_id"].astype(int).astype(str)
+        + "-"
+        + shrug_r_keys["pc11_village_id"].astype(int).astype(str)
     )
 
     return shrug_r_keys
@@ -172,6 +212,7 @@ def shorten_keys_ID_names(df):
         "pc11_district_id": "pc11_d_id",
         "pc11_subdistrict_id": "pc11_sd_id",
         "pc11_village_id": "pc11_tv_id",
+        "pc11_village_uid": "pc11_v_uid",
     }
     return df.rename(columns=shorten_ID_cols_dict)
 

@@ -2,6 +2,7 @@ from custom.shrug_data import (
     merge_shapes_and_keys,
     change_shapefile_IDs_to_int,
     clean_shrug_rural_keys,
+    add_unique_village_ID,
     load_shrug_rural_keys,
     load_shrug_shapefiles,
     shorten_keys_ID_names,
@@ -16,9 +17,10 @@ def main():
     shrug_village_shapes = load_shrug_shapefiles(level="village")
     shrug_village_shapes = change_shapefile_IDs_to_int(shrug_village_shapes)
 
-    # Load the SHRUG 2011 rural keys
+    # Load and process the SHRUG 2011 rural keys
     shrug_pc11r_keys = load_shrug_rural_keys()
     shrug_pc11r_keys_clean = clean_shrug_rural_keys(shrug_pc11r_keys)
+    shrug_pc11r_keys_clean = add_unique_village_ID(shrug_pc11r_keys_clean)
     shrug_pc11r_keys_clean = shorten_keys_ID_names(shrug_pc11r_keys_clean)
 
     # Add the shapes to the keys
