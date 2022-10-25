@@ -5,9 +5,9 @@ from custom.shrug_data import lengthen_shapefile_ID_names, load_shrug_secc
 from custom.utils import load_gdf
 
 
-def load_and_merge_data(moasaiks_file_name="INDIA_SHRUG_Mosaiks_features.csv"):
+def load_and_merge_data(moasaiks_folder_name="INDIA_SHRUG_Mosaiks_features"):
 
-    mosaiks_features_gdf = load_mosaiks_data(moasaiks_file_name)
+    mosaiks_features_gdf = load_mosaiks_data(moasaiks_folder_name)
     shrug_key_geoms = load_gdf(
         "01_preprocessed/SHRUG/shrug_pc11r_key_with_shapes",
         "shrug_pc11r_key_with_shapes.shp",

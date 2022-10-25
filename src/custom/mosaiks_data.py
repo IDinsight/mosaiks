@@ -4,7 +4,7 @@ import geopandas as gpd
 import pandas as pd
 
 
-def load_mosaiks_data(file_name):
+def load_mosaiks_data(folder_name):
     """
     Import MOSAIKS data as GeoDataFrame.
 
@@ -18,7 +18,14 @@ def load_mosaiks_data(file_name):
     gpd.GeoDataFrame
 
     """
-    file_path = Path(__file__).parents[2] / "data" / "00_raw" / "MOSAIKS" / file_name
+    file_path = (
+        Path(__file__).parents[2]
+        / "data"
+        / "00_raw"
+        / "MOSAIKS"
+        / folder_name
+        / "Mosaiks_features.csv"
+    )
     mosaiks_features = pd.read_csv(file_path)
 
     # Convert to GeoDataFrame using point coordinates
