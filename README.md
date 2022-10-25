@@ -1,42 +1,69 @@
-# Data Science Repository Template
-For new data science projects, this repository should be cloned. It comes with the following pre-configured:
+# DSEM The/Nudge Ultrapoor Project
 
-1. A `requirements.txt` file with the basic data science packages
-2. Pre-commit hooks (see `.pre-commit-config.yaml` in repository)
-3. A docker imager that can be configured [TBD]
-4. A `.gitignore` that removes `data/`, `logs/`, and secrets files
+This repository holds the Data Science modelling work for the Ultrapoor project.
 
+## Setup
 
+### Environment
 
-Please see the [DS - Ways of Working](https://docs.google.com/document/d/118Bw155iqn9x7PQ25TlkH8FqKH8aHFidGYp3d0nD7k4/edit) for more information.
+1. Run `make setup-dev`
 
+### Data
 
+1. Run `make data-directories` to create data folder structure
 
-## Starting a new project
+2. Download the geometries and secc [SHRUG data](https://www.devdatalab.org/shrug_download/shrug_select) and place them into the root data folder as below:
 
-1. Click on the green `Use this template` button
+    ```console
+    📦 data
+    ┗ 📂 00_raw
+      ┗ 📂 SHRUG
+        ┣ 📂 geometries_shrug-v1.5.samosa-open-polygons-shp
+        ┣ 📂 shrug-v1.5.samosa-keys-csv
+        ┗ 📂 shrug-v1.5.samosa-secc-csv
+    ```
 
-2. Fill in repository name and description
+    > Note: The Keys folder is inside the SECC folder when downloaded from SHRUG but we separate them here. Keys are included with every dataset download from SHRUG.
 
-3. Clone repository to local machine
+### Processed Data
 
-4. Create a new conda environment using
+1. If never done before, run
 
-   `conda create --name="<proj_name>" python==3.7`
+    ```console
+    make combine-shrug-rural-keys
+    ```
 
-5. Install packages
+2. If MOSAIKS data has never been acquired, run
 
-   `pip install -r requirements.txt`
+    ```console
+    make create-mosaiks-points
+    ```
 
-6. Update the `README.md` file
+    to make the grid of points and request features for these points on the [MOSAIKS website](https://siml.berkeley.edu/portal/file_query/).
 
-7. Run `make directories` in the project root to create the standard directories
+3. Download and extract the resulting data and place it inside the folder below as a `.csv` file:
 
-8. <STEPS FOR DOCKER>
+    ```console
+    📦 data
+    ┗ 📂 00_raw
+      ┣ 📂 SHRUG
+      ┃ ┗ ...
+      ┗ 📂 MOSAIKS
+        ┗ 📜 [filename].csv
+    ```
 
+    On EC2, you can use `cURL` with the pre-loaded `login_cookie.txt` as a cookie to login to the MOSAIKS website and download the data:
 
+    ```console
+    curl -b .mosaiks/login_cookie.txt -o ds_nudge_up/data/00_raw/MOSAIKS/[filename].zip [File download URL]
+    ```
 
+    Then extract the data with `unzip`:
 
+    ```console
+    unzip ds_nudge_up/data/00_raw/MOSAIKS/[filename].zip -d ds_nudge_up/data/00_raw/MOSAIKS/[filename]
+    ```
 
+## Running the modelling
 
-
+Currently the POC modelling is done through a Jupyter notebook in the `src/` folder. Run this notebook.
