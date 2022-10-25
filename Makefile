@@ -11,14 +11,17 @@ directories:
 	mkdir -p logs data config src/nodes src/pipelines playground docs reference tests
 	touch config/parameters.yml
 
+data-directories:
+	mkdir -p logs data/00_raw data/01_preprocessed data/02_modelinput data/03_intermediate data/04_modeloutput
+
 setup-env:
 	conda create --name $(PROJECT_CONDA_ENV) python==3.9 -y
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pip install --upgrade pip
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pip install -r requirements.txt --ignore-installed
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pre-commit install
 
-preprocess-shrug-rural-keys:
+combine-shrug-rural-keys:
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/00_preprocess_shrug_rural_keys.py
 
-preprocess-create-mosaiks-points:
+create-mosaiks-points:
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/01_preprocess_create_mosaiks_points.py
