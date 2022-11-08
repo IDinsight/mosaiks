@@ -26,7 +26,7 @@ def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
 
     """
     bounds = _get_total_bounds(shapes_gdf, pre_calc_bounds=pre_calc_bounds)
-    points_grid_gdf = _create_grid_of_points(*bounds, step=0.05)
+    points_grid_gdf = _create_grid_of_points(*bounds, step=step)
     selected_points_gdf = _select_enclosed_points(points_grid_gdf, shapes_gdf)
 
     print("Number of point coords in grid:", points_grid_gdf.shape[0])
@@ -156,9 +156,7 @@ def _create_grid_of_points(
     # create a grid of point coordinates
     lat_list = np.arange(min_lat, max_lat, step)
     long_list = np.arange(min_long, max_long, step)
-    points_grid_list = np.array(
-        [(lat, long) for lat in lat_list for long in long_list]
-    ).round(2)
+    points_grid_list = np.array([(lat, long) for lat in lat_list for long in long_list])
 
     # create a GeoDataFrame from the point coordinates
     points_geom = gpd.points_from_xy(x=points_grid_list[:, 1], y=points_grid_list[:, 0])
