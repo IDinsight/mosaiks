@@ -5,6 +5,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import dask_geopandas
+
+
+def sort_by_hilbert_distance(points_gdf):
+    """CHECK: why does this need to go through dask?"""
+
+    ddf = dask_geopandas.from_geopandas(points_gdf, npartitions=1)
+    hd = ddf.hilbert_distance().compute()
+    points_gdf["hd"] = hd
+    points_gdf = points_gdf.sort_values("hd")
+
+    del ddf
+    del hd
+
+    return points_gdf
+
 
 def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
     """
@@ -184,6 +200,6 @@ def _select_enclosed_points(points_grid_gdf, shapes_gdf):
     """
     selected_points_gdf = points_grid_gdf.sjoin(shapes_gdf)
     selected_points_gdf.drop(columns="index_right", inplace=True)
-    selected_points_gdf.sort_values(by=["shrid"], inplace=True)
+    # selected_points_gdf.sort_values(by=["shrid"], inplace=True)
 
     return selected_points_gdf
