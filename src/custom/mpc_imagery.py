@@ -1,10 +1,12 @@
 # TO-DO
+# Change image cropping to caleb's neater way
+
 # change convex-hull to just union of points? (~line 118)
 
 ### NOTE: this method of finding the least cloudy image in batches of points
 ### does no stitching or compositing and so can't handle points 
 ### that are close to the edge of an image well!
-    
+
 ### limit on line 125 seems arbitrary
     
 import geopandas
@@ -21,21 +23,16 @@ import pyproj
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-BUFFER_DISTANCE = 0.005
-bands = [
-    # "SR_B1", # Coastal/Aerosol Band (B1)
-    "SR_B2",  # Blue Band (B2)
-    "SR_B3",  # Green Band (B3)
-    "SR_B4",  # Red Band (B4)
-    "SR_B5",  # Near Infrared Band 0.8 (B5)
-    "SR_B6",  # Short-wave Infrared Band 1.6 (B6)
-    "SR_B7",  # Short-wave Infrared Band 2.2 (B7)
-]
-resolution = 30
+
+def filter_points_with_buffer(points_gdf, shape, buffer_distance):
+    # This buffer ensures that no points are take at the border
+    # which would lead to duplication with neighboring countries
+
+    return points_gdf[points_gdf.within(shape.unary_union.buffer(buffer_distance))]
+
 
 
 def sort_by_hilbert_distance(points_gdf):
-    """CHECK: why does this need to go through dask?"""
 
     ddf = dask_geopandas.from_geopandas(points_gdf, npartitions=1)
     hd = ddf.hilbert_distance().compute()
@@ -70,8 +67,8 @@ class CustomDataset(Dataset):
             try:
                 stack = stackstac.stack(
                     fn,
-                    assets=bands,
-                    resolution=resolution,
+                    assets=self.bands,
+                    resolution=self.resolution,
                 )
                 x_min, y_min = pyproj.Proj(stack.crs)(
                     lon - self.buffer, lat - self.buffer
@@ -150,6 +147,7 @@ def fetch_least_cloudy_stac_items(
         id_list.append(item["id"])
         cloud_cover_list.append(item["properties"]["eo:cloud_cover"])
         image_geom_list.append(shapely.geometry.shape(item["geometry"]))
+        
     items_gdf = geopandas.GeoDataFrame(
         {"eo:cloud_cover":cloud_cover_list}, 
         index=id_list, 
@@ -179,7 +177,7 @@ def fetch_least_cloudy_stac_items(
 
     return points_gdf.assign(stac_item=least_cloudy_items)
 
-
+### OLD
 # def items_dict_to_stac_items(items_dict):
 #     items = []
 #     for item_dict in items_dict:
