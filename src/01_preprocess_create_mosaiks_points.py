@@ -2,7 +2,7 @@
 
 # Contents of main() should be a separate function
 
-# Add   
+# Add
 # 1. path_to_shapes
 # 2. step
 # 3. pre_calc_bounds
@@ -14,7 +14,8 @@ from custom.mosaiks_points import (
     plot_selected_points,
     points_to_latlon_df,
 )
-from custom.shrug_data import lengthen_shapefile_ID_names
+
+# from custom.shrug_data import lengthen_shapefile_ID_names
 from custom.utils import load_gdf
 
 
@@ -40,8 +41,8 @@ def main():
     # save plot and csv. Saves to "data/01_preprocessed/mosaiks_request_points"
     file_name = "INDIA_SHRUG_request_points"
     plot_selected_points(
-        selected_points_gdf, 
-        color_column="pc11_s_id", file_name=file_name)
+        selected_points_gdf, color_column="pc11_s_id", file_name=file_name
+    )
     points_to_latlon_df(selected_points_gdf.geometry, file_name)
 
 

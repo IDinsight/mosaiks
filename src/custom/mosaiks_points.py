@@ -1,3 +1,13 @@
+# TO-DO
+# Shrink shape by a given buffer to avoid edge effects, like below
+# # # Filer points at the edge of the shape to within a buffer
+# states = gpd.read_file(f"{DATA_ROOT}/00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp/state.shp")
+# states['zero_column'] = 0
+# country = states.dissolve(by='zero_column')
+
+# BUFFER_DISTANCE = 0.005
+# points_gdf = filter_points_with_buffer(points_gdf, country, BUFFER_DISTANCE)
+
 from pathlib import Path
 
 import geopandas as gpd
@@ -27,7 +37,7 @@ def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
     """
     bounds = _get_total_bounds(shapes_gdf, pre_calc_bounds=pre_calc_bounds)
     points_grid_gdf = _create_grid_of_points(*bounds, step=step)
-    selected_points_gdf = _select_enclosed_points(points_grid_gdf, shapes_gdf)
+    selected_points_gdf = _inner_join_points(points_grid_gdf, shapes_gdf)
 
     print("Number of point coords in grid:", points_grid_gdf.shape[0])
     print("Number of point coords selected:", selected_points_gdf.shape[0])
@@ -51,9 +61,7 @@ def points_to_latlon_df(points_geometry, file_name=None):
     pd.DataFrame
 
     """
-    latlon_list_df = pd.DataFrame(
-        {"lat": points_geometry.y, "lon": points_geometry.x}
-    )
+    latlon_list_df = pd.DataFrame({"lat": points_geometry.y, "lon": points_geometry.x})
 
     if file_name:
         file_path = (
@@ -69,7 +77,9 @@ def points_to_latlon_df(points_geometry, file_name=None):
     return latlon_list_df
 
 
-def plot_selected_points(selected_points_gdf, color_column, file_name="selected_points"):
+def plot_selected_points(
+    selected_points_gdf, color_column, file_name="selected_points"
+):
     """
     Plot the selected points on a map.
 
@@ -167,7 +177,7 @@ def _create_grid_of_points(
     return points_grid_gdf
 
 
-def _select_enclosed_points(points_grid_gdf, shapes_gdf):
+def _inner_join_points(points_grid_gdf, shapes_gdf):
     """
     Select points that are enclosed by the shapes in the shapes_gdf.
 
