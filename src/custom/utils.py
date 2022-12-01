@@ -3,6 +3,21 @@ from pathlib import Path
 import geopandas as gpd
 
 
+def latlon_df_to_gdf(df, lat_name="lat", lon_name="lon"):
+    """Convert df to GeoDataFrame using latlon columns"""
+                     
+    latlon_point_geoms = gpd.points_from_xy(
+        x=df[lon_name],
+        y=df[lat_name],
+    )
+    gdf = gpd.GeoDataFrame(
+        df,
+        geometry=latlon_point_geoms,
+        crs="EPSG:4326",
+    )
+    return gdf
+
+
 def save_gdf(gdf, folder_name, file_name):
     """
     Save gdf to file as .shp .dbf etc.

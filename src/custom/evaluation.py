@@ -77,6 +77,7 @@ Kendall        {kendall}"""
         file_path = (
             Path(__file__).parents[2] / "data" / "04_modeloutput" / f"{file_name}.png"
         )
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(file_path, dpi=300, bbox_inches="tight")
 
 

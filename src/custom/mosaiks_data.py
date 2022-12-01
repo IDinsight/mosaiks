@@ -3,6 +3,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 
+from .utils import latlon_df_to_gdf
 
 def load_mosaiks_data(folder_name):
     """
@@ -27,16 +28,11 @@ def load_mosaiks_data(folder_name):
         / "Mosaiks_features.csv"
     )
     mosaiks_features = pd.read_csv(file_path)
-
-    # Convert to GeoDataFrame using point coordinates
-    mosaiks_coords_points = gpd.points_from_xy(
-        x=mosaiks_features["Lon"],
-        y=mosaiks_features["Lat"],
-    )
-    mosaiks_features_gdf = gpd.GeoDataFrame(
+    
+    mosaiks_features_gdf = latlon_df_to_gdf(
         mosaiks_features,
-        geometry=mosaiks_coords_points,
-        crs="EPSG:4326",
+        lat_name="Lat",
+        lon_name="Lon"
     )
-
+    
     return mosaiks_features_gdf
