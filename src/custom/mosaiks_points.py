@@ -5,22 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-import dask_geopandas
-
-
-def sort_by_hilbert_distance(points_gdf):
-    """CHECK: why does this need to go through dask?"""
-
-    ddf = dask_geopandas.from_geopandas(points_gdf, npartitions=1)
-    hd = ddf.hilbert_distance().compute()
-    points_gdf["hd"] = hd
-    points_gdf = points_gdf.sort_values("hd")
-
-    del ddf
-    del hd
-
-    return points_gdf
-
 
 def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
     """
@@ -68,7 +52,7 @@ def points_to_latlon_df(points_geometry, file_name=None):
 
     """
     latlon_list_df = pd.DataFrame(
-        {"Latitude": points_geometry.y, "Longitude": points_geometry.x}
+        {"lat": points_geometry.y, "lon": points_geometry.x}
     )
 
     if file_name:
@@ -85,7 +69,7 @@ def points_to_latlon_df(points_geometry, file_name=None):
     return latlon_list_df
 
 
-def plot_selected_points(selected_points_gdf, file_name="selected_points"):
+def plot_selected_points(selected_points_gdf, color_column, file_name="selected_points"):
     """
     Plot the selected points on a map.
 
@@ -93,6 +77,8 @@ def plot_selected_points(selected_points_gdf, file_name="selected_points"):
     ----------
     selected_points_gdf : gpd.GeoDataFrame
         A GeoDataFrame containing the selected points
+    color_column : string
+        Name of the column to color the dots by
     filename : str, default None
         The filename to save the plot to.
 
@@ -103,7 +89,7 @@ def plot_selected_points(selected_points_gdf, file_name="selected_points"):
     """
 
     selected_points_gdf.plot(
-        column=selected_points_gdf["pc11_state_id"].astype(str),
+        column=selected_points_gdf[color_column].astype(str),
         figsize=(10, 10),
         markersize=0.1,
     )
