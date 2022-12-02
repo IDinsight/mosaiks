@@ -61,7 +61,7 @@ def points_to_latlon_df(points_geometry, file_name=None):
     pd.DataFrame
 
     """
-    latlon_list_df = pd.DataFrame({"lat": points_geometry.y, "lon": points_geometry.x})
+    latlon_list_df = pd.DataFrame({"Lat": points_geometry.y, "Lon": points_geometry.x})
 
     if file_name:
         file_path = (

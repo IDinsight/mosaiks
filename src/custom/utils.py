@@ -3,7 +3,7 @@ from pathlib import Path
 import geopandas as gpd
 
 
-def latlon_df_to_gdf(df, lat_name="lat", lon_name="lon"):
+def latlon_df_to_gdf(df, lat_name="Lat", lon_name="Lon"):
     """Convert df to GeoDataFrame using latlon columns"""
                      
     latlon_point_geoms = gpd.points_from_xy(
