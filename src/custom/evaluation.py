@@ -61,7 +61,7 @@ Kendall        {kendall}"""
     ax.set(xlabel="Predicted", ylabel="Observed")
     ax.set_title(title)
     ax.set_ylim(-0.05, 1.05)
-    # ax.set_xlim(-0.2, 1.1)
+    ax.set_xlim(-0.1, 1.1)
 
     if line:
         sns.lineplot(
