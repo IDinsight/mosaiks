@@ -85,7 +85,7 @@ def plot_colored_map(gdf, column, vmin, vmax, ax):
     gdf.plot(
         column=column,
         # alpha=0.5,
-        markersize=5,
+        markersize=0.1,
         vmin=vmin,
         vmax=vmax,
         ax=ax,
@@ -101,6 +101,7 @@ def plot_prediction_maps(
     vmin=0,
     vmax=1,
     file_name=None,
+    title="",
 ):
     """
     Plot the true and predicted values on a map.
@@ -159,6 +160,7 @@ def plot_prediction_maps(
         )
         axes[2].set_title("2011 Predicted (Scaled)")
 
+    f.suptitle(title)
     plt.tight_layout()
 
     if file_name:
