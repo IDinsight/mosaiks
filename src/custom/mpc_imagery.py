@@ -166,26 +166,7 @@ def fetch_least_cloudy_stac_items(points_gdf, satellite, search_start, search_en
                 for item in item_collection.items
                 if item.id == least_cloudy_item_id
             ][0]
-            # least_cloudy_item = items_id_dict[least_cloudy_item_id]
 
         least_cloudy_items.append(least_cloudy_item)
 
     return points_gdf.assign(stac_item=least_cloudy_items)
-
-
-### OLD
-# def items_dict_to_stac_items(items_dict):
-#     items = []
-#     for item_dict in items_dict:
-#         items.append(Item.from_dict(item_dict))
-#     return items
-
-
-# def sign_stac_items(stac_item_list):
-#     """Expects a list of stac item dicts"""
-
-#     signed_stac_items = []
-#     for stac_item in stac_item_list:
-#         signed_stac_items.append(planetary_computer.sign(stac_item))
-
-#     return signed_stac_items
