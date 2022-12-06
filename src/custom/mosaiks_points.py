@@ -16,6 +16,23 @@ import numpy as np
 import pandas as pd
 
 
+def load_points_gdf(filepath, lat_name="Lat", lon_name="Lon", crs="EPSG:4326"):
+    """Load CSV with LatLon columns into a GeoDataFrame"""
+
+    points_df = pd.read_csv(filepath)
+    points_gdf = gpd.GeoDataFrame(
+        points_df, 
+        geometry=gpd.points_from_xy(
+            points_df[lon_name], 
+            points_df[lat_name]
+        ),
+        crs=crs
+    )
+    del points_df
+
+    return points_gdf
+
+
 def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
     """
     Create a GeoDataFrame of grid point coordinates enclosed by shapes in shapes_gdf.

@@ -1,5 +1,8 @@
 # TO-DO
-# Change image cropping to caleb's neater way
+
+# change print() to logging.
+
+# change image cropping to caleb's neater way? can that be parallelized?
 
 # change convex-hull to just union of points? (~line 118)
 
@@ -57,33 +60,37 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
 
         lon, lat = self.points[idx]
-        fn = self.items[idx]
+        stac_item = self.items[idx]
 
-        if fn is None:
+        if stac_item is None:
+            print(f"{idx} Error: no stac item passed\n")
             return None
         else:
             try:
                 stack = stackstac.stack(
-                    fn,
+                    stac_item,
                     assets=self.bands,
                     resolution=self.resolution,
                 )
-                x_min, y_min = pyproj.Proj(stack.crs)(
-                    lon - self.buffer, lat - self.buffer
-                )
-                x_max, y_max = pyproj.Proj(stack.crs)(
-                    lon + self.buffer, lat + self.buffer
-                )
+                
+                x_utm, y_utm = pyproj.Proj(stack.crs)(lon, lat)
+                x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
+                y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
+                
+#                 x_min, y_min = pyproj.Proj(stack.crs)(lon - self.buffer, lat - self.buffer)
+#                 x_max, y_max = pyproj.Proj(stack.crs)(lon + self.buffer, lat + self.buffer)
                 aoi = stack.loc[..., y_max:y_min, x_min:x_max]
                 data = aoi.compute(
                     # scheduler="single-threaded"
                 )
                 out_image = data.data
-                out_image = ((out_image - out_image.min())) / (
-                    out_image.max() - out_image.min()
-                )
-            except ValueError:
-                pass
+                
+                # Min-max normalize pixel values to [0,1]?
+                out_image = (out_image - out_image.min()) / (out_image.max() - out_image.min())
+                
+            except BaseException as e:
+                print(f"{idx} Error: {str(e)}")
+                return None
 
             out_image = torch.from_numpy(out_image).float()
 
@@ -127,7 +134,7 @@ def fetch_least_cloudy_stac_items(points_gdf, satellite, search_start, search_en
         query={"eo:cloud_cover": {"lt": 10}},
         limit=500,  # this limit seems arbitrary
     )
-    item_collection = search_results.get_all_items()
+    item_collection = search_results.item_collection()
     items = search_results.get_all_items_as_dict()["features"]
 
     # Create GeoDataFrame of image shapes, ids, and cloud cover tags
