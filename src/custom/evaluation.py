@@ -97,7 +97,7 @@ def plot_prediction_maps(
     gdf,
     y_name,
     y_pred_name="predicted",
-    y_pred_scaled=True,
+    y_pred_2_name=None,
     vmin=0,
     vmax=1,
     file_name=None,
@@ -114,8 +114,8 @@ def plot_prediction_maps(
         The name of the column containing the true values.
     y_pred_name : str
         The name of the column containing the predicted values.
-    y_pred_scaled : bool
-        Whether scaled predictions are included
+    y_pred_2_name : str
+        The name of the column containing other predicted values to plot in a 3rd plot.
     vmin, vmax : float
         The minimum and maximum value for the colorbar.
     file_name : str
@@ -127,7 +127,8 @@ def plot_prediction_maps(
 
     """
 
-    f, axes = plt.subplots(1, 2 + y_pred_scaled, sharey=True, figsize=(10, 5))
+    third_plot = True if y_pred_2_name!=None else False
+    f, axes = plt.subplots(1, 2 + third_plot, sharey=True, figsize=(10, 5))
 
     # observed
     plot_colored_map(
@@ -147,18 +148,18 @@ def plot_prediction_maps(
         vmax=vmax,
         ax=axes[1],
     )
-    axes[1].set_title("2011 Predicted")
+    axes[1].set_title(y_pred_name) #"2011 Predicted"
 
-    if y_pred_scaled:
+    if third_plot:
         # predicted - scaled
         plot_colored_map(
             gdf,
-            column=y_pred_name + "_scaled",
+            column=y_pred_2_name,
             vmin=vmin,
             vmax=vmax,
             ax=axes[2],
         )
-        axes[2].set_title("2011 Predicted (Scaled)")
+        axes[2].set_title(y_pred_2_name) #"2011 Predicted (Scaled)"
 
     f.suptitle(title)
     plt.tight_layout()
