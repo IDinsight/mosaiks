@@ -26,13 +26,6 @@ import torch
 from torch.utils.data import Dataset
 
 
-def filter_points_with_buffer(points_gdf, shape, buffer_distance):
-    # This buffer ensures that no points are take at the border
-    # which would lead to duplication with neighboring countries
-
-    return points_gdf[points_gdf.within(shape.unary_union.buffer(buffer_distance))]
-
-
 def sort_by_hilbert_distance(points_gdf):
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
@@ -72,22 +65,24 @@ class CustomDataset(Dataset):
                     assets=self.bands,
                     resolution=self.resolution,
                 )
-                
+
                 x_utm, y_utm = pyproj.Proj(stack.crs)(lon, lat)
                 x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
                 y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
-                
-#                 x_min, y_min = pyproj.Proj(stack.crs)(lon - self.buffer, lat - self.buffer)
-#                 x_max, y_max = pyproj.Proj(stack.crs)(lon + self.buffer, lat + self.buffer)
+
+                #                 x_min, y_min = pyproj.Proj(stack.crs)(lon - self.buffer, lat - self.buffer)
+                #                 x_max, y_max = pyproj.Proj(stack.crs)(lon + self.buffer, lat + self.buffer)
                 aoi = stack.loc[..., y_max:y_min, x_min:x_max]
                 data = aoi.compute(
                     # scheduler="single-threaded"
                 )
                 out_image = data.data
-                
+
                 # Min-max normalize pixel values to [0,1]?
-                out_image = (out_image - out_image.min()) / (out_image.max() - out_image.min())
-                
+                out_image = (out_image - out_image.min()) / (
+                    out_image.max() - out_image.min()
+                )
+
             except BaseException as e:
                 print(f"{idx} Error: {str(e)}")
                 return None
