@@ -1,13 +1,4 @@
-# TO-DO
-# Shrink shape by a given buffer to avoid edge effects, like below
-# # # Filer points at the edge of the shape to within a buffer
-# states = gpd.read_file(f"{DATA_ROOT}/00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp/state.shp")
-# states['zero_column'] = 0
-# country = states.dissolve(by='zero_column')
-
-# BUFFER_DISTANCE = 0.005
-# points_gdf = filter_points_with_buffer(points_gdf, country, BUFFER_DISTANCE)
-
+import logging
 from pathlib import Path
 
 import geopandas as gpd
@@ -15,18 +6,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+logging.basicConfig(level=logging.INFO)
+
 
 def load_points_gdf(filepath, lat_name="Lat", lon_name="Lon", crs="EPSG:4326"):
     """Load CSV with LatLon columns into a GeoDataFrame"""
 
     points_df = pd.read_csv(filepath)
     points_gdf = gpd.GeoDataFrame(
-        points_df, 
-        geometry=gpd.points_from_xy(
-            points_df[lon_name], 
-            points_df[lat_name]
-        ),
-        crs=crs
+        points_df,
+        geometry=gpd.points_from_xy(points_df[lon_name], points_df[lat_name]),
+        crs=crs,
     )
     del points_df
 
@@ -56,8 +46,8 @@ def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
     points_grid_gdf = _create_grid_of_points(*bounds, step=step)
     selected_points_gdf = _inner_join_points(points_grid_gdf, shapes_gdf)
 
-    print("Number of point coords in grid:", points_grid_gdf.shape[0])
-    print("Number of point coords selected:", selected_points_gdf.shape[0])
+    logging.info(f"Number of point coords in grid:{points_grid_gdf.shape[0]}")
+    logging.info(f"Number of point coords selected:{selected_points_gdf.shape[0]}")
 
     return selected_points_gdf
 
@@ -114,14 +104,14 @@ def plot_selected_points(
     None
 
     """
-
     selected_points_gdf.plot(
         column=selected_points_gdf[color_column].astype(str),
         figsize=(10, 10),
         markersize=0.1,
     )
+
     plt.axis("off")
-    plt.title("Point coordinates to request from MOSAIKS")
+    plt.title("Chosen point coordinates")
     plt.tight_layout()
 
     file_path = (
@@ -154,7 +144,7 @@ def _get_total_bounds(gdf, pre_calc_bounds=None):
 
     """
     if pre_calc_bounds == "india":
-        print("Note: Using pre-calculated bounds for India.")
+        logging.info("Note: Using pre-calculated bounds for India.")
         return [68.48448624, 6.75487781, 97.20992258, 35.49455663]
     else:
         return gdf.total_bounds
@@ -213,6 +203,6 @@ def _inner_join_points(points_grid_gdf, shapes_gdf):
     """
     selected_points_gdf = points_grid_gdf.sjoin(shapes_gdf)
     selected_points_gdf.drop(columns="index_right", inplace=True)
-    # selected_points_gdf.sort_values(by=["shrid"], inplace=True)
+    selected_points_gdf.sort_values(by=["shrid"], inplace=True)
 
     return selected_points_gdf
