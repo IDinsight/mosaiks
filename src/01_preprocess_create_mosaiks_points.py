@@ -14,8 +14,6 @@ from custom.mosaiks_points import (
     plot_selected_points,
     points_to_latlon_df,
 )
-
-# from custom.shrug_data import lengthen_shapefile_ID_names
 from custom.utils import load_gdf
 
 
