@@ -63,7 +63,7 @@ class CustomDataset(Dataset):
         stac_item = self.items[idx]
 
         if stac_item is None:
-            print(f"{idx} Error: no stac item passed\n")
+            # print(f"{idx} Error: no stac item passed\n")
             return None
         else:
             try:
