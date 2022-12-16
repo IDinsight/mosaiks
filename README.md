@@ -30,17 +30,18 @@ This repository holds the Data Science modelling work for the Ultrapoor project.
 1. If never done before, run
 
     ```console
-    make combine-shrug-rural-keys
+    make shrug-keys-with-shapes
     ```
 
 2. If MOSAIKS data has never been acquired, run
 
     ```console
-    make create-mosaiks-points
+    make mosaiks-request-points
     ```
 
-    to make the grid of points and request features for these points on the [MOSAIKS website](https://siml.berkeley.edu/portal/file_query/).
+    to make the grid of points and request features for these points on the [MOSAIKS website](https://siml.berkeley.edu/portal/file_query/) or through the Featurization notebook.
 
+### DEPRECATED:
 3. Download and extract the resulting data and place it inside the folder below as a `.csv` file:
 
     ```console

@@ -20,8 +20,8 @@ setup-env:
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pip install -r requirements.txt --ignore-installed
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pre-commit install
 
-combine-shrug-rural-keys:
+shrug-keys-with-shapes:
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/00_preprocess_combine_shrug_keys_with_shapes.py
 
-create-mosaiks-points:
+mosaiks-request-points:
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/01_preprocess_create_mosaiks_points.py
