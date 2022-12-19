@@ -7,7 +7,7 @@ import pandas as pd
 from .utils import latlon_df_to_gdf
 
 
-def save_features_to_parquet(array, points_list, start_index=None, end_index=None, output_folder_path="data/", filename_prefix="mosaiks"):
+def save_features_to_parquet(array, points_list, output_folder_path, start_index=None, end_index=None, filename_prefix="mosaiks"):
     """Add latlons to a numpy array of MOSAIKS features and save to file as a gzipped parquet."""
     
     if start_index==None and end_index==None:
@@ -25,7 +25,7 @@ def save_features_to_parquet(array, points_list, start_index=None, end_index=Non
 
     filename = f"{filename_prefix}_{str(start_index)}_to_{str(end_index-1)}"
     os.makedirs(output_folder_path, exist_ok=True)
-    df.to_parquet(output_folder_path+filename+".parquet.gzip", compression="gzip")
+    df.to_parquet(output_folder_path/f"{filename}.parquet.gzip", compression="gzip")
 
 
 def load_mosaiks_data(folder_name):
