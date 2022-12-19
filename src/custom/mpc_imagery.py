@@ -2,15 +2,15 @@
 
 # change print() to logging.
 
-# change image cropping to caleb's neater way? can that be parallelized?
-
 # change convex-hull to just union of points? (~line 118)
 
 ## NOTE: this method of finding the least cloudy image in batches of points
 ## does no stitching or compositing and so can't handle points
 ## that are close to the edge of an image well!
 
-# limit on line 125 seems arbitrary
+# modularise out the fetching and cloud-cover selection function...
+
+# limit on line 136 seems arbitrary
 
 import geopandas as gpd
 import dask_geopandas as dask_gpd
@@ -29,12 +29,12 @@ from torch.utils.data import Dataset
 def sort_by_hilbert_distance(points_gdf):
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
-    hd = ddf.hilbert_distance().compute()
-    points_gdf["hd"] = hd
-    points_gdf = points_gdf.sort_values("hd")
+    hilbert_distance = ddf.hilbert_distance().compute()
+    points_gdf["hilbert_distance"] = hilbert_distance
+    points_gdf = points_gdf.sort_values("hilbert_distance")
 
     del ddf
-    del hd
+    del hilbert_distance
 
     return points_gdf
 
@@ -56,30 +56,33 @@ class CustomDataset(Dataset):
         stac_item = self.items[idx]
         
         if stac_item is None:
-            # print(f"{idx} Error: no stac item passed\n")
             return None
         else:
             try:
-                stack = stackstac.stack(
+                # 1. Fetch image(s)
+                xarray = stackstac.stack(
                     stac_item,
                     assets=self.bands,
-                    resolution=self.resolution,
+                    resolution=self.resolution
                 )
-                
-                # make composite if multiple images returned
-                if type(stac_item) is list:
-                    stack = stack.median(dim="time").compute()
-                
-                x_utm, y_utm = pyproj.Proj(stack.crs)(lon, lat)
+
+                # 2. Crop image(s) - WARNING: VERY SLOW if multiple images are stacked.
+                x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
                 x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
                 y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
-
-                aoi = stack.loc[..., y_max:y_min, x_min:x_max]
-                data = aoi.compute(
-                    # scheduler="single-threaded"
-                )
                 
-                # Min-max normalize pixel values to [0,1]?
+                aoi = xarray.loc[..., y_max:y_min, x_min:x_max]
+                cropped_xarray = aoi.compute()
+
+                # 2.5 Composite if there are multiple images across time
+                if type(stac_item)==list:
+                    cropped_xarray = cropped_xarray.median(dim="time").compute()
+
+                # 3. Convert to numpy
+                out_image = cropped_xarray.data
+                
+                # 4. Min-max normalize pixel values to [0,1] 
+                #    !! From MOSAIKS code... Check the effect of this !!
                 out_image = (out_image - out_image.min()) / (
                     out_image.max() - out_image.min()
                 )
@@ -87,14 +90,17 @@ class CustomDataset(Dataset):
             except BaseException as e:
                 print(f"{idx} Error: {str(e)}")
                 return None
-
+            
+            # 5. Finally, convert to pytorch tensor 
             out_image = torch.from_numpy(out_image).float()
 
             return out_image
 
 
+# TODO: Make this function not be awful. Modularise out the fetching and cloud-cover selection.
+# TODO: This function's logic re. first getting the ID then getting the actual item seems repeated/not good. Fix.
 def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_cloudy_only=True):
-    """
+    """    
     Find a STAC item for points in the `points_gdf` GeoDataFrame
 
     Parameters
@@ -115,6 +121,7 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_clou
         item that covers each point.
     """
 
+    # Get the images that cover any of the given points
     mpc_stac_api = pystac_client.Client.open(
         "https://planetarycomputer.microsoft.com/api/stac/v1",
         modifier=planetary_computer.sign_inplace,
@@ -133,6 +140,9 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_clou
     item_collection = search_results.item_collection()
     items = search_results.get_all_items_as_dict()["features"]
 
+    
+    # Select only images that cover each point and add the STAC item for the least cloudy
+    # image to the df
     if least_cloudy_only:
         # Create GeoDataFrame of image shapes, ids, and cloud cover tags
         id_list = []
@@ -175,7 +185,11 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_clou
             
         points_gdf = points_gdf.assign(stac_item=least_cloudy_items)
         
-    else: # return a list of STAC image IDs that cover each point 
+        
+        
+    # if all images requested that cover a point (not just that with the lowest cloud cover),
+    # then return a list of STAC items that cover each point instead of just one
+    else:
         point_geom_list = points_gdf.geometry.tolist()
         
         id_list = []
@@ -208,6 +222,7 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_clou
             
         points_gdf = points_gdf.assign(stac_item=list_of_items_covering_points)
 
+    
     return points_gdf
 
 
