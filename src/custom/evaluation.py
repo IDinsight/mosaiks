@@ -6,7 +6,15 @@ from scipy.stats import kendalltau, pearsonr, spearmanr
 from sklearn.metrics import r2_score
 
 
-def show_results(y_test, y_pred, file_name=None, line=True, title=""):
+def show_results(
+    y_test,
+    y_pred,
+    xlabel="Predicted 2013",
+    ylabel="Observed",
+    file_name=None,
+    line=True,
+    title="",
+):
     """
     Print stats and plot true vs predicted values.
 
@@ -16,6 +24,16 @@ def show_results(y_test, y_pred, file_name=None, line=True, title=""):
         The true values
     y_pred : array-like
         The predicted values
+    xlabel : str
+        The label for the x-axis
+    ylabel : str
+        The label for the y-axis
+    file_name : str
+        The name of the file to save the plot to.
+    line : bool
+        Whether to plot a line at y=x.
+    title : str
+        The title of the plot.
 
     Returns
     -------
@@ -58,7 +76,7 @@ Kendall        {kendall}"""
         transform=ax.transAxes,
     )
 
-    ax.set(xlabel="Predicted", ylabel="Observed")
+    ax.set(xlabel=xlabel, ylabel=ylabel)
     ax.set_title(title)
     ax.set_ylim(-0.05, 1.05)
     ax.set_xlim(-0.1, 1.1)
@@ -127,7 +145,7 @@ def plot_prediction_maps(
 
     """
 
-    third_plot = True if y_pred_2_name!=None else False
+    third_plot = True if y_pred_2_name != None else False
     f, axes = plt.subplots(1, 2 + third_plot, sharey=True, figsize=(10, 5))
 
     # observed
@@ -148,7 +166,7 @@ def plot_prediction_maps(
         vmax=vmax,
         ax=axes[1],
     )
-    axes[1].set_title(y_pred_name) #"2011 Predicted"
+    axes[1].set_title(y_pred_name)  # "2011 Predicted"
 
     if third_plot:
         # predicted - scaled
@@ -159,7 +177,7 @@ def plot_prediction_maps(
             vmax=vmax,
             ax=axes[2],
         )
-        axes[2].set_title(y_pred_2_name) #"2011 Predicted (Scaled)"
+        axes[2].set_title(y_pred_2_name)  # "2011 Predicted (Scaled)"
 
     f.suptitle(title)
     plt.tight_layout()
