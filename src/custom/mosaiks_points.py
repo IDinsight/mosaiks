@@ -1,3 +1,6 @@
+# TO DO:
+# 1. Improve duplicate point removal/prevention
+
 import logging
 from pathlib import Path
 
@@ -202,6 +205,9 @@ def _inner_join_points(points_grid_gdf, shapes_gdf):
 
     """
     selected_points_gdf = points_grid_gdf.sjoin(shapes_gdf)
+    # drop duplicated points (points that sit inside multiple shapes)
+    # IMPROVE THIS PROCESS
+    selected_points_gdf.drop_duplicates(subset=["geometry"], inplace=True)
     selected_points_gdf.drop(columns="index_right", inplace=True)
     selected_points_gdf.sort_values(by=["shrid"], inplace=True)
 

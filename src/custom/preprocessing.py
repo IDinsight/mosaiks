@@ -26,8 +26,8 @@ def preserve_geometry(gdf, suffix="village"):
     return gdf
 
 
-def _add_shrid_to_mosaiks(mosaiks_features_gdf, shrug_key_geoms):
-    """Add SHRID to Mosaiks features.
+def _add_shrug_to_mosaiks(mosaiks_features_gdf, shrug_key_geoms):
+    """Add SHRUG columns to Mosaiks features based on if the point falls inside the SHRUG shape.
 
     Parameters
     ----------
