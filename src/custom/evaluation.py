@@ -1,9 +1,70 @@
 from pathlib import Path
 
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import kendalltau, pearsonr, spearmanr
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, recall_score, precision_score
+
+
+def plot_precision_recall_curve(y_test, y_pred, data_label):
+    """
+    Plot the precision-recall curve.
+
+    Parameters
+    ----------
+    y_test : array-like
+        The true values
+    y_pred : array-like
+        The predicted values
+    data_label : str
+        The label for the data.
+
+    Returns
+    -------
+    None
+
+    """
+    cutoffs = np.arange(0, 1.01, 0.01)
+    recalls = []
+    precisions = []
+    for cutoff in cutoffs:
+        y_test_binary = (y_test > cutoff).astype(int)
+        y_pred_binary = (y_pred > cutoff).astype(int)
+
+        recalls.append(recall_score(y_test_binary, y_pred_binary, zero_division=0))
+        precisions.append(
+            precision_score(y_test_binary, y_pred_binary, zero_division=0)
+        )
+
+    f, axes = plt.subplots(1, 3, figsize=(12, 4))
+
+    axes[0].plot(cutoffs, recalls, label="Recall")
+    axes[0].set_title("Recall")
+    axes[0].set_xlabel("Cutoff")
+    axes[0].set_ylabel("Recall")
+
+    axes[1].plot(cutoffs, precisions, label="Precision")
+    axes[1].set_title("Precision")
+    axes[1].set_xlabel("Cutoff")
+    axes[1].set_ylabel("Precision")
+
+    axes[2].plot(recalls, precisions, label="Precision-Recall")
+    axes[2].set_title("Precision-Recall")
+    axes[2].set_xlabel("Recall")
+    axes[2].set_ylabel("Precision")
+
+    plt.tight_layout()
+    plt.savefig(
+        Path(__file__).parents[2]
+        / "data"
+        / "04_modeloutput"
+        / f"precision_recall_{data_label}.png",
+        dpi=300,
+    )
+    plt.show()
+
+    return None
 
 
 def show_results(
