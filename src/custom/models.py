@@ -18,14 +18,14 @@ def featurize(image, model, device):
     """
     image = image.to(device)
     with torch.no_grad():
-        feats = model(image).cpu().numpy()  # .unsqueeze(0)
+        feats = model(image).cpu().unsqueeze(0).numpy()
     return feats
 
 
 class RCF(nn.Module):
     """A model for extracting Random Convolution Features (RCF) from input imagery."""
 
-    def __init__(self, num_features=16, kernel_size=3, num_input_channels=6):
+    def __init__(self, num_features=1000, kernel_size=3, num_input_channels=6):
         super(RCF, self).__init__()
         # We create `num_features / 2` filters so require `num_features` to be divisible by 2
         assert num_features % 2 == 0, "Please enter an even number of features."

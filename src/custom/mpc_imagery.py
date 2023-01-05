@@ -75,11 +75,12 @@ class CustomDataset(Dataset):
                 cropped_xarray = aoi.compute()
 
                 # 2.5 Composite if there are multiple images across time
+                # 3. Convert to numpy
                 if type(stac_item)==list:
                     cropped_xarray = cropped_xarray.median(dim="time").compute()
-
-                # 3. Convert to numpy
-                out_image = cropped_xarray.data
+                    out_image = cropped_xarray.data
+                else:
+                    out_image = cropped_xarray.data.squeeze()
                 
                 # 4. Min-max normalize pixel values to [0,1] 
                 #    !! From MOSAIKS code... Check the effect of this !!
@@ -99,7 +100,7 @@ class CustomDataset(Dataset):
 
 # TODO: Make this function not be awful. Modularise out the fetching and cloud-cover selection.
 # TODO: This function's logic re. first getting the ID then getting the actual item seems repeated/not good. Fix.
-def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_cloudy_only=True):
+def fetch_stac_items(points_gdf, satellite, search_start, search_end, stac_output="least_cloudy"):
     """    
     Find a STAC item for points in the `points_gdf` GeoDataFrame
 
@@ -113,6 +114,8 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_clou
         Date formatted as YYYY-MM-DD
     search_end : string
         Date formatted as YYYY-MM-DD
+    stac_output : string
+        Whether to store "all" images found or just the "least_cloudy"
 
     Returns
     -------
@@ -143,7 +146,7 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_clou
     
     # Select only images that cover each point and add the STAC item for the least cloudy
     # image to the df
-    if least_cloudy_only:
+    if stac_output == "least_cloudy":
         # Create GeoDataFrame of image shapes, ids, and cloud cover tags
         id_list = []
         cloud_cover_list = []
@@ -189,7 +192,7 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, least_clou
         
     # if all images requested that cover a point (not just that with the lowest cloud cover),
     # then return a list of STAC items that cover each point instead of just one
-    else:
+    if stac_output == "all":
         point_geom_list = points_gdf.geometry.tolist()
         
         id_list = []
