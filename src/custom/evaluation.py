@@ -139,10 +139,10 @@ Kendall        {kendall}"""
 
     ax.set(xlabel=xlabel, ylabel=ylabel)
     ax.set_title(title)
-    ax.set_ylim(-0.05, 1.05)
-    ax.set_xlim(-0.1, 1.1)
 
     if line:
+        ax.set_ylim(-0.05, 1.05)
+        ax.set_xlim(-0.1, 1.1)
         sns.lineplot(
             x=[0, 1],
             y=[0, 1],
