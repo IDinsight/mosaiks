@@ -7,7 +7,7 @@ from scipy.stats import kendalltau, pearsonr, spearmanr
 from sklearn.metrics import r2_score, recall_score, precision_score
 
 
-def plot_precision_recall_curve(y_test, y_pred, data_label):
+def plot_precision_recall_curve(y_test, y_pred, experiment_name):
     """
     Plot the precision-recall curve.
 
@@ -17,7 +17,7 @@ def plot_precision_recall_curve(y_test, y_pred, data_label):
         The true values
     y_pred : array-like
         The predicted values
-    data_label : str
+    experiment_name : str
         The label for the data.
 
     Returns
@@ -59,7 +59,7 @@ def plot_precision_recall_curve(y_test, y_pred, data_label):
         Path(__file__).parents[2]
         / "data"
         / "04_modeloutput"
-        / f"precision_recall_{data_label}.png",
+        / f"precision_recall_{experiment_name}.png",
         dpi=300,
     )
     plt.show()
