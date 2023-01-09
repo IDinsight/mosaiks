@@ -1,13 +1,14 @@
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import kendalltau, pearsonr, spearmanr
 from sklearn.metrics import r2_score, recall_score, precision_score
 
 
-def plot_precision_recall_curve(y_test, y_pred, experiment_name):
+def get_cutoff_range_metrics(y_test, y_pred):
     """
     Plot the precision-recall curve.
 
@@ -25,34 +26,133 @@ def plot_precision_recall_curve(y_test, y_pred, experiment_name):
     None
 
     """
+
+    # recalls = []
+    # precisions = []
+    results = pd.DataFrame(
+        columns=[
+            "cutoff",
+            "ground_pos",
+            "pred_pos",
+            "TP",
+            "FP",
+            "TN",
+            "FN",
+            "recall",
+            "precision",
+        ]
+    )
+
     cutoffs = np.arange(0, 1.01, 0.01)
-    recalls = []
-    precisions = []
     for cutoff in cutoffs:
         y_test_binary = (y_test > cutoff).astype(int)
         y_pred_binary = (y_pred > cutoff).astype(int)
 
-        recalls.append(recall_score(y_test_binary, y_pred_binary, zero_division=0))
-        precisions.append(
-            precision_score(y_test_binary, y_pred_binary, zero_division=0)
-        )
+        # calculate total ground and predicted positives
+        ground_pos = np.sum(y_test_binary)
+        pred_pos = np.sum(y_pred_binary)
 
-    f, axes = plt.subplots(1, 3, figsize=(12, 4))
+        # calculate and store true postives, false positives, etc.
+        TP = np.sum((y_test_binary == 1) & (y_pred_binary == 1))
+        FP = np.sum((y_test_binary == 0) & (y_pred_binary == 1))
+        TN = np.sum((y_test_binary == 0) & (y_pred_binary == 0))
+        FN = np.sum((y_test_binary == 1) & (y_pred_binary == 0))
 
-    axes[0].plot(cutoffs, recalls, label="Recall")
-    axes[0].set_title("Recall")
-    axes[0].set_xlabel("Cutoff")
-    axes[0].set_ylabel("Recall")
+        # calculate and store recall and precision
+        recall = recall_score(y_test_binary, y_pred_binary, zero_division=0)
+        precision = precision_score(y_test_binary, y_pred_binary, zero_division=0)
 
-    axes[1].plot(cutoffs, precisions, label="Precision")
-    axes[1].set_title("Precision")
-    axes[1].set_xlabel("Cutoff")
-    axes[1].set_ylabel("Precision")
+        # append as row to results dataframe
+        results.loc[cutoff] = [
+            cutoff,
+            int(ground_pos),
+            pred_pos,
+            TP,
+            FP,
+            TN,
+            FN,
+            recall,
+            precision,
+        ]
 
-    axes[2].plot(recalls, precisions, label="Precision-Recall")
-    axes[2].set_title("Precision-Recall")
-    axes[2].set_xlabel("Recall")
-    axes[2].set_ylabel("Precision")
+    # convert pandas types to ints
+    results = results.astype(
+        {
+            "cutoff": "float",
+            "ground_pos": "int",
+            "pred_pos": "int",
+            "TP": "int",
+            "FP": "int",
+            "TN": "int",
+            "FN": "int",
+            "recall": "float",
+            "precision": "float",
+        }
+    )
+
+    return results
+
+
+def plot_metrics(results, experiment_name):
+
+    cutoffs = results["cutoff"]
+    recalls = results["recall"]
+    precisions = results["precision"]
+
+    # plots
+    f, axes = plt.subplots(3, 2, figsize=(8, 12))
+
+    # plot ground truth positive and predicted positive counts
+    ax = axes[0, 0]
+    ax.plot(cutoffs, results["ground_pos"], label="Ground Positives")
+    ax.plot(cutoffs, results["pred_pos"], label="Predicted Positives")
+    ax.set_title("No. true vs predicted positives")
+    ax.set_xlabel("Cutoff")
+    ax.set_ylabel("Count")
+    ax.legend()
+
+    # plot true and false positives/negatives
+    ax = axes[0, 1]
+    ax.plot(cutoffs, results["TP"], label="TP")
+    ax.plot(cutoffs, results["FP"], label="FP")
+    ax.plot(cutoffs, results["TN"], label="TN")
+    ax.plot(cutoffs, results["FN"], label="FN")
+    ax.set_title("No. of TP, FP, TN, FN")
+    ax.set_xlabel("Cutoff")
+    ax.set_ylabel("")
+    ax.legend()
+
+    # plot recall and precision
+    ax = axes[1, 0]
+    ax.plot(cutoffs, recalls, label="Recall")
+    ax.set_title("Recall per cutoff")
+    ax.set_xlabel("Cutoff")
+    ax.set_ylabel("Recall")
+
+    ax = axes[1, 1]
+    ax.plot(cutoffs, precisions, label="Precision")
+    ax.set_title("Precision per cutoff")
+    ax.set_xlabel("Cutoff")
+    ax.set_ylabel("Precision")
+
+    # plot precision-recall
+    ax = axes[2, 0]
+    ax.scatter(recalls, precisions, c=cutoffs, s=20, lw=0)
+    ax.plot(recalls, precisions, label="Precision-Recall")
+    ax.set_title("Precision-Recall Curve")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+
+    # plot ROC
+    tpr = results["TP"] / (results["TP"] + results["FN"])
+    fpr = results["FP"] / (results["FP"] + results["TN"])
+    ax = axes[2, 1]
+    cutoff_scatter = ax.scatter(fpr, tpr, c=cutoffs, s=20, lw=0)
+    ax.plot(fpr, tpr, label="ROC")
+    ax.set_title("Bonus: ROC")
+    ax.set_xlabel("FP Rate")
+    ax.set_ylabel("TN Rate")
+    plt.colorbar(cutoff_scatter, ax=ax, label="Cutoff")
 
     plt.tight_layout()
     plt.savefig(
@@ -63,8 +163,6 @@ def plot_precision_recall_curve(y_test, y_pred, experiment_name):
         dpi=300,
     )
     plt.show()
-
-    return None
 
 
 def show_results(
