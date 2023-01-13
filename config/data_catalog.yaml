@@ -1,0 +1,8 @@
+request_points:
+  filename : urb_rur_request_points.csv
+  folder : 01_preprocessed/mosaiks_request_points
+
+latlong_stacs:
+  filename : latlons_and_stacs.pkl
+  folder : 01_preprocessed/mosaiks_features
+

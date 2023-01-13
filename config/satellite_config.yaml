@@ -1,0 +1,27 @@
+landsat-8-c2-l2 :
+  resolution : 30
+  bands :
+     # - SR_B1, # Coastal/Aerosol Band (B1)
+     - SR_B2,  # Blue Band (B2)
+     - SR_B3,  # Green Band (B3)
+     - SR_B4,  # Red Band (B4)
+     - SR_B5,  # Near Infrared Band 0.8 (B5)
+     - SR_B6,  # Short-wave Infrared Band 1.6 (B6)
+     - SR_B7,  # Short-wave Infrared Band 2.2 (B7)
+  buffer_distance : 1200
+  min_image_edge : 30
+
+sentinel-2-l2a :
+  resolution : 10
+  bands : 
+    - B02, # B02 (blue) 10 meter
+    - B03, # B03 (green) 10 meter
+    - B04, # B04 (red) 10 meter
+    - B05, # B05(Veg Red Edge 1) 20 meter
+    - B06, # B06(Veg Red Edge 2) 20 meter
+    - B07, # B07(Veg Red Edge 3) 20 meter
+    - B08, # B08 (NIR) 10 meter
+    - B11, # B11 (SWIR (1.6)) 20 meter
+    - B12, # B12 (SWIR (2.2)) 20 meter
+  buffer_distance : 1200
+  min_image_edge : 90

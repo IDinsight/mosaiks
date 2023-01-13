@@ -1,11 +1,46 @@
 from pathlib import Path
 
 import geopandas as gpd
+import pandas as pd
+import yaml
+
+
+def load_yaml_config(filename, config_subfolder=None):
+    """
+    Load generic yaml files from config and return dictionary
+    """
+    if config_subfolder:
+        full_path = Path(__file__).parents[1] / "config/{}/{}".format(
+            config_subfolder, filename
+        )
+    else:
+        full_path = Path(__file__).parents[1] / "config/{}".format(filename)
+
+    with open(full_path) as file:
+        yaml_dict = yaml.full_load(file)
+
+    return yaml_dict
+
+
+def load_points_gdf(filename, folder, lat_name="Lat", lon_name="Lon", crs="EPSG:4326"):
+    """Load CSV with LatLon columns into a GeoDataFrame"""
+
+    full_path = Path(__file__).parents[1] / f"data/{folder}/{filename}"
+
+    points_df = pd.read_csv(full_path)
+    points_gdf = gpd.GeoDataFrame(
+        points_df,
+        geometry=gpd.points_from_xy(points_df[lon_name], points_df[lat_name]),
+        crs=crs,
+    )
+    del points_df
+
+    return points_gdf
 
 
 def latlon_df_to_gdf(df, lat_name="Lat", lon_name="Lon"):
     """Convert df to GeoDataFrame using latlon columns"""
-                     
+
     latlon_point_geoms = gpd.points_from_xy(
         x=df[lon_name],
         y=df[lat_name],

@@ -12,7 +12,8 @@ directories:
 	touch config/parameters.yml
 
 data-directories:
-	mkdir -p logs data/00_raw data/01_preprocessed data/02_modelinput data/03_intermediate data/04_modeloutput
+	mkdir -p logs data/00_raw/SHRUG data/01_preprocessed/mosaiks_request_points \
+		data/02_modelinput data/03_intermediate data/04_modeloutput
 
 setup-env:
 	conda create --name $(PROJECT_CONDA_ENV) python==3.9 -y
