@@ -1,3 +1,5 @@
+import os
+
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import pandas as pd
@@ -7,7 +9,7 @@ import pystac_client
 import shapely.geometry
 import stackstac
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import DataLoader, Dataset
 
 
 def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
@@ -27,6 +29,32 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
     )
 
     return points_gdf_with_stac.compute()
+
+
+def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
+
+    stac_item_list = points_gdf_with_stac.stac_item.tolist()
+    points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
+    dataset = CustomDataset(
+        points_list,
+        stac_item_list,
+        buffer=satellite_params["buffer_distance"],
+        bands=satellite_params["bands"],
+        resolution=satellite_params["resolution"],
+    )
+
+    num_workers = os.cpu_count()
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=lambda x: x,
+        pin_memory=False,
+        num_workers=num_workers,
+        persistent_workers=True,
+    )
+
+    return data_loader
 
 
 def sort_by_hilbert_distance(points_gdf):
@@ -188,37 +216,32 @@ class CustomDataset(Dataset):
         if stac_item is None:
             return None
         else:
-            try:
-                # 1. Fetch image(s)
-                xarray = stackstac.stack(
-                    stac_item, assets=self.bands, resolution=self.resolution
-                )
+            # 1. Fetch image(s)
+            xarray = stackstac.stack(
+                stac_item, assets=self.bands, resolution=self.resolution
+            )
 
-                # 2. Crop image(s) - WARNING: VERY SLOW if multiple images are stacked.
-                x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
-                x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
-                y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
+            # 2. Crop image(s) - WARNING: VERY SLOW if multiple images are stacked.
+            x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
+            x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
+            y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
-                aoi = xarray.loc[..., y_max:y_min, x_min:x_max]
-                cropped_xarray = aoi.compute()
+            aoi = xarray.loc[..., y_max:y_min, x_min:x_max]
+            cropped_xarray = aoi.compute()
 
-                # 2.5 Composite if there are multiple images across time
-                # 3. Convert to numpy
-                if type(stac_item) == list:
-                    cropped_xarray = cropped_xarray.median(dim="time").compute()
-                    out_image = cropped_xarray.data
-                else:
-                    out_image = cropped_xarray.data.squeeze()
+            # 2.5 Composite if there are multiple images across time
+            # 3. Convert to numpy
+            if type(stac_item) == list:
+                cropped_xarray = cropped_xarray.median(dim="time").compute()
+                out_image = cropped_xarray.data
+            else:
+                out_image = cropped_xarray.data.squeeze()
 
-                # 4. Min-max normalize pixel values to [0,1]
-                #    !! From MOSAIKS code... Check the effect of this !!
-                out_image = (out_image - out_image.min()) / (
-                    out_image.max() - out_image.min()
-                )
-
-            except BaseException as e:
-                print(f"{idx} Error: {str(e)}")
-                return None
+            # 4. Min-max normalize pixel values to [0,1]
+            #    !! From MOSAIKS code... Check the effect of this !!
+            out_image = (out_image - out_image.min()) / (
+                out_image.max() - out_image.min()
+            )
 
             # 5. Finally, convert to pytorch tensor
             out_image = torch.from_numpy(out_image).float()
