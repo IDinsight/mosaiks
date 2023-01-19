@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
 
-import geopandas as gpd
 import pandas as pd
 import yaml
+
+os.environ["USE_PYGEOS"] = "0"
+
+import geopandas as gpd  # noqa: E402
 
 
 def load_yaml_config(filename, config_subfolder=None):

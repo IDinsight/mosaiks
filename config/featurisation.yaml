@@ -3,9 +3,13 @@ satellite_image_params:
   search_start : "2021-04-01"
   search_end : "2022-03-31"
   stac_output : least_cloudy
+  stac_api: planetary-compute # earth-search
 
-num_features : 4000
+num_features : 500
+kernel_size : 3
+batch_size : 5
+device: cpu # cuda 
 
 dask :
-  n_partitions : 250
+  n_partitions : 12
 

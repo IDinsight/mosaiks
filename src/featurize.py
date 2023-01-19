@@ -28,7 +28,7 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
         meta=meta,
     )
 
-    return points_gdf_with_stac.compute()
+    return points_gdf_with_stac  # .compute()
 
 
 def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
@@ -43,15 +43,11 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
         resolution=satellite_params["resolution"],
     )
 
-    num_workers = os.cpu_count()
     data_loader = DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=False,
-        collate_fn=lambda x: x,
         pin_memory=False,
-        num_workers=num_workers,
-        persistent_workers=True,
     )
 
     return data_loader
@@ -68,7 +64,7 @@ def sort_by_hilbert_distance(points_gdf):
 
 
 def fetch_stac_items(
-    points_gdf, satellite_name, search_start, search_end, stac_output="least_cloudy"
+    points_gdf, satellite_name, search_start, search_end, stac_api, stac_output
 ):
     """
     Find a STAC item for points in the `points_gdf` GeoDataFrame.
@@ -85,6 +81,9 @@ def fetch_stac_items(
         Date formatted as YYYY-MM-DD
     stac_output : string
         Whether to store "all" images found or just the "least_cloudy"
+    stac_api: string
+        The stac api that pystac should connect to
+
     Returns
     -------
     geopandas.GeoDataFrame
@@ -93,15 +92,17 @@ def fetch_stac_items(
     """
 
     # Get the images that cover any of the given points
-    mpc_stac_api = pystac_client.Client.open(
-        "https://planetarycomputer.microsoft.com/api/stac/v1",
-        modifier=planetary_computer.sign_inplace,
-    )
+    # mpc_stac_api = pystac_client.Client.open(
+    #    "https://planetarycomputer.microsoft.com/api/stac/v1",
+    #    modifier=planetary_computer.sign_inplace,
+    # )
+
+    stac_api = get_stac_api(stac_api)
 
     # change to just union of points?
     bounding_poly = shapely.geometry.mapping(points_gdf.unary_union.convex_hull)
 
-    search_results = mpc_stac_api.search(
+    search_results = stac_api.search(
         collections=[satellite_name],
         intersects=bounding_poly,
         datetime=[search_start, search_end],
@@ -197,6 +198,22 @@ def fetch_stac_items(
     return points_gdf
 
 
+def get_stac_api(api_name):
+    if api_name == "planetary-compute":
+        stac_api = pystac_client.Client.open(
+            "https://planetarycomputer.microsoft.com/api/stac/v1",
+            modifier=planetary_computer.sign_inplace,
+        )
+    elif api_name == "earth":
+        stac_api = pystac_client.Client.open(
+            "https://earth-search.aws.element84.com/v0"
+        )
+    else:
+        raise NotImplementedError(f"STAC api {api_name} is not implemented")
+
+    return stac_api
+
+
 class CustomDataset(Dataset):
     def __init__(self, points, items, buffer, bands, resolution):
         self.points = points
@@ -231,7 +248,7 @@ class CustomDataset(Dataset):
 
             # 2.5 Composite if there are multiple images across time
             # 3. Convert to numpy
-            if type(stac_item) == list:
+            if isinstance(stac_item, list):
                 cropped_xarray = cropped_xarray.median(dim="time").compute()
                 out_image = cropped_xarray.data
             else:
