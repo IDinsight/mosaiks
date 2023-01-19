@@ -1,5 +1,3 @@
-import os
-
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import pandas as pd
@@ -10,6 +8,8 @@ import shapely.geometry
 import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
+
+__all__ = ["fetch_image_refs", "create_data_loader"]
 
 
 def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
@@ -28,7 +28,7 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
         meta=meta,
     )
 
-    return points_gdf_with_stac  # .compute()
+    return points_gdf_with_stac.compute()
 
 
 def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):

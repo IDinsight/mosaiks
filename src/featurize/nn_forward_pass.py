@@ -14,22 +14,26 @@ SEED = 41
 torch.backends.cudnn.benchmark = False
 torch.manual_seed(SEED)
 
+__all__ = ["create_features"]
 
-def create_features(dataloader, n_features, n_points, model, device, min_image_edge):
+
+def create_features(
+    dataloader, n_features, n_points, model, torch_device, min_image_edge
+):
 
     features_array = np.full([n_points, n_features], np.nan, dtype=float)
+    # torch_device = torch.device(device)
 
-    i = 0
+    i = -1
     for images in tqdm(dataloader):
-        for i, image in tqdm(enumerate(images, start=i), leave=False):
+        for i, image in tqdm(enumerate(images, start=i + 1), leave=False):
             if image is not None:
                 if (image.shape[1] >= min_image_edge) and (
                     image.shape[2] >= min_image_edge
                 ):
-                    mosaiks_features = featurize(image, model, device)
-                    features_array[i] = mosaiks_features
-                    print(i)
+                    features_array[i] = featurize(image, model, torch_device)
             else:
+                print("warn", flush=True)
                 warnings.warn("No image found")
 
     return features_array

@@ -12,7 +12,7 @@ landsat-8-c2-l2 :
   min_image_edge : 30
 
 sentinel-2-l2a :
-  resolution : 60
+  resolution : 20
   bands : 
     - B02 # B02 (blue) 10 meter
     - B03 # B03 (green) 10 meter
