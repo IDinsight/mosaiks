@@ -10,6 +10,7 @@
 # as script arguments
 
 import logging
+
 from custom.mosaiks_points import (
     create_gdf_of_enclosed_points,
     plot_selected_points,

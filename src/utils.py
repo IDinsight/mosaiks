@@ -81,6 +81,17 @@ def save_gdf(gdf, folder_name, file_name):
     gdf.to_file(folder_path / file_name)
 
 
+def load_dataset(dataset_name):
+
+    data_catalog = load_yaml_config("data_catalog.yaml")
+    folder_path = data_catalog[dataset_name]["folder"]
+    filename = data_catalog[dataset_name]["filename"]
+
+    file_path = Path(__file__).parents[2] / "data" / folder_path / filename
+
+    return pd.read_csv(file_path)
+
+
 def load_gdf(folder_name, file_name):
     """
     Load gdf from shapefile.

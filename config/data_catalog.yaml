@@ -6,3 +6,34 @@ latlong_stacs:
   filename : latlons_and_stacs.pkl
   folder : 01_preprocessed/mosaiks_features
 
+shrug_secc:
+  filename: shrug_secc.csv
+  folder: 00_raw/SHRUG/shrug-v1.5.samosa-secc-csv
+
+village_shrug_shapefiles:
+  filename: village.shp
+  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
+
+district_shrug_shapefiles:
+  filename: district.shp
+  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
+
+subdistrict_shrug_shapefiles:
+  filename: subdistrict.shp
+  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
+
+state_shrug_shapefiles:
+  filename: state.shp
+  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
+
+shrug_urban_keys:
+  filename: shrug_pc11u_key.csv
+  folder: 00_raw/SHRUG/shrug-v1.5.samosa-keys-csv
+
+shrug_rural_keys:
+  filename: shrug_pc11r_key.csv
+  folder: 00_raw/SHRUG/shrug-v1.5.samosa-keys-csv
+
+shrug_all_keys_with_shapes:
+  filename: shrug_all_keys_with_shapes.shp
+  folder: 01_preprocessed/SHRUG/shrug_all_keys_with_shapes
