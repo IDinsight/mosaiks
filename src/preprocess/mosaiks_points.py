@@ -1,32 +1,59 @@
-# TO DO:
-# 1. Improve duplicate point removal/prevention
+# TO-DO
+
+# Contents of main() should be a separate function
+
+# Add
+# 1. path_to_shapes
+# 2. step
+# 3. pre_calc_bounds
+# 4. subset to 6 states var
+# as script arguments
 
 import logging
-from pathlib import Path
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import src.utils as utl
+
 logging.basicConfig(level=logging.INFO)
 
+__all__ = ["create_mosaiks_points", "load_points_gdf", "plot_selected_points"]
 
-def load_points_gdf(filepath, lat_name="Lat", lon_name="Lon", crs="EPSG:4326"):
-    """Load CSV with LatLon columns into a GeoDataFrame"""
 
-    points_df = pd.read_csv(filepath)
-    points_gdf = gpd.GeoDataFrame(
-        points_df,
-        geometry=gpd.points_from_xy(points_df[lon_name], points_df[lat_name]),
-        crs=crs,
+@utl.log_progress
+def create_mosaiks_points(points_step, pre_calc_bounds=None):
+    """Create a GeoDataFrame of points enclosed by the SHRUG shapes and save to file."""
+
+    shrug_key_geoms = load_shrug_keys_w_shape()
+    selected_points_gdf = create_gdf_of_enclosed_points(
+        shrug_key_geoms,
+        step=points_step,
+        pre_calc_bounds=pre_calc_bounds,
     )
-    del points_df
-
-    return points_gdf
+    save_request_points(selected_points_gdf.geometry)
 
 
-def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
+@utl.log_progress
+def load_shrug_keys_w_shape():
+
+    data_catalog = utl.get_data_catalog_params("shrug_all_keys_with_shapes")
+    return utl.load_gdf(
+        data_catalog["folder"],
+        data_catalog["filename"],
+    )
+
+
+def save_request_points(points_gdf):
+
+    latlon_list_df = pd.DataFrame({"Lat": points_gdf.y, "Lon": points_gdf.x})
+    utl.save_csv_dataset(latlon_list_df, "request_points")
+
+
+@utl.log_progress
+def create_gdf_of_enclosed_points(shapes_gdf, step, pre_calc_bounds):
     """
     Create a GeoDataFrame of grid point coordinates enclosed by shapes in shapes_gdf.
 
@@ -45,7 +72,7 @@ def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
         A GeoDataFrame containing the selected points
 
     """
-    bounds = _get_total_bounds(shapes_gdf, pre_calc_bounds=pre_calc_bounds)
+    bounds = _get_total_bounds(shapes_gdf, pre_calc_bounds)
     points_grid_gdf = _create_grid_of_points(*bounds, step=step)
     selected_points_gdf = _inner_join_points(points_grid_gdf, shapes_gdf)
 
@@ -55,81 +82,7 @@ def create_gdf_of_enclosed_points(shapes_gdf, step=0.05, pre_calc_bounds=None):
     return selected_points_gdf
 
 
-def points_to_latlon_df(points_geometry, file_name=None):
-    """
-    Convert a GeoDataFrame of points to a DataFrame with lat and long columns and save to csv (optional).
-
-    Parameters
-    ----------
-    points_geometry : gpd.GeoDataFrame
-        A GeoDataFrame containing point coordinates in the geometry column
-    filename : str, default None
-        The filename to save the DataFrame to. If None, the DataFrame is not saved.
-
-    Returns
-    -------
-    pd.DataFrame
-
-    """
-    latlon_list_df = pd.DataFrame({"Lat": points_geometry.y, "Lon": points_geometry.x})
-
-    if file_name:
-        file_path = (
-            Path(__file__).parents[2]
-            / "data"
-            / "01_preprocessed"
-            / "mosaiks_request_points"
-            / f"{file_name}.csv"
-        )
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        latlon_list_df.to_csv(file_path, index=False)
-
-    return latlon_list_df
-
-
-def plot_selected_points(
-    selected_points_gdf, color_column, file_name="selected_points"
-):
-    """
-    Plot the selected points on a map.
-
-    Parameters
-    ----------
-    selected_points_gdf : gpd.GeoDataFrame
-        A GeoDataFrame containing the selected points
-    color_column : string
-        Name of the column to color the dots by
-    filename : str, default None
-        The filename to save the plot to.
-
-    Returns
-    -------
-    None
-
-    """
-    selected_points_gdf.plot(
-        column=selected_points_gdf[color_column].astype(str),
-        figsize=(10, 10),
-        markersize=0.1,
-    )
-
-    plt.axis("off")
-    plt.title("Chosen point coordinates")
-    plt.tight_layout()
-
-    file_path = (
-        Path(__file__).parents[2]
-        / "data"
-        / "01_preprocessed"
-        / "mosaiks_request_points"
-        / f"{file_name}.png"
-    )
-    plt.savefig(file_path)
-
-    plt.show()
-
-
-def _get_total_bounds(gdf, pre_calc_bounds=None):
+def _get_total_bounds(gdf, geo_region=None):
     """
     Returns the bounds of a GeoDataFrame.
 
@@ -137,7 +90,7 @@ def _get_total_bounds(gdf, pre_calc_bounds=None):
     ----------
     gdf : gpd.GeoDataFrame
         A GeoDataFrame containing shapes in the geometry column
-    pre_calc_bounds : {None, "india"}
+    geo_region : None or str
         If given, returns pre-calculated bounds. If None, the bounds are calculated.
 
     Returns
@@ -146,11 +99,17 @@ def _get_total_bounds(gdf, pre_calc_bounds=None):
         [min_long, min_lat, max_long, max_lat]
 
     """
-    if pre_calc_bounds == "india":
-        logging.info("Note: Using pre-calculated bounds for India.")
-        return [68.48448624, 6.75487781, 97.20992258, 35.49455663]
-    else:
+
+    pre_calculated_bounds = utl.load_yaml_config("geographic_bounds.yaml")
+    if geo_region is None:
         return gdf.total_bounds
+    else:
+        bounds = pre_calculated_bounds.get(geo_region)
+        if bounds is None:
+            raise NotImplementedError(f"bounds for `{geo_region}` has not been defined")
+        else:
+            logging.info(f"Note: Using pre-calculated bounds for {geo_region}.")
+            return bounds
 
 
 def _create_grid_of_points(
@@ -212,3 +171,57 @@ def _inner_join_points(points_grid_gdf, shapes_gdf):
     selected_points_gdf.sort_values(by=["shrid"], inplace=True)
 
     return selected_points_gdf
+
+
+def load_points_gdf(filepath, lat_name="Lat", lon_name="Lon", crs="EPSG:4326"):
+    """Load CSV with LatLon columns into a GeoDataFrame"""
+
+    points_df = pd.read_csv(filepath)
+    points_gdf = gpd.GeoDataFrame(
+        points_df,
+        geometry=gpd.points_from_xy(points_df[lon_name], points_df[lat_name]),
+        crs=crs,
+    )
+    del points_df
+
+    return points_gdf
+
+
+def plot_selected_points(
+    selected_points_gdf, color_column, file_name="selected_points"
+):
+    """
+    Plot the selected points on a map.
+
+    Parameters
+    ----------
+    selected_points_gdf : gpd.GeoDataFrame
+        A GeoDataFrame containing the selected points
+    color_column : string
+        Name of the column to color the dots by
+    filename : str, default None
+        The filename to save the plot to.
+
+    Returns
+    -------
+    None
+
+    """
+    selected_points_gdf.plot(
+        column=selected_points_gdf[color_column].astype(str),
+        figsize=(10, 10),
+        markersize=0.1,
+    )
+
+    plt.axis("off")
+    plt.title("Chosen point coordinates")
+    plt.tight_layout()
+    plt.show()
+
+
+if __name__ == "__main__":
+
+    preprocessing_config = utl.load_yaml_config("preprocessing.yaml")
+    create_mosaiks_points(
+        preprocessing_config["step"], preprocessing_config["pre_calc_bounds"]
+    )

@@ -8,6 +8,8 @@ import src.utils as utl
 
 logging.basicConfig(level=logging.INFO)
 
+__all__ = ["create_shapefile_w_keys"]
+
 
 def create_shapefile_w_keys(geographic_level="village"):
     """Preprocess SHRUG keys (rural and urban) by adding shapes and saving to file."""
@@ -16,9 +18,10 @@ def create_shapefile_w_keys(geographic_level="village"):
     keys = preprocess_keys()
     save_shrug_keys_w_shape(merge_shapes_and_keys(shrug_shapes, keys))
 
-    logging.log("Created shape file with keys")
+    logging.info("Created shape file with keys")
 
 
+@utl.log_progress
 def preprocess_shape_files(geographic_level):
 
     shrug_shapes = load_shrug_shapefiles(level=geographic_level)
@@ -38,6 +41,7 @@ def preprocess_keys():
     return shrug_all_keys
 
 
+@utl.log_progress
 def preprocess_rural_keys():
 
     shrug_r_keys = utl.load_csv_dataset("shrug_rural_keys")
@@ -66,8 +70,9 @@ def clean_rural_keys(shrug_r_keys):
     return shrug_r_keys_clean
 
 
+@utl.log_progress
 def preprocess_urban_keys():
-    shrug_u_keys = utl.load_csv_dataset("shrug_rural_keys")
+    shrug_u_keys = utl.load_csv_dataset("shrug_urban_keys")
     shrug_u_keys = clean_urban_keys(shrug_u_keys)
 
     return shrug_u_keys
@@ -82,6 +87,7 @@ def clean_urban_keys(shrug_u_keys):
     return shrug_u_keys
 
 
+@utl.log_progress
 def merge_shapes_and_keys(shrug_shapes, shrug_keys):
 
     shrug_all_keys_with_shapes = pd.merge(
@@ -120,7 +126,7 @@ def load_shrug_shapefiles(level="village"):
 
     data_catalog = utl.load_yaml_config("data_catalog.yaml")[dataset_name]
     shapefile_path = (
-        Path(__file__).parent[2]
+        Path(__file__).parents[2]
         / "data"
         / data_catalog["folder"]
         / data_catalog["filename"]
@@ -164,6 +170,5 @@ def change_shapefile_IDs_to_int(shrug_shp):
 
 if __name__ == "__main__":
 
-    import sys
-
-    create_shapefile_w_keys(sys.argv[1])
+    preprocessing_config = utl.load_yaml_config("preprocessing.yaml")
+    create_shapefile_w_keys(preprocessing_config["geographic_level"])
