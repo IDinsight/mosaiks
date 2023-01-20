@@ -93,7 +93,18 @@ def get_cutoff_range_metrics(y_test, y_pred):
 
 
 def plot_metrics(results, experiment_name):
-
+    Create and save a 3x2 grid of plots showing precision, recall, and ROC.
+    
+    Parameters
+    ----------
+    results : pd.DataFrame
+        Dataframe of metrics as created by `get_cutoff_range_metrics`.
+    experiment_name: string
+        Experiment name for title and filename,
+        
+    Returns
+    -------
+    None
     cutoffs = results["cutoff"]
     recalls = results["recall"]
     precisions = results["precision"]
