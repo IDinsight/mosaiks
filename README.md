@@ -6,7 +6,7 @@ This repository holds the Data Science modelling work for the Ultrapoor project.
 
 ### Environment
 
-1. Run `make setup-dev`
+1. Run `make setup-env`
 
 ### Data
 
