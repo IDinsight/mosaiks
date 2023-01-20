@@ -221,7 +221,9 @@ def plot_selected_points(
 
 if __name__ == "__main__":
 
-    preprocessing_config = utl.load_yaml_config("preprocessing.yaml")
+    preprocessing_config = utl.load_yaml_config("preprocessing.yaml")[
+        "point_coordinates"
+    ]
     create_mosaiks_points(
         preprocessing_config["step"], preprocessing_config["pre_calc_bounds"]
     )
