@@ -17,12 +17,10 @@ torch.manual_seed(SEED)
 __all__ = ["create_features"]
 
 
-def create_features(
-    dataloader, n_features, n_points, model, torch_device, min_image_edge
-):
+def create_features(dataloader, n_features, n_points, model, device, min_image_edge):
 
     features_array = np.full([n_points, n_features], np.nan, dtype=float)
-    # torch_device = torch.device(device)
+    torch_device = torch.device(device)
 
     i = -1
     for images in tqdm(dataloader):
