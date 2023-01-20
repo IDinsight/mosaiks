@@ -10,7 +10,7 @@ from sklearn.metrics import r2_score, recall_score, precision_score
 
 def get_cutoff_range_metrics(y_test, y_pred):
     """
-    Plot the precision-recall curve.
+    Run through a range of cutoff values and return the resulting performance metrics as a dataframe.
 
     Parameters
     ----------
@@ -18,12 +18,11 @@ def get_cutoff_range_metrics(y_test, y_pred):
         The true values
     y_pred : array-like
         The predicted values
-    experiment_name : str
-        The label for the data.
 
     Returns
     -------
-    None
+    pd.DataFrame
+        Table of metrics per cut-off value.
 
     """
 
