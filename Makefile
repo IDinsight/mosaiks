@@ -22,7 +22,9 @@ setup-env:
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pre-commit install
 
 shrug-keys-with-shapes:
-	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/00_preprocess_combine_shrug_keys_with_shapes.py
+	export USE_PYGEOS=0
+	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/preprocess/shrug_keys_and_shapes.py
 
 mosaiks-request-points:
-	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/01_preprocess_create_mosaiks_points.py
+	export USE_PYGEOS=0
+	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); python src/preprocess/mosaiks_points.py
