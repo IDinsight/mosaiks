@@ -1,0 +1,5 @@
+geographic_level : village
+point_coordinates:
+  step : 0.05
+  pre_calc_bounds: india
+

@@ -1,4 +1,5 @@
 # Custom
+src/dask-worker-space/
 data/
 logs/
 config/secrets.env
@@ -125,3 +126,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# mac
+**/.DS_Store

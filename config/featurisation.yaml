@@ -1,0 +1,15 @@
+satellite_image_params:
+  satellite_name : sentinel-2-l2a #landsat-8-c2-l2
+  search_start : "2021-04-01"
+  search_end : "2022-03-31"
+  stac_output : least_cloudy
+  stac_api: planetary-compute # earth-search
+
+num_features : 500
+kernel_size : 3
+batch_size : 5
+device: cpu # cuda 
+
+dask :
+  n_partitions : 12
+
