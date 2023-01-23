@@ -1,11 +1,11 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from scipy.stats import kendalltau, pearsonr, spearmanr
-from sklearn.metrics import r2_score, recall_score, precision_score
+from sklearn.metrics import precision_score, r2_score, recall_score
 
 
 def get_cutoff_range_metrics(y_test, y_pred):
@@ -93,18 +93,20 @@ def get_cutoff_range_metrics(y_test, y_pred):
 
 
 def plot_metrics(results, experiment_name):
+    """
     Create and save a 3x2 grid of plots showing precision, recall, and ROC.
-    
+
     Parameters
     ----------
     results : pd.DataFrame
         Dataframe of metrics as created by `get_cutoff_range_metrics`.
     experiment_name: string
         Experiment name for title and filename,
-        
+
     Returns
     -------
     None
+    """
     cutoffs = results["cutoff"]
     recalls = results["recall"]
     precisions = results["precision"]

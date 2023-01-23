@@ -16,7 +16,7 @@ data-directories:
 		data/02_modelinput data/03_intermediate data/04_modeloutput
 
 setup-env:
-	conda create --name $(PROJECT_CONDA_ENV) python==3.9 -y
+	CONDA_SUBDIR=osx-64 conda create --name $(PROJECT_CONDA_ENV) python==3.9 -y
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pip install --upgrade pip
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pip install -r requirements.txt --ignore-installed
 	$(CONDA_ACTIVATE) $(PROJECT_CONDA_ENV); pre-commit install
