@@ -12,11 +12,8 @@ keywords = ["satellite", "mosaiks", "geospatial"]
 authors = [
     {name = "IDinsight"}
 ]
-dynamic = ["version", "dependencies", "optional-dependencies"]
+dynamic = ["version", "dependencies"]
 
-[tool.setuptools.packages.find]
-include = ["mosaiks*"]
-exclude = ["tests*", "playground*", "data*"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
