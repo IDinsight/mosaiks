@@ -1,17 +1,3 @@
 # mosaiks featurization
-tdqm
-torch
-dask_geopandas
-pystac_client
-stackstac
-planetary_computer
-
-# data manipulation
-numpy>=1.19.4
-pandas>=1.1.4
-geopandas>=0.11.1
-rtree>=1.0.1
-
-# visualisation
 matplotlib>=3.3.3
 seaborn>=0.11.0
