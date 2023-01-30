@@ -9,10 +9,10 @@ import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["fetch_image_refs", "create_data_loader"]
+__all__ = ["dask_fetch_stac_items", "create_data_loader"]
 
 
-def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
+def dask_fetch_stac_items(points_gdf, n_partitions, satellite_search_params):
     points_gdf = sort_by_hilbert_distance(points_gdf)
     points_dgdf = dask_gpd.from_geopandas(
         points_gdf, npartitions=n_partitions, sort=False
@@ -24,7 +24,7 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
 
     points_gdf_with_stac = points_dgdf.map_partitions(
         fetch_stac_items,
-        **satellite_image_params,
+        **satellite_search_params,
         meta=meta,
     )
 
