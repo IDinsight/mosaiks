@@ -246,6 +246,33 @@ def get_stac_api(api_name):
     return stac_api
 
 
+def get_an_image(lon, lat, stac_item, idx, params):
+
+    bands = params["bands"]
+    resolution = params["resolution"]
+    buffer = params["buffer"]
+
+    image_array = stackstac.stack(stac_item, assets=bands, resolution=resolution)
+
+    x_utm, y_utm = pyproj.Proj(image_array.crs)(lon, lat)
+    x_min, x_max = x_utm - buffer, x_utm + buffer
+    y_min, y_max = y_utm - buffer, y_utm + buffer
+
+    cropped_xarray = image_array.loc[..., y_max:y_min, x_min:x_max]
+
+    if isinstance(stac_item, list):
+        cropped_xarray = cropped_xarray.median(dim="time")
+        out_image = cropped_xarray.data
+    else:
+        out_image = cropped_xarray.data.squeeze()
+
+    out_image = (out_image - out_image.min()) / (out_image.max() - out_image.min())
+
+    out_image = torch.from_numpy(out_image.compute()).float()
+
+    return image_array
+
+
 class CustomDataset(Dataset):
     def __init__(self, points, items, buffer, bands, resolution):
         """
