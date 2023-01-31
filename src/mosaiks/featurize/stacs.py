@@ -13,6 +13,22 @@ __all__ = ["fetch_image_refs", "create_data_loader"]
 
 
 def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
+    """
+    Find a STAC item for points in the `points_gdf` GeoDataFrame.
+
+    Parameters
+    ----------
+    points_gdf : geopandas.GeoDataFrame
+        A GeoDataFrame with the points we want to fetch imagery for
+    n_partitions : int
+        Number of partitions to use for the dask geopandas dataframe
+    satellite_image_params : dict
+        A dictionary of parameters for the satellite imagery to fetch
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+    """
     points_gdf = sort_by_hilbert_distance(points_gdf)
     points_dgdf = dask_gpd.from_geopandas(
         points_gdf, npartitions=n_partitions, sort=False
@@ -32,6 +48,22 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
 
 
 def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
+    """
+    Create a PyTorch DataLoader for the satellite imagery.
+
+    Parameters
+    ----------
+    points_gdf_with_stac : geopandas.GeoDataFrame
+        A GeoDataFrame with the points we want to fetch imagery for + its STAC ref
+    satellite_params : dict
+        A dictionary of parameters for the satellite imagery to fetch
+    batch_size : int
+        The batch size to use for the DataLoader
+
+    Returns
+    -------
+    torch.utils.data.DataLoader
+    """
 
     stac_item_list = points_gdf_with_stac.stac_item.tolist()
     points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
@@ -216,6 +248,24 @@ def get_stac_api(api_name):
 
 class CustomDataset(Dataset):
     def __init__(self, points, items, buffer, bands, resolution):
+        """
+        Parameters
+        ----------
+        points : np.array
+            Array of points to sample from
+        items : list
+            List of STAC items to sample from
+        buffer : int
+            Buffer in meters around each point to sample from
+        bands : list
+            List of bands to sample
+        resolution : int
+            Resolution of the image to sample
+
+        Returns
+        -------
+        None
+        """
         self.points = points
         self.items = items
         self.buffer = buffer
