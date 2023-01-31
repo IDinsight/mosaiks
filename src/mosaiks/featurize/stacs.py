@@ -9,7 +9,7 @@ import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["fetch_image_refs", "create_data_loader"]
+__all__ = ["fetch_image_refs", "create_data_loader", "get_an_image"]
 
 
 def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
@@ -44,7 +44,7 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
         meta=meta,
     )
 
-    return points_gdf_with_stac.compute()
+    return points_gdf_with_stac
 
 
 def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
@@ -250,7 +250,7 @@ def get_an_image(lon, lat, stac_item, idx, params):
 
     bands = params["bands"]
     resolution = params["resolution"]
-    buffer = params["buffer"]
+    buffer = params["buffer_distance"]
 
     image_array = stackstac.stack(stac_item, assets=bands, resolution=resolution)
 
