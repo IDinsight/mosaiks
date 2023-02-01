@@ -16,8 +16,26 @@ def dask_fetch_stac_items(
     points_gdf,
     n_partitions,
     satellite_search_params,
-    seasonal=False,
 ):
+    """
+    Takes a GeoDataFrame of points and returns a GeoDataFrame with STAC items.
+    Uses dask to parallelize the STAC search.
+
+    Parameters
+    ----------
+    points_gdf : geopandas.GeoDataFrame
+        A GeoDataFrame with a column named "geometry" containing shapely Point objects.
+    n_partitions : int
+        The number of partitions to use when creating the Dask GeoDataFrame.
+    satellite_search_params : dict
+        A dictionary containing the parameters for the STAC search.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        A GeoDataFrame with a column named "stac_item" containing STAC items.
+    """
+
     points_gdf = sort_by_hilbert_distance(points_gdf)
     points_dgdf = dask_gpd.from_geopandas(
         points_gdf,
@@ -29,7 +47,7 @@ def dask_fetch_stac_items(
     meta = meta.assign(stac_item=pd.Series([], dtype="object"))
     meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
 
-    if seasonal:
+    if satellite_search_params["seasonal"]:
         points_gdf_with_stac = points_dgdf.map_partitions(
             fetch_seasonal_stac_items,
             satellite_name=satellite_search_params["satellite_name"],
@@ -53,6 +71,7 @@ def dask_fetch_stac_items(
 
 
 def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
+    """Creates a PyTorch DataLoader from a GeoDataFrame with STAC items."""
 
     stac_item_list = points_gdf_with_stac.stac_item.tolist()
     points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
@@ -75,6 +94,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
 
 
 def sort_by_hilbert_distance(points_gdf):
+    """Sorts a GeoDataFrame by Hilbert distance."""
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
     hilbert_distance = ddf.hilbert_distance().compute()
@@ -138,7 +158,7 @@ def fetch_stac_items(
     stac_output="least_cloudy",
 ):
     """
-    Find a STAC item for points in the `points_gdf` GeoDataFrame.
+    Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame.
 
     Parameters
     ----------
@@ -150,16 +170,17 @@ def fetch_stac_items(
         Date formatted as YYYY-MM-DD
     search_end : string
         Date formatted as YYYY-MM-DD
-    stac_output : string
-        Whether to store "all" images found or just the "least_cloudy"
     stac_api: string
         The stac api that pystac should connect to
+    stac_output : string
+        Whether to store "all" images found or just the "least_cloudy"
 
     Returns
     -------
     geopandas.GeoDataFrame
         A new geopandas.GeoDataFrame with a `stac_item` column containing the STAC
         item that covers each point.
+
     """
     stac_api = get_stac_api(stac_api)
 
@@ -263,6 +284,8 @@ def fetch_stac_items(
 
 
 def get_stac_api(api_name):
+    """Get a pystac client for a given STAC API"""
+
     if api_name == "planetary-compute":
         stac_api = pystac_client.Client.open(
             "https://planetarycomputer.microsoft.com/api/stac/v1",
