@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 SEED = 41
 
@@ -20,16 +20,19 @@ __all__ = ["create_features"]
 def create_features(dataloader, n_features, n_points, model, device, min_image_edge):
 
     features_array = np.full([n_points, n_features], np.nan, dtype=float)
-    torch_device = torch.device(device)
-
     i = -1
     for images in tqdm(dataloader):
         for i, image in tqdm(enumerate(images, start=i + 1), leave=False):
             if image is not None:
-                if (image.shape[1] >= min_image_edge) and (
+                if (
+                    image.shape[1] >= min_image_edge
+                ) and (
                     image.shape[2] >= min_image_edge
                 ):
-                    features_array[i] = featurize(image, model, torch_device)
+                    features_array[i] = featurize(image, model, device)
+                else:
+                    print("warn", flush=True)
+                    warnings.warn("Image crop too small")
             else:
                 print("warn", flush=True)
                 warnings.warn("No image found")

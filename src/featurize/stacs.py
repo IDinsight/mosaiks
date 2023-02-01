@@ -1,6 +1,7 @@
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import pandas as pd
+import numpy as np
 import planetary_computer
 import pyproj
 import pystac_client
@@ -144,7 +145,6 @@ def fetch_seasonal_stac_items(
 
     combined_gdf = pd.concat(seasonal_gdf_list, axis="index")
     combined_gdf.index.name = "point_id"
-    combined_gdf = combined_gdf.sort_index().reset_index()
 
     return combined_gdf
 
@@ -229,7 +229,7 @@ def fetch_stac_items(
             items_covering_point = items_gdf[items_gdf.covers(point)]
             if len(items_covering_point) == 0:
                 least_cloudy_item = None
-                least_cloudy_item_coverage = 999 # temp
+                least_cloudy_item_coverage = np.nan # temp
             else:
                 least_cloudy_item_id = items_covering_point.index[0]
                 least_cloudy_item_coverage = items_covering_point["eo:cloud_cover"].iloc[0]
