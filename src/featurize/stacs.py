@@ -12,21 +12,42 @@ from torch.utils.data import DataLoader, Dataset
 __all__ = ["dask_fetch_stac_items", "create_data_loader"]
 
 
-def dask_fetch_stac_items(points_gdf, n_partitions, satellite_search_params):
+def dask_fetch_stac_items(
+    points_gdf,
+    n_partitions,
+    satellite_search_params,
+    seasonal=False,
+):
     points_gdf = sort_by_hilbert_distance(points_gdf)
     points_dgdf = dask_gpd.from_geopandas(
-        points_gdf, npartitions=n_partitions, sort=False
+        points_gdf,
+        npartitions=n_partitions,
+        sort=False,
     )
 
     meta = points_dgdf._meta
     meta = meta.assign(stac_item=pd.Series([], dtype="object"))
     meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
 
-    points_gdf_with_stac = points_dgdf.map_partitions(
-        fetch_stac_items,
-        **satellite_search_params,
-        meta=meta,
-    )
+    if seasonal:
+        points_gdf_with_stac = points_dgdf.map_partitions(
+            fetch_seasonal_stac_items,
+            satellite_name=satellite_search_params["satellite_name"],
+            year=satellite_search_params["year"],
+            stac_output=satellite_search_params["stac_output"],
+            stac_api=satellite_search_params["stac_api"],
+            meta=meta,
+        )
+    else:
+        points_gdf_with_stac = points_dgdf.map_partitions(
+            fetch_stac_items,
+            satellite_name=satellite_search_params["satellite_name"],
+            search_start=satellite_search_params["search_start"],
+            search_end=satellite_search_params["search_end"],
+            stac_api=satellite_search_params["stac_api"],
+            stac_output=satellite_search_params["stac_output"],
+            meta=meta,
+        )
 
     return points_gdf_with_stac.compute()
 
@@ -63,8 +84,58 @@ def sort_by_hilbert_distance(points_gdf):
     return points_gdf
 
 
+def fetch_seasonal_stac_items(
+    points_gdf,
+    satellite_name,
+    year,
+    stac_api,
+    stac_output="least_cloudy",
+):
+    """
+    Takes a year as input and creates date ranges for the four seasons, runs these through fetch_stac_items, and concatenates the results.
+    Can be used where-ever fetch_stac_items is used.
+
+    Note: Winter is the first month and includes December from the previous year.
+
+    Months of the seasons taken from [here](https://delhitourism.gov.in/delhitourism/aboutus/seasons_of_delhi.jsp) for now.
+
+    """
+    season_dict = {
+        "winter": (f"{year-1}-12-01", f"{year}-01-31"),
+        "spring": (f"{year}-02-01", f"{year}-03-31"),
+        "summer": (f"{year}-04-01", f"{year}-09-30"),
+        "autumn": (f"{year}-09-01", f"{year}-11-30"),
+    }
+    seasonal_gdf_list = []
+    for season, dates in season_dict.items():
+        print(f"Fetching images for {season}")
+        search_start, search_end = dates
+
+        season_points_gdf = fetch_stac_items(
+            points_gdf=points_gdf,
+            satellite=satellite_name,
+            search_start=search_start,
+            search_end=search_end,
+            stac_api=stac_api,
+            stac_output=stac_output,
+        )
+
+        season_points_gdf["season"] = season
+        seasonal_gdf_list.append(season_points_gdf)
+
+    combined_gdf = pd.concat(seasonal_gdf_list, axis="index")
+    combined_gdf = combined_gdf.sort_index().reset_index(names=["point_id"])
+
+    return combined_gdf
+
+
 def fetch_stac_items(
-    points_gdf, satellite_name, search_start, search_end, stac_api, stac_output
+    points_gdf,
+    satellite_name,
+    search_start,
+    search_end,
+    stac_api,
+    stac_output="least_cloudy",
 ):
     """
     Find a STAC item for points in the `points_gdf` GeoDataFrame.
@@ -90,13 +161,6 @@ def fetch_stac_items(
         A new geopandas.GeoDataFrame with a `stac_item` column containing the STAC
         item that covers each point.
     """
-
-    # Get the images that cover any of the given points
-    # mpc_stac_api = pystac_client.Client.open(
-    #    "https://planetarycomputer.microsoft.com/api/stac/v1",
-    #    modifier=planetary_computer.sign_inplace,
-    # )
-
     stac_api = get_stac_api(stac_api)
 
     # change to just union of points?
