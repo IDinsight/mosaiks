@@ -42,10 +42,11 @@ def dask_fetch_stac_items(
         npartitions=n_partitions,
         sort=False,
     )
-
-    meta = points_dgdf._meta
-    meta = meta.assign(stac_item=pd.Series([], dtype="object"))
-    meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
+    
+    # # meta not needed at the moment, speed is adequate
+    # meta = points_dgdf._meta
+    # meta = meta.assign(stac_item=pd.Series([], dtype="object"))
+    # meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
 
     if satellite_search_params["seasonal"]:
         points_gdf_with_stac = points_dgdf.map_partitions(
@@ -54,7 +55,7 @@ def dask_fetch_stac_items(
             year=satellite_search_params["year"],
             stac_output=satellite_search_params["stac_output"],
             stac_api=satellite_search_params["stac_api"],
-            meta=meta,
+            # meta=meta,
         )
     else:
         points_gdf_with_stac = points_dgdf.map_partitions(
@@ -64,7 +65,7 @@ def dask_fetch_stac_items(
             search_end=satellite_search_params["search_end"],
             stac_api=satellite_search_params["stac_api"],
             stac_output=satellite_search_params["stac_output"],
-            meta=meta,
+            # meta=meta,
         )
 
     return points_gdf_with_stac.compute()
@@ -128,12 +129,10 @@ def fetch_seasonal_stac_items(
     }
     seasonal_gdf_list = []
     for season, dates in season_dict.items():
-        print(f"Fetching images for {season}")
         search_start, search_end = dates
-
         season_points_gdf = fetch_stac_items(
             points_gdf=points_gdf,
-            satellite=satellite_name,
+            satellite_name=satellite_name,
             search_start=search_start,
             search_end=search_end,
             stac_api=stac_api,
@@ -144,7 +143,8 @@ def fetch_seasonal_stac_items(
         seasonal_gdf_list.append(season_points_gdf)
 
     combined_gdf = pd.concat(seasonal_gdf_list, axis="index")
-    combined_gdf = combined_gdf.sort_index().reset_index(names=["point_id"])
+    combined_gdf.index.name = "point_id"
+    combined_gdf = combined_gdf.sort_index().reset_index()
 
     return combined_gdf
 
@@ -224,14 +224,15 @@ def fetch_stac_items(
         point_geom_list = points_gdf.geometry.tolist()
 
         least_cloudy_items = []
-        least_cloudy_item_cover = []
+        least_cloudy_item_coverage_list = []
         for point in point_geom_list:
             items_covering_point = items_gdf[items_gdf.covers(point)]
             if len(items_covering_point) == 0:
                 least_cloudy_item = None
+                least_cloudy_item_coverage = 999 # temp
             else:
                 least_cloudy_item_id = items_covering_point.index[0]
-                least_cloudy_item_cover = items_covering_point["eo:cloud_cover"].iloc[0]
+                least_cloudy_item_coverage = items_covering_point["eo:cloud_cover"].iloc[0]
                 # FIX THIS JANK (picks out the correct item based on the ID):
                 least_cloudy_item = [
                     item
@@ -240,9 +241,10 @@ def fetch_stac_items(
                 ][0]
 
             least_cloudy_items.append(least_cloudy_item)
+            least_cloudy_item_coverage_list.append(least_cloudy_item_coverage)
 
         points_gdf = points_gdf.assign(stac_item=least_cloudy_items)
-        points_gdf = points_gdf.assign(cloud_cover=least_cloudy_item_cover)
+        points_gdf = points_gdf.assign(cloud_cover=least_cloudy_item_coverage_list)
 
     # if all images requested that cover a point (not just that with the lowest
     # cloud cover), then return a list of STAC items that cover each point
