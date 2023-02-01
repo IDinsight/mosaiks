@@ -270,7 +270,7 @@ def get_an_image(lon, lat, stac_item, idx, params):
 
     out_image = torch.from_numpy(out_image.compute()).float()
 
-    return image_array
+    return out_image
 
 
 class CustomDataset(Dataset):
