@@ -11,5 +11,5 @@ batch_size : 5
 device: cpu # cuda 
 
 dask :
-  n_partitions : 12
+  n_partitions : 150
 
