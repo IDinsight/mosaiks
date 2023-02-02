@@ -343,17 +343,14 @@ class CustomDataset(Dataset):
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
-            aoi = xarray.loc[y_max:y_min, x_min:x_max, ...]
-
-            cropped_xarray = aoi.compute()
+            cropped_xarray = xarray.loc[y_max:y_min, x_min:x_max, ...]
 
             # 2.5 Composite if there are multiple images across time
             # 3. Convert to numpy
             if isinstance(stac_item, list):
-                cropped_xarray = cropped_xarray.median(dim="time").compute()
-                out_image = cropped_xarray.data
+                out_image = cropped_xarray.median(dim="time").compute()
             else:
-                out_image = cropped_xarray.data.squeeze()
+                out_image = cropped_xarray.squeeze().compute()
 
             out_image = self.transforms(out_image)
 
