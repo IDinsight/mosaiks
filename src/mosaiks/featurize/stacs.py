@@ -330,10 +330,11 @@ class CustomDataset(Dataset):
                 stac_item,
                 assets=self.bands,
                 resolution=self.resolution,
+                collate_fn=lambda x: x,
                 rescale=False,
-                dtype=np.uint8,
-                fill_value=0,
-                chunksize=(-1, 1, 12000, 12000),
+                # dtype=np.uint8,
+                # fill_value=0,
+                # chunksize=(-1, 1, 12000, 12000),
             )
 
             xarray = xarray.transpose("y", "x", "band", "time")
