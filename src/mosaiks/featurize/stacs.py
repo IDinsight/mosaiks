@@ -1,5 +1,6 @@
 import dask_geopandas as dask_gpd
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import planetary_computer
 import pyproj
@@ -326,15 +327,23 @@ class CustomDataset(Dataset):
         else:
             # 1. Fetch image(s)
             xarray = stackstac.stack(
-                stac_item, assets=self.bands, resolution=self.resolution
+                stac_item,
+                assets=self.bands,
+                resolution=self.resolution,
+                rescale=False,
+                dtype=np.uint8,
+                fill_value=0,
             )
+
+            xarray = xarray.transpose("y", "x", "band", "time")
 
             # 2. Crop image(s) - WARNING: VERY SLOW if multiple images are stacked.
             x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
-            aoi = xarray.loc[..., y_max:y_min, x_min:x_max]
+            aoi = xarray.loc[y_max:y_min, x_min:x_max, ...]
+
             cropped_xarray = aoi.compute()
 
             # 2.5 Composite if there are multiple images across time
