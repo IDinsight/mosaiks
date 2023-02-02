@@ -82,6 +82,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
         batch_size=batch_size,
         shuffle=False,
         pin_memory=False,
+        collate_fn=lambda x: x,
     )
 
     return data_loader
@@ -330,7 +331,6 @@ class CustomDataset(Dataset):
                 stac_item,
                 assets=self.bands,
                 resolution=self.resolution,
-                collate_fn=lambda x: x,
                 rescale=False,
                 # dtype=np.uint8,
                 # fill_value=0,
