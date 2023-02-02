@@ -1,5 +1,5 @@
 # mosaiks featurization
 matplotlib>=3.3.3
 seaborn>=0.11.0
-torch==1.13.1
-torchvision==0.14.1
+# torch==1.13.1
+# torchvision==0.14.1
