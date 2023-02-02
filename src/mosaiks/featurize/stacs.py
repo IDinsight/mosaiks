@@ -309,6 +309,7 @@ class CustomDataset(Dataset):
         self.buffer = buffer
         self.bands = bands
         self.resolution = resolution
+        self.transforms = transforms
 
     def __len__(self):
         return self.points.shape[0]
@@ -348,7 +349,7 @@ class CustomDataset(Dataset):
                 out_image.max() - out_image.min()
             )
 
-            out_image = self.transform(out_image)
+            out_image = self.transforms(out_image)
 
             # 5. Finally, convert to pytorch tensor
             # out_image = torch.from_numpy(out_image).float()
