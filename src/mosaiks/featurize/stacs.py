@@ -282,7 +282,9 @@ class CustomDataset(Dataset):
         buffer,
         bands,
         resolution,
-        transforms=T.Compose([T.ToTensor(), T.Resize((120, 120))]),
+        transforms=T.Compose(
+            [T.ToTensor(), T.Resize((120, 120)), T.ConvertImageDtype(torch.float32)]
+        ),
     ):
         """
         Parameters
