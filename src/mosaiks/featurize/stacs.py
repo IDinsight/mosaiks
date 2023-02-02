@@ -7,6 +7,7 @@ import pystac_client
 import shapely.geometry
 import stackstac
 import torch
+import torch.transforms as T
 from torch.utils.data import DataLoader, Dataset
 
 __all__ = ["fetch_image_refs", "create_data_loader", "get_an_image"]
@@ -274,7 +275,15 @@ def get_an_image(lon, lat, stac_item, idx, params):
 
 
 class CustomDataset(Dataset):
-    def __init__(self, points, items, buffer, bands, resolution):
+    def __init__(
+        self,
+        points,
+        items,
+        buffer,
+        bands,
+        resolution,
+        transforms=T.Compose([T.Resize((120, 120, 9)), T.ToTensor()]),
+    ):
         """
         Parameters
         ----------
@@ -288,6 +297,8 @@ class CustomDataset(Dataset):
             List of bands to sample
         resolution : int
             Resolution of the image to sample
+        transforms : torchvision.transforms
+            Transforms to apply to the image
 
         Returns
         -------
@@ -337,7 +348,9 @@ class CustomDataset(Dataset):
                 out_image.max() - out_image.min()
             )
 
+            out_image = self.transform(out_image)
+
             # 5. Finally, convert to pytorch tensor
-            out_image = torch.from_numpy(out_image).float()
+            # out_image = torch.from_numpy(out_image).float()
 
             return out_image
