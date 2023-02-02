@@ -352,7 +352,7 @@ class CustomDataset(Dataset):
             else:
                 out_image = cropped_xarray.squeeze().compute()
 
-            out_image = self.transforms(out_image)
+            out_image = self.transforms(out_image.values)
 
             # 5. Finally, convert to pytorch tensor
             # out_image = torch.from_numpy(out_image).float()
