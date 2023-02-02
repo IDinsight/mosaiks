@@ -347,9 +347,9 @@ class CustomDataset(Dataset):
             # 2.5 Composite if there are multiple images across time
             # 3. Convert to numpy
             if isinstance(stac_item, list):
-                out_image = cropped_xarray.median(dim="time")  # .compute()
+                out_image = xarray.median(dim="time")  # .compute()
             else:
-                out_image = cropped_xarray.squeeze()  # .compute()
+                out_image = xarray.squeeze()  # .compute()
 
             out_image = self.transforms(out_image.values)
 
