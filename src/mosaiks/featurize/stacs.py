@@ -356,6 +356,6 @@ class CustomDataset(Dataset):
             # out_image = self.transforms(out_image.values)
 
             # 5. Finally, convert to pytorch tensor
-            out_image = torch.from_numpy(out_image).float()
+            out_image = torch.from_numpy(out_image.values).float()
 
             return out_image
