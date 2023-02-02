@@ -7,7 +7,7 @@ import pystac_client
 import shapely.geometry
 import stackstac
 import torch
-import torch.transforms as T
+import torchvision.transforms as T
 from torch.utils.data import DataLoader, Dataset
 
 __all__ = ["fetch_image_refs", "create_data_loader", "get_an_image"]
