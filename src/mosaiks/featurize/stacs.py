@@ -332,8 +332,8 @@ class CustomDataset(Dataset):
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
-                # dtype=np.uint8,
-                # fill_value=0,
+                dtype=np.uint8,
+                fill_value=0,
                 # chunksize=(-1, 1, 12000, 12000),
             )
 
