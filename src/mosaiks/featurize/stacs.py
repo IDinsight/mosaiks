@@ -327,24 +327,22 @@ class CustomDataset(Dataset):
             return None
         else:
             # 1. Fetch image(s)
+            crs = stac_item.properties["proj:epsg"]
+            x_utm, y_utm = pyproj.Proj(crs)(lon, lat)
+            x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
+            y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
+
             xarray = stackstac.stack(
                 stac_item,
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
                 dtype=np.uint8,
+                bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
-                # chunksize=(-1, 1, 12000, 12000),
             )
 
             xarray = xarray.transpose("y", "x", "band", "time")
-
-            # 2. Crop image(s) - WARNING: VERY SLOW if multiple images are stacked.
-            x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
-            x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
-            y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
-
-            cropped_xarray = xarray.loc[y_max:y_min, x_min:x_max, ...].compute()
 
             # 2.5 Composite if there are multiple images across time
             # 3. Convert to numpy
@@ -353,9 +351,9 @@ class CustomDataset(Dataset):
             else:
                 out_image = cropped_xarray.squeeze()  # .compute()
 
-            # out_image = self.transforms(out_image.values)
+            out_image = self.transforms(out_image.values)
 
             # 5. Finally, convert to pytorch tensor
-            out_image = torch.from_numpy(out_image.values).float()
+            # out_image = torch.from_numpy(out_image.values).float()
 
             return out_image
