@@ -40,7 +40,7 @@ def load_points_gdf(filename, folder, lat_name="Lat", lon_name="Lon", crs="EPSG:
 
     full_path = Path(__file__).resolve().parents[2] / f"data/{folder}/{filename}"
 
-    points_df = pd.read_csv(full_path)
+    points_df = pd.read_csv(full_path, index_col=0)
     points_gdf = gpd.GeoDataFrame(
         points_df,
         geometry=gpd.points_from_xy(points_df[lon_name], points_df[lat_name]),

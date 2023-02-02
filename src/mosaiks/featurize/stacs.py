@@ -333,6 +333,7 @@ class CustomDataset(Dataset):
                 rescale=False,
                 dtype=np.uint8,
                 fill_value=0,
+                chunksize=(-1, 1, 12000, 12000),
             )
 
             xarray = xarray.transpose("y", "x", "band", "time")
@@ -353,12 +354,6 @@ class CustomDataset(Dataset):
                 out_image = cropped_xarray.data
             else:
                 out_image = cropped_xarray.data.squeeze()
-
-            # 4. Min-max normalize pixel values to [0,1]
-            #    !! From MOSAIKS code... Check the effect of this !!
-            out_image = (out_image - out_image.min()) / (
-                out_image.max() - out_image.min()
-            )
 
             out_image = self.transforms(out_image)
 
