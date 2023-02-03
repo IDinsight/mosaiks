@@ -345,13 +345,13 @@ class CustomDataset(Dataset):
             # 2.5 Composite if there are multiple images across time
             # 3. Convert to numpy
             if isinstance(stac_item, list):
-                xarray = xarray.median(dim="time")  # .compute()
+                out_image = xarray.median(dim="time")
             else:
-                xarray = xarray.squeeze()  # .compute()
+                out_image = xarray.squeeze()
 
             # xarray = self.transforms(xarray.values)
 
             # 5. Finally, convert to pytorch tensor
-            xarray = torch.from_numpy(xarray.values).float()
+            out_image = torch.from_numpy(out_image.values).float()
 
-            return xarray
+            return out_image
