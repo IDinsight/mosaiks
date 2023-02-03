@@ -31,11 +31,13 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
                 ):
                     features_array[i] = featurize(image, model, device)
                 else:
-                    print("warn", flush=True)
-                    warnings.warn("Image crop too small")
+                    # print("warn", flush=True)
+                    # warnings.warn("Image crop too small")
+                    pass
             else:
-                print("warn", flush=True)
-                warnings.warn("No image found")
+                # print("warn", flush=True)
+                # warnings.warn("No image found")
+                pass
 
     return features_array
 
