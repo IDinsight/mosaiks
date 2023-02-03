@@ -340,7 +340,7 @@ class CustomDataset(Dataset):
                 fill_value=0,
             )
 
-            xarray = xarray.transpose("y", "x", "band", "time")
+            # xarray = xarray.transpose("y", "x", "band", "time")
 
             # 2.5 Composite if there are multiple images across time
             # 3. Convert to numpy
@@ -349,9 +349,9 @@ class CustomDataset(Dataset):
             else:
                 xarray = xarray.squeeze()  # .compute()
 
-            xarray = self.transforms(xarray.values)
+            # xarray = self.transforms(xarray.values)
 
             # 5. Finally, convert to pytorch tensor
-            # out_image = torch.from_numpy(out_image.values).float()
+            xarray = torch.from_numpy(xarray.values).float()
 
             return xarray
