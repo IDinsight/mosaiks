@@ -278,21 +278,6 @@ def get_an_image(lon, lat, stac_item, idx, params):
     return out_image
 
 
-def cached_stac(func):
-    """
-    Decorator to cache the results of a function that takes a STAC
-    item as an argument
-    """
-    cache = {}
-
-    def wrapper(stac_item, *args, **kwargs):
-        if stac_item.id not in cache:
-            cache[stac_item.id] = func(stac_item, *args, **kwargs)
-        return cache[stac_item.id]
-
-    return wrapper
-
-
 class CustomDataset(Dataset):
     def __init__(
         self,
@@ -347,20 +332,15 @@ class CustomDataset(Dataset):
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
-            stack_partial = partial(
-                stackstac.stack,
+            xarray = stackstac.stack(
+                stac_item,
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
                 dtype=np.uint8,
+                bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
-            xarray = lru_cache(maxsize=3)(stack_partial)(stac_item)
-            x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
-            x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
-            y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
-
-            xarray = xarray.loc[..., y_max:y_min, x_min:x_max]
             # xarray = xarray.transpose("y", "x", "band", "time")
 
             # 2.5 Composite if there are multiple images across time
