@@ -97,8 +97,8 @@ class RCF(nn.Module):
         nn.init.constant_(self.conv1.bias, -1.0)
 
     def forward(self, x):
-        x1a = F.relu(self.conv1(x), inplace=True)
-        x1b = F.relu(-self.conv1(x), inplace=True)
+        x1a = F.relu(self.conv1(x))
+        x1b = F.relu(-self.conv1(x))
 
         x1a = F.adaptive_avg_pool2d(x1a, (1, 1)).squeeze()
         x1b = F.adaptive_avg_pool2d(x1b, (1, 1)).squeeze()

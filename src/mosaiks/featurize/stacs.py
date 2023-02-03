@@ -284,9 +284,7 @@ class CustomDataset(Dataset):
         buffer,
         bands,
         resolution,
-        transforms=T.Compose(
-            [T.ToTensor(), T.Resize((120, 120)), T.ConvertImageDtype(torch.float32)]
-        ),
+        transforms=T.Compose([T.ToTensor(), T.ConvertImageDtype(torch.float32)]),
     ):
         """
         Parameters
@@ -347,13 +345,13 @@ class CustomDataset(Dataset):
             # 2.5 Composite if there are multiple images across time
             # 3. Convert to numpy
             if isinstance(stac_item, list):
-                out_image = xarray.median(dim="time")  # .compute()
+                xarray = xarray.median(dim="time")  # .compute()
             else:
-                out_image = xarray.squeeze()  # .compute()
+                xarray = xarray.squeeze()  # .compute()
 
-            out_image = self.transforms(out_image.values)
+            xarray = self.transforms(xarray.values)
 
             # 5. Finally, convert to pytorch tensor
             # out_image = torch.from_numpy(out_image.values).float()
 
-            return out_image
+            return xarray
