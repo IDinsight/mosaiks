@@ -1,5 +1,3 @@
-from functools import lru_cache, partial
-
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import numpy as np
@@ -10,10 +8,9 @@ import pystac_client
 import shapely.geometry
 import stackstac
 import torch
-import torchvision.transforms as T
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["fetch_image_refs", "create_data_loader", "get_an_image"]
+__all__ = ["fetch_image_refs", "create_data_loader"]
 
 
 def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
@@ -91,6 +88,9 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
 
 
 def sort_by_hilbert_distance(points_gdf):
+    """
+    Sort the points in the GeoDataFrame by their Hilbert distance.
+    """
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
     hilbert_distance = ddf.hilbert_distance().compute()
@@ -127,12 +127,6 @@ def fetch_stac_items(
         A new geopandas.GeoDataFrame with a `stac_item` column containing the STAC
         item that covers each point.
     """
-
-    # Get the images that cover any of the given points
-    # mpc_stac_api = pystac_client.Client.open(
-    #    "https://planetarycomputer.microsoft.com/api/stac/v1",
-    #    modifier=planetary_computer.sign_inplace,
-    # )
 
     stac_api = get_stac_api(stac_api)
 
@@ -236,6 +230,9 @@ def fetch_stac_items(
 
 
 def get_stac_api(api_name):
+    """
+    Get a STAC API client for a given API name.
+    """
     if api_name == "planetary-compute":
         stac_api = pystac_client.Client.open(
             "https://planetarycomputer.microsoft.com/api/stac/v1",
@@ -251,33 +248,6 @@ def get_stac_api(api_name):
     return stac_api
 
 
-def get_an_image(lon, lat, stac_item, idx, params):
-
-    bands = params["bands"]
-    resolution = params["resolution"]
-    buffer = params["buffer_distance"]
-
-    image_array = stackstac.stack(stac_item, assets=bands, resolution=resolution)
-
-    x_utm, y_utm = pyproj.Proj(image_array.crs)(lon, lat)
-    x_min, x_max = x_utm - buffer, x_utm + buffer
-    y_min, y_max = y_utm - buffer, y_utm + buffer
-
-    cropped_xarray = image_array.loc[..., y_max:y_min, x_min:x_max]
-
-    if isinstance(stac_item, list):
-        cropped_xarray = cropped_xarray.median(dim="time")
-        out_image = cropped_xarray.data
-    else:
-        out_image = cropped_xarray.data.squeeze()
-
-    out_image = (out_image - out_image.min()) / (out_image.max() - out_image.min())
-
-    out_image = torch.from_numpy(out_image.compute()).float()
-
-    return out_image
-
-
 class CustomDataset(Dataset):
     def __init__(
         self,
@@ -286,7 +256,6 @@ class CustomDataset(Dataset):
         buffer,
         bands,
         resolution,
-        transforms=T.Compose([T.ToTensor(), T.ConvertImageDtype(torch.float32)]),
     ):
         """
         Parameters
@@ -301,8 +270,6 @@ class CustomDataset(Dataset):
             List of bands to sample
         resolution : int
             Resolution of the image to sample
-        transforms : torchvision.transforms
-            Transforms to apply to the image
 
         Returns
         -------
@@ -313,12 +280,25 @@ class CustomDataset(Dataset):
         self.buffer = buffer
         self.bands = bands
         self.resolution = resolution
-        self.transforms = transforms
 
     def __len__(self):
+        """
+        Returns the number of points in the dataset
+        """
         return self.points.shape[0]
 
     def __getitem__(self, idx):
+        """
+        Parameters
+        ----------
+        idx : int
+            Index of the point to get imagery for
+
+        Returns
+        -------
+        out_image : torch.Tensor
+            Image tensor of shape (C, H, W)
+        """
 
         lon, lat = self.points[idx]
         stac_item = self.items[idx]
@@ -341,18 +321,12 @@ class CustomDataset(Dataset):
                 bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
-            # xarray = xarray.transpose("y", "x", "band", "time")
 
-            # 2.5 Composite if there are multiple images across time
-            # 3. Convert to numpy
             if isinstance(stac_item, list):
                 out_image = xarray.median(dim="time")
             else:
                 out_image = xarray.squeeze()
 
-            # xarray = self.transforms(xarray.values)
-
-            # 5. Finally, convert to pytorch tensor
             out_image = torch.from_numpy(out_image.values).float()
 
             return out_image

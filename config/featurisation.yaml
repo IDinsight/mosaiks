@@ -5,11 +5,11 @@ satellite_image_params:
   stac_output : least_cloudy
   stac_api: planetary-compute # earth-search
 
-num_features : 500
+num_features : 4000
 kernel_size : 3
-batch_size : 5
-device: cpu # cuda 
+batch_size : 10
+device: cuda # cpu 
 
 dask :
-  n_partitions : 150
+  n_partitions : 200
 

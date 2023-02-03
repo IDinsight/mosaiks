@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from tqdm import tqdm_notebook as tqdm
 
 SEED = 41
 
@@ -63,9 +62,19 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
 def featurize(image, model, device):
     """Helper method for running an image patch through a model.
 
-    Args:
-        input_img (np.ndarray): Image in (C x H x W) format with a dtype of uint8.
-        model (torch.nn.Module): Feature extractor network
+    Parameters:
+    -----------
+    image: torch.Tensor
+        A tensor of shape (BANDS, X, Y) containing an image patch.
+    model: torch.nn.Module
+        A model that extracts features from images.
+    device: str
+        The device to run the model on.
+
+    Returns:
+    --------
+    feats: np.ndarray
+        An array of shape (1, n_features) containing the extracted features.
     """
     image = image.to(device)
 
@@ -75,11 +84,24 @@ def featurize(image, model, device):
 
 
 class RCF(nn.Module):
-    """A model for extracting Random Convolution Features (RCF) from input imagery."""
+    """
+    A model for extracting Random Convolution Features (RCF) from input imagery.
+
+    Parameters:
+    -----------
+    num_features: int
+        The number of features to extract from each image.
+    kernel_size: int
+        The size of the convolutional kernel.
+    num_input_channels: int
+        The number of bands in the satellite image.
+
+    """
 
     def __init__(self, num_features=1000, kernel_size=3, num_input_channels=6):
         super().__init__()
-        # We create `num_features / 2` filters so require `num_features` to be divisible by 2
+        # We create `num_features / 2` filters so require `num_features` to be
+        # divisible by 2
         assert num_features % 2 == 0, "Please enter an even number of features."
         # Applies a 2D convolution over an input image composed of several input planes.
         self.conv1 = nn.Conv2d(
@@ -91,12 +113,19 @@ class RCF(nn.Module):
             dilation=1,
             bias=True,
         )
-        # Fills the input Tensor 'conv1.weight' with values drawn from the normal distribution
+        # Fills the input Tensor 'conv1.weight' with values drawn from the
+        # normal distribution
         nn.init.normal_(self.conv1.weight, mean=0.0, std=1.0)
         # Fills the input Tensor 'conv1.bias' with the value 'val = -1'.
         nn.init.constant_(self.conv1.bias, -1.0)
 
     def forward(self, x):
+        """
+        Parameters:
+        -----------
+        x: torch.Tensor
+            A tensor of shape (BANDS, X, Y) containing an image patch.
+        """
         x1a = F.relu(self.conv1(x))
         x1b = F.relu(-self.conv1(x))
 
