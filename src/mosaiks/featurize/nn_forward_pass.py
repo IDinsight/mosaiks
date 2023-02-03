@@ -46,8 +46,8 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
     model.eval().to(device)
 
     i = -1
-    for images in tqdm(dataloader):
-        for i, image in tqdm(enumerate(images, start=i + 1), leave=False):
+    for images in dataloader:
+        for i, image in enumerate(images, start=i + 1):
             if image is not None:
                 if (image.shape[1] >= min_image_edge) and (
                     image.shape[2] >= min_image_edge
