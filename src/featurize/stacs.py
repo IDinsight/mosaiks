@@ -1,5 +1,6 @@
 import dask_geopandas as dask_gpd
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import planetary_computer
 import pyproj
@@ -9,29 +10,70 @@ import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["fetch_image_refs", "create_data_loader"]
+__all__ = ["parallel_fetch_stac_items", "create_data_loader"]
 
 
-def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
+def parallel_fetch_stac_items(
+    points_gdf,
+    n_partitions,
+    satellite_search_params,
+):
+    """
+    Takes a GeoDataFrame of points and returns a GeoDataFrame with STAC items.
+    Uses dask to parallelize the STAC search.
+
+    Parameters
+    ----------
+    points_gdf : geopandas.GeoDataFrame
+        A GeoDataFrame with a column named "geometry" containing shapely Point objects.
+    n_partitions : int
+        The number of partitions to use when creating the Dask GeoDataFrame.
+    satellite_search_params : dict
+        A dictionary containing the parameters for the STAC search.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        A GeoDataFrame with a column named "stac_item" containing STAC items.
+    """
+
     points_gdf = sort_by_hilbert_distance(points_gdf)
     points_dgdf = dask_gpd.from_geopandas(
-        points_gdf, npartitions=n_partitions, sort=False
+        points_gdf,
+        npartitions=n_partitions,
+        sort=False,
     )
 
-    meta = points_dgdf._meta
-    meta = meta.assign(stac_item=pd.Series([], dtype="object"))
-    meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
+    # # meta not needed at the moment, speed is adequate
+    # meta = points_dgdf._meta
+    # meta = meta.assign(stac_item=pd.Series([], dtype="object"))
+    # meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
 
-    points_gdf_with_stac = points_dgdf.map_partitions(
-        fetch_stac_items,
-        **satellite_image_params,
-        meta=meta,
-    )
+    if satellite_search_params["seasonal"]:
+        points_gdf_with_stac = points_dgdf.map_partitions(
+            fetch_seasonal_stac_items,
+            satellite_name=satellite_search_params["satellite_name"],
+            year=satellite_search_params["year"],
+            stac_output=satellite_search_params["stac_output"],
+            stac_api=satellite_search_params["stac_api"],
+            # meta=meta,
+        )
+    else:
+        points_gdf_with_stac = points_dgdf.map_partitions(
+            fetch_stac_items,
+            satellite_name=satellite_search_params["satellite_name"],
+            search_start=satellite_search_params["search_start"],
+            search_end=satellite_search_params["search_end"],
+            stac_api=satellite_search_params["stac_api"],
+            stac_output=satellite_search_params["stac_output"],
+            # meta=meta,
+        )
 
     return points_gdf_with_stac.compute()
 
 
 def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
+    """Creates a PyTorch DataLoader from a GeoDataFrame with STAC items."""
 
     stac_item_list = points_gdf_with_stac.stac_item.tolist()
     points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
@@ -47,6 +89,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
         dataset,
         batch_size=batch_size,
         shuffle=False,
+        collate_fn=lambda x: x,
         pin_memory=False,
     )
 
@@ -54,6 +97,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
 
 
 def sort_by_hilbert_distance(points_gdf):
+    """Sorts a GeoDataFrame by Hilbert distance."""
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
     hilbert_distance = ddf.hilbert_distance().compute()
@@ -63,11 +107,60 @@ def sort_by_hilbert_distance(points_gdf):
     return points_gdf
 
 
-def fetch_stac_items(
-    points_gdf, satellite_name, search_start, search_end, stac_api, stac_output
+def fetch_seasonal_stac_items(
+    points_gdf,
+    satellite_name,
+    year,
+    stac_api,
+    stac_output="least_cloudy",
 ):
     """
-    Find a STAC item for points in the `points_gdf` GeoDataFrame.
+    Takes a year as input and creates date ranges for the four seasons, runs these
+    through fetch_stac_items, and concatenates the results. Can be used where-ever
+    `fetch_stac_items` is used.
+
+    Note: Winter is the first month and includes December from the previous year.
+
+    Months of the seasons taken from [here](https://delhitourism.gov.in/delhitourism/aboutus/seasons_of_delhi.jsp) for now.
+
+    """
+    season_dict = {
+        "winter": (f"{year-1}-12-01", f"{year}-01-31"),
+        "spring": (f"{year}-02-01", f"{year}-03-31"),
+        "summer": (f"{year}-04-01", f"{year}-09-30"),
+        "autumn": (f"{year}-09-01", f"{year}-11-30"),
+    }
+    seasonal_gdf_list = []
+    for season, dates in season_dict.items():
+        search_start, search_end = dates
+        season_points_gdf = fetch_stac_items(
+            points_gdf=points_gdf,
+            satellite_name=satellite_name,
+            search_start=search_start,
+            search_end=search_end,
+            stac_api=stac_api,
+            stac_output=stac_output,
+        )
+
+        season_points_gdf["season"] = season
+        seasonal_gdf_list.append(season_points_gdf)
+
+    combined_gdf = pd.concat(seasonal_gdf_list, axis="index")
+    combined_gdf.index.name = "point_id"
+
+    return combined_gdf
+
+
+def fetch_stac_items(
+    points_gdf,
+    satellite_name,
+    search_start,
+    search_end,
+    stac_api,
+    stac_output="least_cloudy",
+):
+    """
+    Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame.
 
     Parameters
     ----------
@@ -79,24 +172,18 @@ def fetch_stac_items(
         Date formatted as YYYY-MM-DD
     search_end : string
         Date formatted as YYYY-MM-DD
-    stac_output : string
-        Whether to store "all" images found or just the "least_cloudy"
     stac_api: string
         The stac api that pystac should connect to
+    stac_output : string
+        Whether to store "all" images found or just the "least_cloudy"
 
     Returns
     -------
     geopandas.GeoDataFrame
         A new geopandas.GeoDataFrame with a `stac_item` column containing the STAC
         item that covers each point.
+
     """
-
-    # Get the images that cover any of the given points
-    # mpc_stac_api = pystac_client.Client.open(
-    #    "https://planetarycomputer.microsoft.com/api/stac/v1",
-    #    modifier=planetary_computer.sign_inplace,
-    # )
-
     stac_api = get_stac_api(stac_api)
 
     # change to just union of points?
@@ -139,14 +226,17 @@ def fetch_stac_items(
         point_geom_list = points_gdf.geometry.tolist()
 
         least_cloudy_items = []
-        least_cloudy_item_cover = []
+        least_cloudy_item_coverage_list = []
         for point in point_geom_list:
             items_covering_point = items_gdf[items_gdf.covers(point)]
             if len(items_covering_point) == 0:
                 least_cloudy_item = None
+                least_cloudy_item_coverage = np.nan  # temp
             else:
                 least_cloudy_item_id = items_covering_point.index[0]
-                least_cloudy_item_cover = items_covering_point["eo:cloud_cover"].iloc[0]
+                least_cloudy_item_coverage = items_covering_point[
+                    "eo:cloud_cover"
+                ].iloc[0]
                 # FIX THIS JANK (picks out the correct item based on the ID):
                 least_cloudy_item = [
                     item
@@ -155,9 +245,10 @@ def fetch_stac_items(
                 ][0]
 
             least_cloudy_items.append(least_cloudy_item)
+            least_cloudy_item_coverage_list.append(least_cloudy_item_coverage)
 
         points_gdf = points_gdf.assign(stac_item=least_cloudy_items)
-        points_gdf = points_gdf.assign(cloud_cover=least_cloudy_item_cover)
+        points_gdf = points_gdf.assign(cloud_cover=least_cloudy_item_coverage_list)
 
     # if all images requested that cover a point (not just that with the lowest
     # cloud cover), then return a list of STAC items that cover each point
@@ -199,6 +290,8 @@ def fetch_stac_items(
 
 
 def get_stac_api(api_name):
+    """Get a pystac client for a given STAC API"""
+
     if api_name == "planetary-compute":
         stac_api = pystac_client.Client.open(
             "https://planetarycomputer.microsoft.com/api/stac/v1",
