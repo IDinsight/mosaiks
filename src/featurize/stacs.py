@@ -1,7 +1,7 @@
 import dask_geopandas as dask_gpd
 import geopandas as gpd
-import pandas as pd
 import numpy as np
+import pandas as pd
 import planetary_computer
 import pyproj
 import pystac_client
@@ -10,10 +10,10 @@ import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["dask_fetch_stac_items", "create_data_loader"]
+__all__ = ["parallel_fetch_stac_items", "create_data_loader"]
 
 
-def dask_fetch_stac_items(
+def parallel_fetch_stac_items(
     points_gdf,
     n_partitions,
     satellite_search_params,
@@ -43,7 +43,7 @@ def dask_fetch_stac_items(
         npartitions=n_partitions,
         sort=False,
     )
-    
+
     # # meta not needed at the moment, speed is adequate
     # meta = points_dgdf._meta
     # meta = meta.assign(stac_item=pd.Series([], dtype="object"))
@@ -115,8 +115,9 @@ def fetch_seasonal_stac_items(
     stac_output="least_cloudy",
 ):
     """
-    Takes a year as input and creates date ranges for the four seasons, runs these through fetch_stac_items, and concatenates the results.
-    Can be used where-ever fetch_stac_items is used.
+    Takes a year as input and creates date ranges for the four seasons, runs these
+    through fetch_stac_items, and concatenates the results. Can be used where-ever
+    `fetch_stac_items` is used.
 
     Note: Winter is the first month and includes December from the previous year.
 
@@ -230,10 +231,12 @@ def fetch_stac_items(
             items_covering_point = items_gdf[items_gdf.covers(point)]
             if len(items_covering_point) == 0:
                 least_cloudy_item = None
-                least_cloudy_item_coverage = np.nan # temp
+                least_cloudy_item_coverage = np.nan  # temp
             else:
                 least_cloudy_item_id = items_covering_point.index[0]
-                least_cloudy_item_coverage = items_covering_point["eo:cloud_cover"].iloc[0]
+                least_cloudy_item_coverage = items_covering_point[
+                    "eo:cloud_cover"
+                ].iloc[0]
                 # FIX THIS JANK (picks out the correct item based on the ID):
                 least_cloudy_item = [
                     item
