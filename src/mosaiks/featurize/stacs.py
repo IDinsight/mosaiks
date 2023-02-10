@@ -104,7 +104,6 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
         shuffle=False,
         collate_fn=lambda x: x,
         pin_memory=False,
-        collate_fn=lambda x: x,
     )
 
     return data_loader
