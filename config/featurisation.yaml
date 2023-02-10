@@ -7,6 +7,7 @@ satellite_search_params:
   stac_output : least_cloudy
   stac_api: planetary-compute # earth-search
 
+# move image buffer distance var here?
 num_features : 4000
 kernel_size : 3
 batch_size : 10
