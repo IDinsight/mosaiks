@@ -10,7 +10,7 @@ import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["parallel_fetch_stac_items", "create_data_loader"]
+__all__ = ["fetch_image_refs", "create_data_loader"]
 
 
 def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
