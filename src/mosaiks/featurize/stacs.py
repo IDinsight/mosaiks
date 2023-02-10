@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 __all__ = ["fetch_image_refs", "create_data_loader"]
 
 
-def fetch_image_refs(points_gdf, n_partitions, satellite_image_params):
+def fetch_image_refs(points_gdf, n_partitions, satellite_search_params):
     """
     Find a STAC item for points in the `points_gdf` GeoDataFrame.
 
