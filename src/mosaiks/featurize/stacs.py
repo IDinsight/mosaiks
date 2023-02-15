@@ -10,15 +10,13 @@ import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["parallel_fetch_stac_items", "create_data_loader"]
+__all__ = ["fetch_image_refs", "create_data_loader"]
 
 
-def parallel_fetch_stac_items(
-    points_gdf,
-    n_partitions,
-    satellite_search_params,
-):
+def fetch_image_refs(points_gdf, n_partitions, satellite_search_params):
     """
+    Find a STAC item for points in the `points_gdf` GeoDataFrame.
+
     Takes a GeoDataFrame of points and returns a GeoDataFrame with STAC items.
     Uses dask to parallelize the STAC search.
 
@@ -69,11 +67,26 @@ def parallel_fetch_stac_items(
             # meta=meta,
         )
 
-    return points_gdf_with_stac.compute()
+    return points_gdf_with_stac
 
 
 def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
-    """Creates a PyTorch DataLoader from a GeoDataFrame with STAC items."""
+    """
+    Creates a PyTorch DataLoader from a GeoDataFrame with STAC items.
+
+    Parameters
+    ----------
+    points_gdf_with_stac : geopandas.GeoDataFrame
+        A GeoDataFrame with the points we want to fetch imagery for + its STAC ref
+    satellite_params : dict
+        A dictionary of parameters for the satellite imagery to fetch
+    batch_size : int
+        The batch size to use for the DataLoader
+
+    Returns
+    -------
+    torch.utils.data.DataLoader
+    """
 
     stac_item_list = points_gdf_with_stac.stac_item.tolist()
     points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
@@ -97,7 +110,9 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
 
 
 def sort_by_hilbert_distance(points_gdf):
-    """Sorts a GeoDataFrame by Hilbert distance."""
+    """
+    Sort the points in the GeoDataFrame by their Hilbert distance.
+    """
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
     hilbert_distance = ddf.hilbert_distance().compute()
@@ -184,6 +199,7 @@ def fetch_stac_items(
         item that covers each point.
 
     """
+
     stac_api = get_stac_api(stac_api)
 
     # change to just union of points?
@@ -290,7 +306,9 @@ def fetch_stac_items(
 
 
 def get_stac_api(api_name):
-    """Get a pystac client for a given STAC API"""
+    """
+    Get a STAC API client for a given API name.
+    """
 
     if api_name == "planetary-compute":
         stac_api = pystac_client.Client.open(
@@ -308,7 +326,32 @@ def get_stac_api(api_name):
 
 
 class CustomDataset(Dataset):
-    def __init__(self, points, items, buffer, bands, resolution):
+    def __init__(
+        self,
+        points,
+        items,
+        buffer,
+        bands,
+        resolution,
+    ):
+        """
+        Parameters
+        ----------
+        points : np.array
+            Array of points to sample from
+        items : list
+            List of STAC items to sample from
+        buffer : int
+            Buffer in meters around each point to sample from
+        bands : list
+            List of bands to sample
+        resolution : int
+            Resolution of the image to sample
+
+        Returns
+        -------
+        None
+        """
         self.points = points
         self.items = items
         self.buffer = buffer
@@ -316,9 +359,23 @@ class CustomDataset(Dataset):
         self.resolution = resolution
 
     def __len__(self):
+        """
+        Returns the number of points in the dataset
+        """
         return self.points.shape[0]
 
     def __getitem__(self, idx):
+        """
+        Parameters
+        ----------
+        idx : int
+            Index of the point to get imagery for
+
+        Returns
+        -------
+        out_image : torch.Tensor
+            Image tensor of shape (C, H, W)
+        """
 
         lon, lat = self.points[idx]
         stac_item = self.items[idx]
@@ -327,33 +384,26 @@ class CustomDataset(Dataset):
             return None
         else:
             # 1. Fetch image(s)
-            xarray = stackstac.stack(
-                stac_item, assets=self.bands, resolution=self.resolution
-            )
-
-            # 2. Crop image(s) - WARNING: VERY SLOW if multiple images are stacked.
-            x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
+            crs = stac_item.properties["proj:epsg"]
+            x_utm, y_utm = pyproj.Proj(crs)(lon, lat)
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
-            aoi = xarray.loc[..., y_max:y_min, x_min:x_max]
-            cropped_xarray = aoi.compute()
-
-            # 2.5 Composite if there are multiple images across time
-            # 3. Convert to numpy
-            if isinstance(stac_item, list):
-                cropped_xarray = cropped_xarray.median(dim="time").compute()
-                out_image = cropped_xarray.data
-            else:
-                out_image = cropped_xarray.data.squeeze()
-
-            # 4. Min-max normalize pixel values to [0,1]
-            #    !! From MOSAIKS code... Check the effect of this !!
-            out_image = (out_image - out_image.min()) / (
-                out_image.max() - out_image.min()
+            xarray = stackstac.stack(
+                stac_item,
+                assets=self.bands,
+                resolution=self.resolution,
+                rescale=False,
+                dtype=np.uint8,
+                bounds=[x_min, y_min, x_max, y_max],
+                fill_value=0,
             )
 
-            # 5. Finally, convert to pytorch tensor
-            out_image = torch.from_numpy(out_image).float()
+            if isinstance(stac_item, list):
+                out_image = xarray.median(dim="time")
+            else:
+                out_image = xarray.squeeze()
+
+            out_image = torch.from_numpy(out_image.values).float()
 
             return out_image

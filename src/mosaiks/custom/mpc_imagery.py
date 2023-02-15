@@ -12,16 +12,13 @@
 
 # limit on line 136 seems arbitrary
 
-import geopandas as gpd
 import dask_geopandas as dask_gpd
-
+import geopandas as gpd
+import planetary_computer
+import pyproj
 import pystac_client
 import shapely.geometry
-import planetary_computer
-
 import stackstac
-import pyproj
-
 import torch
 from torch.utils.data import Dataset
 
@@ -54,35 +51,33 @@ class CustomDataset(Dataset):
 
         lon, lat = self.points[idx]
         stac_item = self.items[idx]
-        
+
         if stac_item is None:
             return None
         else:
             try:
                 # 1. Fetch image(s)
                 xarray = stackstac.stack(
-                    stac_item,
-                    assets=self.bands,
-                    resolution=self.resolution
+                    stac_item, assets=self.bands, resolution=self.resolution
                 )
 
                 # 2. Crop image(s) - WARNING: VERY SLOW if multiple images are stacked.
                 x_utm, y_utm = pyproj.Proj(xarray.crs)(lon, lat)
                 x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
                 y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
-                
+
                 aoi = xarray.loc[..., y_max:y_min, x_min:x_max]
                 cropped_xarray = aoi.compute()
 
                 # 2.5 Composite if there are multiple images across time
                 # 3. Convert to numpy
-                if type(stac_item)==list:
+                if type(stac_item) == list:
                     cropped_xarray = cropped_xarray.median(dim="time").compute()
                     out_image = cropped_xarray.data
                 else:
                     out_image = cropped_xarray.data.squeeze()
-                
-                # 4. Min-max normalize pixel values to [0,1] 
+
+                # 4. Min-max normalize pixel values to [0,1]
                 #    !! From MOSAIKS code... Check the effect of this !!
                 out_image = (out_image - out_image.min()) / (
                     out_image.max() - out_image.min()
@@ -91,8 +86,8 @@ class CustomDataset(Dataset):
             except BaseException as e:
                 print(f"{idx} Error: {str(e)}")
                 return None
-            
-            # 5. Finally, convert to pytorch tensor 
+
+            # 5. Finally, convert to pytorch tensor
             out_image = torch.from_numpy(out_image).float()
 
             return out_image
@@ -100,8 +95,10 @@ class CustomDataset(Dataset):
 
 # TODO: Make this function not be awful. Modularise out the fetching and cloud-cover selection.
 # TODO: This function's logic re. first getting the ID then getting the actual item seems repeated/not good. Fix.
-def fetch_stac_items(points_gdf, satellite, search_start, search_end, stac_output="least_cloudy"):
-    """    
+def fetch_stac_items(
+    points_gdf, satellite, search_start, search_end, stac_output="least_cloudy"
+):
+    """
     Find a STAC item for points in the `points_gdf` GeoDataFrame
 
     Parameters
@@ -143,7 +140,6 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, stac_outpu
     item_collection = search_results.item_collection()
     items = search_results.get_all_items_as_dict()["features"]
 
-    
     # Select only images that cover each point and add the STAC item for the least cloudy
     # image to the df
     if stac_output == "least_cloudy":
@@ -185,16 +181,14 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, stac_outpu
                 ][0]
 
             least_cloudy_items.append(least_cloudy_item)
-            
+
         points_gdf = points_gdf.assign(stac_item=least_cloudy_items)
-        
-        
-        
+
     # if all images requested that cover a point (not just that with the lowest cloud cover),
     # then return a list of STAC items that cover each point instead of just one
     if stac_output == "all":
         point_geom_list = points_gdf.geometry.tolist()
-        
+
         id_list = []
         image_geom_list = []
         for item in items:
@@ -205,9 +199,9 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, stac_outpu
             index=id_list,
             geometry=image_geom_list,
         )
-        
+
         list_of_items_covering_points = []
-        
+
         for point in point_geom_list:
             items_covering_point_geoms = items_gdf[items_gdf.covers(point)]
             if len(items_covering_point_geoms) == 0:
@@ -222,10 +216,7 @@ def fetch_stac_items(points_gdf, satellite, search_start, search_end, stac_outpu
                     if item.id in IDs_items_covering_point
                 ]
             list_of_items_covering_points.append(items_covering_point)
-            
+
         points_gdf = points_gdf.assign(stac_item=list_of_items_covering_points)
 
-    
     return points_gdf
-
-

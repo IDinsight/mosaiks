@@ -1,5 +1,4 @@
 import pandas as pd
-
 from custom.mosaiks_data import load_mosaiks_data
 from custom.shrug_data import load_shrug_secc
 from custom.utils import load_gdf

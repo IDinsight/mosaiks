@@ -4,7 +4,7 @@ from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 
-import src.utils as utl
+import mosaiks.utils as utl
 
 logging.basicConfig(level=logging.INFO)
 
