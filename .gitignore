@@ -1,5 +1,5 @@
 # Custom
-src/dask-worker-space/
+**/dask-worker-space/
 data/
 logs/
 config/secrets.env
