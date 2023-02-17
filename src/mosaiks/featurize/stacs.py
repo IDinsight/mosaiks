@@ -213,96 +213,61 @@ def fetch_stac_items(
         limit=500,  # this limit seems arbitrary
     )
     item_collection = search_results.item_collection()
-    items = search_results.get_all_items_as_dict()["features"]
+    
+    if len(item_collection) == 0:
+        return points_gdf.assign(stac_item=None)
+    else:
+        stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+        stac_gdf["stac_item"] = item_collection.items
 
-    # Select only images that cover each point and add the STAC item for the
-    # cleast cloudy image to the df
-    if stac_output == "least_cloudy":
-        # Create GeoDataFrame of image shapes, ids, and cloud cover tags
-        id_list = []
-        cloud_cover_list = []
-        image_geom_list = []
-        for item in items:
-            id_list.append(item["id"])
-            cloud_cover_list.append(item["properties"]["eo:cloud_cover"])
-            image_geom_list.append(shapely.geometry.shape(item["geometry"]))
+        if stac_output == "all":
+            points_gdf["stac_item"] = points_gdf.apply(
+                _items_covering_point, 
+                stac_gdf=stac_gdf,
+                axis=1
+            )
 
-        items_gdf = gpd.GeoDataFrame(
-            {"eo:cloud_cover": cloud_cover_list},
-            index=id_list,
-            geometry=image_geom_list,
-        )
+        if stac_output == "least_cloudy":
+            stac_gdf.sort_values(by="eo:cloud_cover", inplace=True)
+            points_gdf["stac_item"] = points_gdf.apply(
+                _least_cloudy_item_covering_point, 
+                sorted_stac_gdf=stac_gdf,
+                axis=1
+            )
 
-        # sort by cloud cover so we can find the least cloudy image for each point
-        items_gdf.sort_values("eo:cloud_cover", inplace=True)
+        return points_gdf
 
-        # associate each point with the least cloudy image that covers it
-        # NOTE: this method does no stitching or compositing and so can't handle points
-        # that are close to the edge of an image well!
-        point_geom_list = points_gdf.geometry.tolist()
 
-        least_cloudy_items = []
-        least_cloudy_item_coverage_list = []
-        for point in point_geom_list:
-            items_covering_point = items_gdf[items_gdf.covers(point)]
-            if len(items_covering_point) == 0:
-                least_cloudy_item = None
-                least_cloudy_item_coverage = np.nan  # temp
-            else:
-                least_cloudy_item_id = items_covering_point.index[0]
-                least_cloudy_item_coverage = items_covering_point[
-                    "eo:cloud_cover"
-                ].iloc[0]
-                # FIX THIS JANK (picks out the correct item based on the ID):
-                least_cloudy_item = [
-                    item
-                    for item in item_collection.items
-                    if item.id == least_cloudy_item_id
-                ][0]
+def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
+    """
+    Takes in a sorted dataframe of stac items and returns the 
+    least cloudy item that covers the current row. For use in 
+    `fetch_stac_items`. 
+    
+    TODO: Add cloud_cover column back
+    
+    """
+    
+    items_covering_point = sorted_stac_gdf[sorted_stac_gdf.contains(row.geometry)]
+    if len(items_covering_point) == 0:
+        return None
+    else:
+        least_cloudy_item = items_covering_point.iloc[0]["stac_item"]
+        return least_cloudy_item #, least_cloudy_item.properties["eo:cloud_cover"]
 
-            least_cloudy_items.append(least_cloudy_item)
-            least_cloudy_item_coverage_list.append(least_cloudy_item_coverage)
 
-        points_gdf = points_gdf.assign(stac_item=least_cloudy_items)
-        points_gdf = points_gdf.assign(cloud_cover=least_cloudy_item_coverage_list)
-
-    # if all images requested that cover a point (not just that with the lowest
-    # cloud cover), then return a list of STAC items that cover each point
-    # instead of just one
-    if stac_output == "all":
-        point_geom_list = points_gdf.geometry.tolist()
-
-        id_list = []
-        image_geom_list = []
-        for item in items:
-            id_list.append(item["id"])
-            image_geom_list.append(shapely.geometry.shape(item["geometry"]))
-
-        items_gdf = gpd.GeoDataFrame(
-            index=id_list,
-            geometry=image_geom_list,
-        )
-
-        list_of_items_covering_points = []
-
-        for point in point_geom_list:
-            items_covering_point_geoms = items_gdf[items_gdf.covers(point)]
-            if len(items_covering_point_geoms) == 0:
-                items_covering_point = None
-            else:
-                # RETURN THE ACTUAL STAC ITEM HERE
-                IDs_items_covering_point = list(items_covering_point_geoms.index)
-                # FIX THIS JANK (picks out the correct item based on the ID):
-                items_covering_point = [
-                    item
-                    for item in item_collection.items
-                    if item.id in IDs_items_covering_point
-                ]
-            list_of_items_covering_points.append(items_covering_point)
-
-        points_gdf = points_gdf.assign(stac_item=list_of_items_covering_points)
-
-    return points_gdf
+def _items_covering_point(row, stac_gdf):
+    """Takes in a sorted dataframe of stac items and returns all
+    stac items that cover the current row as a list. For use in 
+    `fetch_stac_items`
+    
+    """
+    
+    items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
+    if len(items_covering_point) == 0:
+        return None
+    else:
+        return items_covering_point["stac_item"].tolist()
 
 
 def get_stac_api(api_name):
