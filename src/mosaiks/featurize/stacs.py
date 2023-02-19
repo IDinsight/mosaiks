@@ -110,9 +110,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
 
 
 def sort_by_hilbert_distance(points_gdf):
-    """
-    Sort the points in the GeoDataFrame by their Hilbert distance.
-    """
+    """Sort the points in the GeoDataFrame by their Hilbert distance."""
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
     hilbert_distance = ddf.hilbert_distance().compute()
@@ -137,7 +135,6 @@ def fetch_seasonal_stac_items(
     Note: Winter is the first month and includes December from the previous year.
 
     Months of the seasons taken from [here](https://delhitourism.gov.in/delhitourism/aboutus/seasons_of_delhi.jsp) for now.
-
     """
     season_dict = {
         "winter": (f"{year-1}-12-01", f"{year}-01-31"),
@@ -197,7 +194,6 @@ def fetch_stac_items(
     geopandas.GeoDataFrame
         A new geopandas.GeoDataFrame with a `stac_item` column containing the STAC
         item that covers each point.
-
     """
 
     stac_api = get_stac_api(stac_api)
@@ -217,7 +213,8 @@ def fetch_stac_items(
     if len(item_collection) == 0:
         return points_gdf.assign(stac_item=None)
     else:
-        stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+        stac_gdf = _get_reprojected_stac_df(item_collection)
+        # stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
         stac_gdf["stac_item"] = item_collection.items
 
         if stac_output == "all":
@@ -237,6 +234,34 @@ def fetch_stac_items(
 
         return points_gdf
 
+    
+def _get_reprojected_stac_df(item_collection):
+    """
+    Convert ItemCollection to an EPSG:4326 GeoDataFrame.
+    
+    Parameters
+    ----------
+    item_collection : pystac.ItemCollection
+    
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        GeoDataFrame where each row is an Item and columns include 
+        cloud cover percentage and item shape reprojected to EPSG:4326
+    """
+    
+    rows_list = []
+    for item in item_collection:
+        row_data = {
+            "eo:cloud_cover":[item.properties["eo:cloud_cover"]], 
+            "geometry":[shapely.geometry.shape(item.geometry)]
+        }
+        crs = item.properties["proj:epsg"]
+        row = gpd.GeoDataFrame(row_data, crs=crs).to_crs(epsg=4326)
+        rows_list.append(row)
+    
+    return pd.concat(rows_list)
+
 
 def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
     """
@@ -245,10 +270,9 @@ def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
     `fetch_stac_items`. 
     
     TODO: Add cloud_cover column back
-    
     """
     
-    items_covering_point = sorted_stac_gdf[sorted_stac_gdf.contains(row.geometry)]
+    items_covering_point = sorted_stac_gdf[sorted_stac_gdf.covers(row)]
     if len(items_covering_point) == 0:
         return None
     else:
@@ -262,8 +286,7 @@ def _items_covering_point(row, stac_gdf):
     `fetch_stac_items`
     
     """
-    
-    items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
+    items_covering_point = stac_gdf[stac_gdf.covers(row)]
     if len(items_covering_point) == 0:
         return None
     else:
@@ -271,9 +294,7 @@ def _items_covering_point(row, stac_gdf):
 
 
 def get_stac_api(api_name):
-    """
-    Get a STAC API client for a given API name.
-    """
+    """Get a STAC API client for a given API name."""
 
     if api_name == "planetary-compute":
         stac_api = pystac_client.Client.open(
@@ -317,6 +338,7 @@ class CustomDataset(Dataset):
         -------
         None
         """
+        
         self.points = points
         self.items = items
         self.buffer = buffer
@@ -324,9 +346,8 @@ class CustomDataset(Dataset):
         self.resolution = resolution
 
     def __len__(self):
-        """
-        Returns the number of points in the dataset
-        """
+        """Returns the number of points in the dataset"""
+        
         return self.points.shape[0]
 
     def __getitem__(self, idx):
