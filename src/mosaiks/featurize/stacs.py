@@ -209,17 +209,16 @@ def fetch_stac_items(
         limit=500,  # this limit seems arbitrary
     )
     item_collection = search_results.item_collection()
-    
+
     if len(item_collection) == 0:
         return points_gdf.assign(stac_item=None)
     else:
-        stac_gdf = _get_reprojected_stac_df(item_collection)
-        # stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+        stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
         stac_gdf["stac_item"] = item_collection.items
 
         if stac_output == "all":
             points_gdf["stac_item"] = points_gdf.apply(
-                _items_covering_point, 
+                _items_covering_point,
                 stac_gdf=stac_gdf,
                 axis=1
             )
@@ -234,34 +233,6 @@ def fetch_stac_items(
 
         return points_gdf
 
-    
-def _get_reprojected_stac_df(item_collection):
-    """
-    Convert ItemCollection to an EPSG:4326 GeoDataFrame.
-    
-    Parameters
-    ----------
-    item_collection : pystac.ItemCollection
-    
-    Returns
-    -------
-    geopandas.GeoDataFrame
-        GeoDataFrame where each row is an Item and columns include 
-        cloud cover percentage and item shape reprojected to EPSG:4326
-    """
-    
-    rows_list = []
-    for item in item_collection:
-        row_data = {
-            "eo:cloud_cover":[item.properties["eo:cloud_cover"]], 
-            "geometry":[shapely.geometry.shape(item.geometry)]
-        }
-        crs = item.properties["proj:epsg"]
-        row = gpd.GeoDataFrame(row_data, crs=crs).to_crs(epsg=4326)
-        rows_list.append(row)
-    
-    return pd.concat(rows_list)
-
 
 def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
     """
@@ -272,7 +243,7 @@ def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
     TODO: Add cloud_cover column back
     """
     
-    items_covering_point = sorted_stac_gdf[sorted_stac_gdf.covers(row)]
+    items_covering_point = sorted_stac_gdf[sorted_stac_gdf.covers(row.geometry)]
     if len(items_covering_point) == 0:
         return None
     else:
@@ -286,7 +257,7 @@ def _items_covering_point(row, stac_gdf):
     `fetch_stac_items`
     
     """
-    items_covering_point = stac_gdf[stac_gdf.covers(row)]
+    items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
     if len(items_covering_point) == 0:
         return None
     else:
