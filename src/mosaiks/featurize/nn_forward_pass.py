@@ -51,6 +51,8 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
                 if (image.shape[1] >= min_image_edge) and (
                     image.shape[2] >= min_image_edge
                 ):
+                    # image = normalize(image) # or
+                    # image = image / 255
                     features_array[i] = featurize(image, model, device)
                 else:
                     # print("warn", flush=True)
@@ -62,6 +64,12 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
                 pass
 
     return features_array
+
+
+def normalize(image):
+    
+    img_min, img_max = image.min(), image.max()
+    return (image - img_min) / (img_max - img_min)
 
 
 def featurize(image, model, device):
