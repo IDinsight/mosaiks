@@ -422,7 +422,10 @@ class CustomDataset(Dataset):
                 out_image = xarray.median(dim="time")
             else:
                 out_image = xarray.squeeze()
-
+            
+            # add normalisation back in
+            out_image = out_image / 255
+            
             out_image = torch.from_numpy(out_image.values).float()
 
             return out_image
