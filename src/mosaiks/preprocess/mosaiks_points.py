@@ -33,7 +33,7 @@ def create_mosaiks_points(points_step, pre_calc_bounds=None):
         step=points_step,
         pre_calc_bounds=pre_calc_bounds,
     )
-    save_request_points(selected_points_gdf.geometry)
+    save_request_points(selected_points_gdf)
 
 
 @utl.log_progress
@@ -48,8 +48,9 @@ def load_shrug_keys_w_shape():
 
 def save_request_points(points_gdf):
 
-    latlon_list_df = pd.DataFrame({"Lat": points_gdf.y, "Lon": points_gdf.x})
-    utl.save_csv_dataset(latlon_list_df, "request_points")
+    points_gdf.drop(columns="geometry", inplace=True)
+    # latlon_list_df = pd.DataFrame({"Lat": points_gdf.y, "Lon": points_gdf.x})
+    utl.save_csv_dataset(points_gdf, "request_points")
 
 
 @utl.log_progress
@@ -96,7 +97,7 @@ def _get_total_bounds(gdf, geo_region=None):
     Returns
     -------
     list of floats
-        [min_long, min_lat, max_long, max_lat]
+        [min_lon, min_lat, max_lon, max_lat]
 
     """
 
@@ -113,9 +114,9 @@ def _get_total_bounds(gdf, geo_region=None):
 
 
 def _create_grid_of_points(
-    min_long,
+    min_lon,
     min_lat,
-    max_long,
+    max_lon,
     max_lat,
     step=0.05,
 ):
@@ -124,7 +125,7 @@ def _create_grid_of_points(
 
     Parameters
     ----------
-    min_long, min_lat, max_long, max_lat : float
+    min_lon, min_lat, max_lon, max_lat : float
         The bounds of the area of interest
     step : float, default 0.05
         The step size to use for the point coordinates. Min = 0.01.
@@ -136,12 +137,14 @@ def _create_grid_of_points(
     """
     # create a grid of point coordinates
     lat_list = np.arange(min_lat, max_lat, step)
-    long_list = np.arange(min_long, max_long, step)
-    points_grid_list = np.array([(lat, long) for lat in lat_list for long in long_list])
+    lon_list = np.arange(min_lon, max_lon, step)
+    points_grid_list = np.array([(lat, lon) for lat in lat_list for lon in lon_list])
 
     # create a GeoDataFrame from the point coordinates
-    points_geom = gpd.points_from_xy(x=points_grid_list[:, 1], y=points_grid_list[:, 0])
-    points_grid_gdf = gpd.GeoDataFrame(geometry=points_geom, crs="EPSG:4326")
+    gridded_lats = points_grid_list[:, 0]
+    gridded_lons = points_grid_list[:, 1]
+    points_geom = gpd.points_from_xy(x=gridded_lons, y=gridded_lats)
+    points_grid_gdf = gpd.GeoDataFrame({"Lat":gridded_lats, "Lon":gridded_lons}, geometry=points_geom, crs="EPSG:4326")
 
     return points_grid_gdf
 
