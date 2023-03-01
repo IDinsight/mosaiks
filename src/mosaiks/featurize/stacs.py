@@ -219,9 +219,9 @@ def fetch_stac_items(
     else:
         # Convert ItemCollection to GeoDataFrame
         # # 1. using original STAC shapes:
-        # stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+        stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
         # 2. trimming the shapes to fit bbox
-        stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+        # stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
         
         # add items as an extra column
         stac_gdf["stac_item"] = item_collection.items
@@ -402,9 +402,11 @@ class CustomDataset(Dataset):
         if stac_item is None:
             return None
         else:
-            # 1. Fetch image(s)
+            
+            ####### ORIGINAL - STACKSTAC call is in output image crs  ############
             crs = stac_item.properties["proj:epsg"]
-            x_utm, y_utm = pyproj.Proj(crs)(lon, lat)
+            proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
+            x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
@@ -417,7 +419,36 @@ class CustomDataset(Dataset):
                 bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
+            
+            ####### NEW - STACKSTAC call is in LatLon 4326 #######################
+            # convert point latlons to image crs and create buffer using meters
+#             stac_crs = stac_item.properties["proj:epsg"]
+#             proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, stac_crs, always_xy=True)
+#             x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
+#             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
+#             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
+#             # convert buffer bounds back to latlon 4326
+#             proj_stac_to_latlon = pyproj.Transformer.from_crs(stac_crs, 4326, always_xy=True)
+#             x_min, y_min = proj_stac_to_latlon.transform(x_min, y_min)
+#             x_max, y_max = proj_stac_to_latlon.transform(x_max, y_max)
+
+#             # do stackstac call in 4326. Rescale must be True (default).
+#             # NOTE: rough converted resolution... How to get this to be exact??
+#             rough_latlon_resolution = (1/111111) * self.resolution
+#             xarray = stackstac.stack(
+#                 stac_item,
+#                 assets=self.bands,
+#                 epsg=4326,
+#                 resolution=rough_latlon_resolution,
+#                 bounds_latlon=[x_min, y_min, x_max, y_max],
+#                 dtype=np.uint8,
+#                 fill_value=0,
+#                 # rescale=False,
+#                 # snap_bounds=False
+#             )
+            #######################################################################
+            
             if isinstance(stac_item, list):
                 out_image = xarray.median(dim="time")
             else:
