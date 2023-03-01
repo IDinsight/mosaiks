@@ -402,7 +402,6 @@ class CustomDataset(Dataset):
         if stac_item is None:
             return None
         else:
-            # 1. Fetch image(s)
             crs = stac_item.properties["proj:epsg"]
             x_utm, y_utm = pyproj.Proj(crs)(lon, lat)
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
@@ -413,19 +412,23 @@ class CustomDataset(Dataset):
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
-                dtype=np.uint8,
+                dtype=np.uint16, # np.uint8,
                 bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
 
             if isinstance(stac_item, list):
-                out_image = xarray.median(dim="time")
+                image = xarray.median(dim="time")
             else:
-                out_image = xarray.squeeze()
+                image = xarray.squeeze()
             
             # add normalisation back in
-            out_image = out_image / 255
-            
-            out_image = torch.from_numpy(out_image.values).float()
+            img_min, img_max = image.min(), image.max()
+            if (img_max - img_min) == 0:
+                out_image = None
+            else:
+                # out_image = out_image / 255
+                out_image = (image - img_min) / (img_max - img_min)
+                out_image = torch.from_numpy(out_image.values).float()
 
             return out_image
