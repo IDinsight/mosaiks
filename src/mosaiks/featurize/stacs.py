@@ -298,6 +298,15 @@ def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
 
     TODO: Add cloud_cover column back
     """
+    items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
+    if len(items_covering_point) == 0:
+        return None
+    else:
+        return items_covering_point["stac_item"].tolist()
+
+
+def get_stac_api(api_name):
+    """Get a STAC API client for a given API name."""
 
     items_covering_point = sorted_stac_gdf[sorted_stac_gdf.covers(row.geometry)]
     if len(items_covering_point) == 0:
@@ -365,7 +374,6 @@ class CustomDataset(Dataset):
         -------
         None
         """
-
         self.points = points
         self.items = items
         self.buffer = buffer
@@ -374,7 +382,6 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         """Returns the number of points in the dataset"""
-
         return self.points.shape[0]
 
     def __getitem__(self, idx):
