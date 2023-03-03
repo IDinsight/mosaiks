@@ -134,6 +134,12 @@ def load_gdf(folder_name, file_name):
     return gpd.read_file(file_path)
 
 
+def minmax_normalize_image(image):
+
+    img_min, img_max = image.min(), image.max()
+    return (image - img_min) / (img_max - img_min)
+
+
 def log_progress(func):
     """
     Decorator to log the start and end of a function
