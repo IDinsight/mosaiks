@@ -5,7 +5,7 @@ import pandas as pd
 import planetary_computer
 import pyproj
 import pystac_client
-import shapely.geometry
+import shapely
 import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
@@ -213,49 +213,118 @@ def fetch_stac_items(
     if len(item_collection) == 0:
         return points_gdf.assign(stac_item=None)
     else:
-        stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+        # Convert ItemCollection to GeoDataFrame
+        # # 1. using original STAC shapes:
+        # stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+        # 2. trimming the shapes to fit bbox
+        stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+
+        # add items as an extra column
         stac_gdf["stac_item"] = item_collection.items
 
         if stac_output == "all":
             points_gdf["stac_item"] = points_gdf.apply(
                 _items_covering_point,
                 stac_gdf=stac_gdf,
-                axis=1
+                axis=1,
             )
 
         if stac_output == "least_cloudy":
             stac_gdf.sort_values(by="eo:cloud_cover", inplace=True)
             points_gdf["stac_item"] = points_gdf.apply(
-                _least_cloudy_item_covering_point, 
+                _least_cloudy_item_covering_point,
                 sorted_stac_gdf=stac_gdf,
-                axis=1
+                axis=1,
             )
 
         return points_gdf
 
 
+def _get_trimmed_stac_shapes_gdf(item_collection):
+    """
+    To prevent the edge case where a point sits inside the STAC geometry
+    but outwith the STAC proj:bbox shape (resulting in a dud xarray to be
+    returned later), trim the STAC shapes to within the proj:bbox borders.
+
+    Parameters
+    ----------
+    item_collection : pystac.ItemCollection
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        GeoDataFrame where each row is an Item and columns include
+        cloud cover percentage and item shape trimmed to within proj:bbox.
+    """
+
+    rows_list = []
+    for item in item_collection:
+
+        stac_crs = item.properties["proj:epsg"]
+
+        # get STAC geometry
+        stac_geom = shapely.geometry.shape(item.geometry)
+
+        # convert proj:bbox to polygon
+        x_min_p, y_min_p, x_max_p, y_max_p = item.properties["proj:bbox"]
+        image_bbox = shapely.geometry.Polygon(
+            [
+                [x_min_p, y_min_p],
+                [x_min_p, y_max_p],
+                [x_max_p, y_max_p],
+                [x_max_p, y_min_p],
+            ]
+        )
+        # convert to EPSG:4326 (to match STAC geometry)
+        image_bbox = (
+            gpd.GeoSeries(image_bbox).set_crs(stac_crs).to_crs(4326).geometry[0]
+        )
+
+        # trim stac_geom to only what's inside bbox
+        trimmed_geom = stac_geom.intersection(image_bbox)
+
+        row_data = {
+            "eo:cloud_cover": [item.properties["eo:cloud_cover"]],
+            "geometry": [trimmed_geom],
+        }
+
+        row = gpd.GeoDataFrame(row_data, crs=4326)
+        rows_list.append(row)
+
+    return pd.concat(rows_list)
+
+
 def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
     """
-    Takes in a sorted dataframe of stac items and returns the 
-    least cloudy item that covers the current row. For use in 
-    `fetch_stac_items`. 
-    
+    Takes in a sorted dataframe of stac items and returns the
+    least cloudy item that covers the current row. For use in
+    `fetch_stac_items`.
+
     TODO: Add cloud_cover column back
     """
-    
+    items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
+    if len(items_covering_point) == 0:
+        return None
+    else:
+        return items_covering_point["stac_item"].tolist()
+
+
+def get_stac_api(api_name):
+    """Get a STAC API client for a given API name."""
+
     items_covering_point = sorted_stac_gdf[sorted_stac_gdf.covers(row.geometry)]
     if len(items_covering_point) == 0:
         return None
     else:
         least_cloudy_item = items_covering_point.iloc[0]["stac_item"]
-        return least_cloudy_item #, least_cloudy_item.properties["eo:cloud_cover"]
+        return least_cloudy_item  # , least_cloudy_item.properties["eo:cloud_cover"]
 
 
 def _items_covering_point(row, stac_gdf):
     """Takes in a sorted dataframe of stac items and returns all
-    stac items that cover the current row as a list. For use in 
+    stac items that cover the current row as a list. For use in
     `fetch_stac_items`
-    
+
     """
     items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
     if len(items_covering_point) == 0:
@@ -309,7 +378,6 @@ class CustomDataset(Dataset):
         -------
         None
         """
-        
         self.points = points
         self.items = items
         self.buffer = buffer
@@ -318,7 +386,6 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         """Returns the number of points in the dataset"""
-        
         return self.points.shape[0]
 
     def __getitem__(self, idx):
@@ -340,9 +407,9 @@ class CustomDataset(Dataset):
         if stac_item is None:
             return None
         else:
-            # 1. Fetch image(s)
             crs = stac_item.properties["proj:epsg"]
-            x_utm, y_utm = pyproj.Proj(crs)(lon, lat)
+            proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
+            x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
