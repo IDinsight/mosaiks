@@ -415,7 +415,7 @@ class CustomDataset(Dataset):
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
-                dtype=np.float64,  #np.uint16 #np.uint8,
+                dtype=np.int16,  #np.uint16 #np.uint8 #np.float64
                 bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
@@ -426,13 +426,11 @@ class CustomDataset(Dataset):
             else:
                 image = xarray.squeeze()
 
-            # normalise
             try:
+                # normalise (need to catch errors for images that are all 0s)
                 # image = image / 255
                 # image = minmax_normalize_image(image)
-                image = torch.from_numpy(image.values).float()
+                return torch.from_numpy(image.values).float()
             except Exception as e:
                 print(f"Skipping {idx}:", e)
                 return None
-
-            return image

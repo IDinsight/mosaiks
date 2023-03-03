@@ -53,14 +53,14 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
                     image.shape[2] >= min_image_edge
                 ):
 
-#                     # normalise
-#                     try:
-#                         # image = image / 255
-#                         image = minmax_normalize_image(image)
-#                     except Exception as e:
-#                         print(f"Skipping {idx}:", e)
-#                         image = None
-                    
+                    # normalise (need to catch errors for images that are all 0s)
+                    try:
+                        # image = image / 255
+                        image = minmax_normalize_image(image)
+                    except Exception as e:
+                        print(f"Skipping {idx}:", e)
+                        image = None
+
                     # featurize
                     features_array[i] = featurize(image, model, device)
                 else:
