@@ -1,70 +1,13 @@
-# DSEM The/Nudge Ultrapoor Project
+# MOSAIKS Satellite Imagery Featurization
 
-This repository holds the Data Science modelling work for the Ultrapoor project.
+This repository holds the code to perform parallelized encoding of satellite imagery into easy-to-use features using the MOSAIKS algorithm and Dask.
 
-## Setup
+It can currently run on [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) and has been tested on Landsat-8 or Sentinel-2 imagery.
 
-### Environment
-
-1. Run `make setup-env`
-
-### Data
-
-1. Run `make data-directories` to create data folder structure
-
-2. Download the geometries and secc [SHRUG data](https://www.devdatalab.org/shrug_download/shrug_select) and place them into the root data folder as below:
-
-    ```console
-    📦 data
-    ┗ 📂 00_raw
-      ┗ 📂 SHRUG
-        ┣ 📂 geometries_shrug-v1.5.samosa-open-polygons-shp
-        ┣ 📂 shrug-v1.5.samosa-keys-csv
-        ┗ 📂 shrug-v1.5.samosa-secc-csv
-    ```
-
-    > Note: The Keys folder is inside the SECC folder when downloaded from SHRUG but we separate them here. Keys are included with every dataset download from SHRUG.
-
-### Processed Data
-
-1. If never done before, run
-
-    ```console
-    make shrug-keys-with-shapes
-    ```
-
-2. If MOSAIKS data has never been acquired, run
-
-    ```console
-    make mosaiks-request-points
-    ```
-
-    to make the grid of points and request features for these points on the [MOSAIKS website](https://siml.berkeley.edu/portal/file_query/) or through the Featurization notebook.
-
-### DEPRECATED:
-3. Download and extract the resulting data and place it inside the folder below as a `.csv` file:
-
-    ```console
-    📦 data
-    ┗ 📂 00_raw
-      ┣ 📂 SHRUG
-      ┃ ┗ ...
-      ┗ 📂 MOSAIKS
-        ┗ 📜 [filename].csv
-    ```
-
-    On EC2, you can use `cURL` with the pre-loaded `login_cookie.txt` as a cookie to login to the MOSAIKS website and download the data:
-
-    ```console
-    curl -b .mosaiks/login_cookie.txt -o ds_nudge_up/data/00_raw/MOSAIKS/[filename].zip [File download URL]
-    ```
-
-    Then extract the data with `unzip`:
-
-    ```console
-    unzip ds_nudge_up/data/00_raw/MOSAIKS/[filename].zip -d ds_nudge_up/data/00_raw/MOSAIKS/[filename]
-    ```
-
-## Running the modelling
-
-Currently the POC modelling is done through a Jupyter notebook in the `src/` folder. Run this notebook.
+Pipeline:
+1. Load dataset containing lat-lon coordinates for which to process images
+2. Read config parameters (e.g. image size to be process (buffer), year, satellite, number of features to produce, etc.)
+3. Fetch STAC references to images that overlap each point
+4. Fetch the images
+5. Convert each image into features using the MOSAIKS algorithm
+6. Save features to file to be used for ML modelling (see the [mosaiks_ml](https://github.com/IDinsight/mosaiks_ml) repository for example ML models built using these features)
