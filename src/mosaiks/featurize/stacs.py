@@ -399,6 +399,7 @@ class CustomDataset(Dataset):
         stac_item = self.items[idx]
 
         if stac_item is None:
+            print(f"Skipping {idx}: No STAC item given.")
             return None
         else:
             # calculate crop bounds
@@ -414,7 +415,7 @@ class CustomDataset(Dataset):
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
-                dtype=np.uint16,  # np.uint8,
+                dtype=np.float64,  #np.uint16 #np.uint8,
                 bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
@@ -425,13 +426,13 @@ class CustomDataset(Dataset):
             else:
                 image = xarray.squeeze()
 
-            # normalise
-            try:
-                # out_image = out_image / 255
-                out_image = minmax_normalize_image(image)
-                out_image = torch.from_numpy(out_image.values).float()
-            except Exception as e:
-                print(f"Error for {idx}:", e)
-                return None
+            # # normalise
+            # try:
+            #     # image = image / 255
+            #     image = minmax_normalize_image(image)
+            #     image = torch.from_numpy(image.values).float()
+            # except Exception as e:
+            #     print(f"Skipping {idx}:", e)
+            #     return None
 
-            return out_image
+            return image
