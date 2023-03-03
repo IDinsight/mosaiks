@@ -426,13 +426,13 @@ class CustomDataset(Dataset):
             else:
                 image = xarray.squeeze()
 
-            # # normalise
-            # try:
-            #     # image = image / 255
-            #     image = minmax_normalize_image(image)
-            #     image = torch.from_numpy(image.values).float()
-            # except Exception as e:
-            #     print(f"Skipping {idx}:", e)
-            #     return None
+            # normalise
+            try:
+                # image = image / 255
+                # image = minmax_normalize_image(image)
+                image = torch.from_numpy(image.values).float()
+            except Exception as e:
+                print(f"Skipping {idx}:", e)
+                return None
 
             return image
