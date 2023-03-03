@@ -10,7 +10,6 @@ import pyproj
 
 import numpy as np
 import pandas as pd
-
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -403,7 +402,8 @@ class CustomDataset(Dataset):
             return None
         else:
             crs = stac_item.properties["proj:epsg"]
-            x_utm, y_utm = pyproj.Proj(crs)(lon, lat)
+            proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
+            x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
