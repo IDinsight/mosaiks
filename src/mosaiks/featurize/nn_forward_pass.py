@@ -41,8 +41,6 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
     """
 
     features_array = np.full([n_points, n_features], np.nan, dtype=float)
-    # this torch_device is not used ### ATTENTION ############################
-    torch_device = torch.device(device)
     model.eval().to(device)
 
     i = -1
