@@ -420,17 +420,19 @@ class CustomDataset(Dataset):
                 fill_value=0,
             )
 
-            # composite across time or remove the time dimension with .squeeze()
+            # remove the time dimension either by compositing over it or with .squeeze()
             if isinstance(stac_item, list):
                 image = xarray.median(dim="time")
             else:
                 image = xarray.squeeze()
-
+            
+            # normalise and return image
+            # Note: need to catch errors for images that are all 0s
             try:
-                # normalise (need to catch errors for images that are all 0s)
-                # image = image / 255
-                # image = minmax_normalize_image(image)
-                return torch.from_numpy(image.values).float()
+                image = image.values
+                torch_image = torch.from_numpy(image).float()
+                torch_image = minmax_normalize_image(torch_image)
+                return torch_image
             except Exception as e:
                 print(f"Skipping {idx}:", e)
                 return None
