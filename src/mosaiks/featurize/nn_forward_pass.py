@@ -5,8 +5,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from mosaiks.utils import minmax_normalize_image
-
 SEED = 41
 
 # Disabling the benchmarking feature causes cuDNN to deterministically
@@ -63,12 +61,6 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
                 pass
 
     return features_array
-
-
-def normalize(image):
-    
-    img_min, img_max = image.min(), image.max()
-    return (image - img_min) / (img_max - img_min)
 
 
 def featurize(image, model, device):
