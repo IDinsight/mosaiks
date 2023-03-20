@@ -1,5 +1,6 @@
 landsat-8-c2-l2 :
   resolution : 30
+  dtype : int16
   bands :
      # - SR_B1 # Coastal/Aerosol Band (B1)
      - SR_B2  # Blue Band (B2)
@@ -13,6 +14,7 @@ landsat-8-c2-l2 :
 
 sentinel-2-l2a :
   resolution : 10
+  dtype : int16
   bands : 
     - B02 # B02 (blue) 10 meter
     - B03 # B03 (green) 10 meter

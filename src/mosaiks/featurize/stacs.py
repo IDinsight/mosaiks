@@ -101,6 +101,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
         buffer=satellite_params["buffer_distance"],
         bands=satellite_params["bands"],
         resolution=satellite_params["resolution"],
+        dtype=satellite_params["dtype"],
     )
 
     data_loader = DataLoader(
@@ -219,10 +220,13 @@ def fetch_stac_items(
         return points_gdf.assign(stac_item=None)
     else:
         # Convert ItemCollection to GeoDataFrame
-        # # 1. using original STAC shapes:
-        # stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
-        # 2. trimming the shapes to fit bbox
-        stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+        if satellite_name == "landsat-8-c2-l2":
+            # For landsat: trim the shapes to fit proj:bbox
+            stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+        else:
+            # For Sentinel there is no need - there is no "proj:bbox" parameter
+            # which could cause STACK issues
+            stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
 
         # add items as an extra column
         stac_gdf["stac_item"] = item_collection.items
@@ -351,6 +355,7 @@ class CustomDataset(Dataset):
         buffer,
         bands,
         resolution,
+        dtype="int16",
     ):
         """
         Parameters
@@ -365,6 +370,10 @@ class CustomDataset(Dataset):
             List of bands to sample
         resolution : int
             Resolution of the image to sample
+        dtype : str
+            Data type of the image to sample. Defaults to "int16".
+            NOTE - np.uint8 results in loss of signal in the features
+            and np.uint16 is not supported by PyTorch.
 
         Returns
         -------
@@ -376,6 +385,7 @@ class CustomDataset(Dataset):
         self.buffer = buffer
         self.bands = bands
         self.resolution = resolution
+        self.dtype = dtype
 
     def __len__(self):
         """Returns the number of points in the dataset"""
@@ -415,7 +425,7 @@ class CustomDataset(Dataset):
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
-                dtype=np.int16,  #np.uint16 #np.uint8 #np.float64
+                dtype=self.dtype,
                 bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
@@ -425,7 +435,7 @@ class CustomDataset(Dataset):
                 image = xarray.median(dim="time")
             else:
                 image = xarray.squeeze()
-            
+
             # normalise and return image
             # Note: need to catch errors for images that are all 0s
             try:
