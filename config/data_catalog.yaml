@@ -2,10 +2,12 @@
 request_points:
   filename : urb_rur_request_points.csv
   folder : 01_preprocessed/mosaiks_request_points
+  index_col : 0
   
 request_points_centroids:
   filename : all_shrid_centroids.csv
   folder : 01_preprocessed/mosaiks_request_points
+  index_col : 0
 
 
 # processed shrug files
