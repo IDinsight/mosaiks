@@ -13,8 +13,6 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from mosaiks.utils import minmax_normalize_image
-
 __all__ = ["fetch_image_refs", "create_data_loader"]
 
 
@@ -345,6 +343,12 @@ def get_stac_api(api_name):
         raise NotImplementedError(f"STAC api {api_name} is not implemented")
 
     return stac_api
+
+
+def minmax_normalize_image(image):
+
+    img_min, img_max = image.min(), image.max()
+    return (image - img_min) / (img_max - img_min)
 
 
 class CustomDataset(Dataset):
