@@ -1,5 +1,3 @@
-import functools
-import logging
 import os
 from pathlib import Path
 from time import time
@@ -85,7 +83,7 @@ def load_dataframe(dataset_name=None, file_path=None, **kwargs):
     if dataset_name:
         file_path, kwargs = get_dataset_path_and_kwargs(dataset_name)
     elif file_path:
-        file_path = file_path
+        file_path = str(file_path)
 
     if file_path.endswith(".csv"):
         return pd.read_csv(file_path, **kwargs)
@@ -93,6 +91,23 @@ def load_dataframe(dataset_name=None, file_path=None, **kwargs):
         return pd.read_parquet(file_path, **kwargs)
     else:
         raise ValueError("File extension not recognized")
+
+
+def load_and_combine_dataframes(folder_path, filenames):
+    """
+    Given folder path and filenames, load multiple dataframes and combine
+    them, sording by the index.
+    """
+
+    dfs = []
+    for filename in filenames:
+        df = load_dataframe(file_path=folder_path / filename)
+        dfs.append(df)
+
+    combined_df = pd.concat(dfs, axis=0)
+    combined_df.sort_index(inplace=True)
+
+    return combined_df
 
 
 def save_dataframe(df, dataset_name=None, file_path=None, **kwargs):
@@ -114,7 +129,7 @@ def save_dataframe(df, dataset_name=None, file_path=None, **kwargs):
     if dataset_name:
         file_path, kwargs = get_dataset_path_and_kwargs(dataset_name)
     elif file_path:
-        file_path = file_path
+        file_path = str(file_path)
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
@@ -215,7 +230,26 @@ def df_w_latlons_to_gdf(df, lat_name="Lat", lon_name="Lon", crs="EPSG:4326"):
     return gdf
 
 
-def make_mosaiks_filepath(
+def get_filtered_filenames(folder_path, prefix="df_"):
+    """
+    Get the paths to all files in a folder that start with a given prefix.
+
+    Parameters
+    ----------
+    folder_path : str
+        The path to the folder.
+
+    Returns
+    -------
+    list of str
+    """
+
+    all_filenames = os.listdir(folder_path)
+    filtered_filenames = [file for file in all_filenames if file.startswith(prefix)]
+    return sorted(filtered_filenames)
+
+
+def make_features_path(
     satellite,
     year,
     coord_set_name,
@@ -223,8 +257,9 @@ def make_mosaiks_filepath(
     filename="features.parquet.gzip",
 ):
     """
-    Creates path to mosaiks features from a given
-    satellite, year, number of features, and filename.
+    Creates path to mosaiks features file or folder from 
+    a given satellite, year, number of features, and 
+    filename (optional).
 
     Parameters
     ----------
@@ -253,35 +288,3 @@ def make_mosaiks_filepath(
     )
 
     return file_path
-
-
-def get_filtered_filenames(folder_path, prefix="df_"):
-    """
-    Get the paths to all files in a folder that start with a given prefix.
-
-    Parameters
-    ----------
-    folder_path : str
-        The path to the folder.
-
-    Returns
-    -------
-    list of str
-    """
-
-    all_filenames = os.listdir(folder_path)
-    filtered_filenames = [file for file in all_filenames if file.startswith(prefix)]
-    return sorted(filtered_filenames)
-
-
-def load_and_combine_dataframes(folder_path, filenames):
-
-    dfs = []
-    for filename in filenames:
-        df = load_dataframe(file_path=folder_path / filename)
-        dfs.append(df)
-
-    combined_df = pd.concat(dfs, axis=0)
-    combined_df.sort_index(inplace=True)
-
-    return combined_df
