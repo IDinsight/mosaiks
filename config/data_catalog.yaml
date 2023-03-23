@@ -1,5 +1,5 @@
 # request coordinates for mosaiks
-request_points:
+request_points_grid_05:
   filename : urb_rur_request_points.csv
   folder : 01_preprocessed/mosaiks_request_points
   index_col : 0
@@ -8,43 +8,3 @@ request_points_centroids:
   filename : all_shrid_centroids.csv
   folder : 01_preprocessed/mosaiks_request_points
   index_col : 0
-
-
-# processed shrug files
-shrug_all_keys_with_shapes:
-  filename: shrug_all_keys_with_shapes.parquet.gzip
-  folder: 01_preprocessed/SHRUG
-
-# shrug raw files
-shrug_secc:
-  filename: shrug_secc.csv
-  folder: 00_raw/SHRUG/shrug-v1.5.samosa-secc-csv
-
-shrug_pc11_census:
-  filename: shrug_pc11.csv
-  folder: 00_raw/SHRUG/shrug-v1.5.samosa-pop-econ-census-csv
-
-shrug_urban_keys:
-  filename: shrug_pc11u_key.csv
-  folder: 00_raw/SHRUG/shrug-v1.5.samosa-keys-csv
-
-shrug_rural_keys:
-  filename: shrug_pc11r_key.csv
-  folder: 00_raw/SHRUG/shrug-v1.5.samosa-keys-csv
-
-shrug_village_shapefiles:
-  filename: village.shp
-  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
-
-shrug_subdistrict_shapefiles:
-  filename: subdistrict.shp
-  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
-
-shrug_district_shapefiles:
-  filename: district.shp
-  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
-
-shrug_state_shapefiles:
-  filename: state.shp
-  folder: 00_raw/SHRUG/geometries_shrug-v1.5.samosa-open-polygons-shp
-
