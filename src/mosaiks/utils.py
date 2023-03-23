@@ -255,23 +255,33 @@ def make_mosaiks_filepath(
     return file_path
 
 
-def log_progress(func):
+def get_filtered_filenames(folder_path, prefix="df_"):
     """
-    Decorator to log the start and end of a function
+    Get the paths to all files in a folder that start with a given prefix.
+
+    Parameters
+    ----------
+    folder_path : str
+        The path to the folder.
+
+    Returns
+    -------
+    list of str
     """
 
-    @functools.wraps(func)
-    def log_wrapper(*args, **kwargs):
-        """
-        Inner function
-        """
-        logging.info(" >>> Starting {:s} ... ".format(func.__name__))
-        start_time = time()
-        result = func(*args, **kwargs)
-        time_diff = time() - start_time
-        logging.info(
-            " <<< Exiting {:s} in {:.2f} secs ... ".format(func.__name__, time_diff)
-        )
-        return result
+    all_filenames = os.listdir(folder_path)
+    filtered_filenames = [file for file in all_filenames if file.startswith(prefix)]
+    return sorted(filtered_filenames)
 
-    return log_wrapper
+
+def load_and_combine_dataframes(folder_path, filenames):
+
+    dfs = []
+    for filename in filenames:
+        df = load_dataframe(file_path=folder_path / filename)
+        dfs.append(df)
+
+    combined_df = pd.concat(dfs, axis=0)
+    combined_df.sort_index(inplace=True)
+
+    return combined_df
