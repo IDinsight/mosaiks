@@ -61,7 +61,7 @@ def get_dataset_path_and_kwargs(dataset_name):
     return file_path, kwargs
 
 
-def load_dataframe(dataset_name=None, file_path=None, **kwargs):
+def load_dataframe(file_path=None, dataset_name=None, **kwargs):
     """
     Load file with tabular data (csv or parquet) as a pandas DataFrame.
     Either dataset_name or file_path must be given.
@@ -110,7 +110,7 @@ def load_and_combine_dataframes(folder_path, filenames):
     return combined_df
 
 
-def save_dataframe(df, dataset_name=None, file_path=None, **kwargs):
+def save_dataframe(df, file_path=None, dataset_name=None, **kwargs):
     """
     Save pandas dataframe to .csv .parquet etc file based on extension.
     Either dataset_name or file_path must be given.
@@ -142,7 +142,7 @@ def save_dataframe(df, dataset_name=None, file_path=None, **kwargs):
 
 
 def save_geodataframe_as_dataframe(
-    gdf, dataset_name=None, file_path=None, add_latlon_cols=False, **kwargs
+    gdf, file_path=None, dataset_name=None, add_latlon_cols=False, **kwargs
 ):
     """
     Save GeoDataFrame as a DataFrame by dropping geometry column.
@@ -170,12 +170,12 @@ def save_geodataframe_as_dataframe(
         df["Lat"] = gdf.geometry.y
         df["Lon"] = gdf.geometry.x
 
-    save_dataframe(df, dataset_name, file_path, **kwargs)
+    save_dataframe(df, file_path=file_path, dataset_name=dataset_name, **kwargs)
 
 
 def load_df_w_latlons_to_gdf(
-    dataset_name=None,
     file_path=None,
+    dataset_name=None,
     lat_name="Lat",
     lon_name="Lon",
     crs="EPSG:4326",
@@ -202,7 +202,7 @@ def load_df_w_latlons_to_gdf(
     gpd.GeoDataFrame
     """
 
-    df = load_dataframe(dataset_name, file_path, **kwargs)
+    df = load_dataframe(file_path=file_path, dataset_name=dataset_name, **kwargs)
     return df_w_latlons_to_gdf(df, lat_name, lon_name, crs)
 
 
@@ -283,7 +283,7 @@ def make_features_path(
         / satellite
         / str(year)
         / coord_set_name
-        / n_features
+        / str(n_features)
         / (filename if filename else "")
     )
 
