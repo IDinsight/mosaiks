@@ -225,6 +225,20 @@ def make_mosaiks_filepath(
     """
     Creates path to mosaiks features from a given
     satellite, year, number of features, and filename.
+
+    Parameters
+    ----------
+    satellite : str
+        The satellite name.
+    year : str
+        The year.
+    coord_set_name : str
+        The name of the coordinate set.
+    n_features : str
+        The number of features.
+    filename : str, optional
+        The filename. Default is 'features.parquet.gzip'.
+        If None, the path is only given up to the last folder.
     """
 
     data_path = Path(__file__).parents[2].resolve() / "data"
@@ -235,7 +249,7 @@ def make_mosaiks_filepath(
         / str(year)
         / coord_set_name
         / n_features
-        / filename
+        / (filename if filename else "")
     )
 
     return file_path
