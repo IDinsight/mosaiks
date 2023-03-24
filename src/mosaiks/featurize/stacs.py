@@ -13,6 +13,8 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+from mosaiks.utils import minmax_normalize_image
+
 __all__ = ["fetch_image_refs", "create_data_loader"]
 
 
