@@ -1,14 +1,19 @@
+import planetary_computer
+import pystac_client
+import stackstac
+
 import dask_geopandas as dask_gpd
+
 import geopandas as gpd
+import shapely
+import pyproj
+
 import numpy as np
 import pandas as pd
-import planetary_computer
-import pyproj
-import pystac_client
-import shapely
-import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
+
+from mosaiks.utils import minmax_normalize_image
 
 __all__ = ["fetch_image_refs", "create_data_loader"]
 
@@ -96,6 +101,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
         buffer=satellite_params["buffer_distance"],
         bands=satellite_params["bands"],
         resolution=satellite_params["resolution"],
+        dtype=satellite_params["dtype"],
     )
 
     data_loader = DataLoader(
@@ -214,27 +220,26 @@ def fetch_stac_items(
         return points_gdf.assign(stac_item=None)
     else:
         # Convert ItemCollection to GeoDataFrame
-        # # 1. using original STAC shapes:
-        # stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
-        # 2. trimming the shapes to fit bbox
-        stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+        if satellite_name == "landsat-8-c2-l2":
+            # For landsat: trim the shapes to fit proj:bbox
+            stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+        else:
+            # For Sentinel there is no need - there is no "proj:bbox" parameter
+            # which could cause STACK issues
+            stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
 
         # add items as an extra column
         stac_gdf["stac_item"] = item_collection.items
 
         if stac_output == "all":
             points_gdf["stac_item"] = points_gdf.apply(
-                _items_covering_point,
-                stac_gdf=stac_gdf,
-                axis=1,
+                _items_covering_point, stac_gdf=stac_gdf, axis=1
             )
 
         if stac_output == "least_cloudy":
             stac_gdf.sort_values(by="eo:cloud_cover", inplace=True)
             points_gdf["stac_item"] = points_gdf.apply(
-                _least_cloudy_item_covering_point,
-                sorted_stac_gdf=stac_gdf,
-                axis=1,
+                _least_cloudy_item_covering_point, sorted_stac_gdf=stac_gdf, axis=1
             )
 
         return points_gdf
@@ -302,15 +307,6 @@ def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
 
     TODO: Add cloud_cover column back
     """
-    items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
-    if len(items_covering_point) == 0:
-        return None
-    else:
-        return items_covering_point["stac_item"].tolist()
-
-
-def get_stac_api(api_name):
-    """Get a STAC API client for a given API name."""
 
     items_covering_point = sorted_stac_gdf[sorted_stac_gdf.covers(row.geometry)]
     if len(items_covering_point) == 0:
@@ -359,6 +355,7 @@ class CustomDataset(Dataset):
         buffer,
         bands,
         resolution,
+        dtype="int16",
     ):
         """
         Parameters
@@ -373,19 +370,26 @@ class CustomDataset(Dataset):
             List of bands to sample
         resolution : int
             Resolution of the image to sample
+        dtype : str
+            Data type of the image to sample. Defaults to "int16".
+            NOTE - np.uint8 results in loss of signal in the features
+            and np.uint16 is not supported by PyTorch.
 
         Returns
         -------
         None
         """
+
         self.points = points
         self.items = items
         self.buffer = buffer
         self.bands = bands
         self.resolution = resolution
+        self.dtype = dtype
 
     def __len__(self):
         """Returns the number of points in the dataset"""
+
         return self.points.shape[0]
 
     def __getitem__(self, idx):
@@ -405,29 +409,40 @@ class CustomDataset(Dataset):
         stac_item = self.items[idx]
 
         if stac_item is None:
+            print(f"Skipping {idx}: No STAC item given.")
             return None
         else:
+            # calculate crop bounds
             crs = stac_item.properties["proj:epsg"]
             proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
             x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
             x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
             y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
 
+            # get image(s) as xarray
             xarray = stackstac.stack(
                 stac_item,
                 assets=self.bands,
                 resolution=self.resolution,
                 rescale=False,
-                dtype=np.uint8,
+                dtype=self.dtype,
                 bounds=[x_min, y_min, x_max, y_max],
                 fill_value=0,
             )
 
+            # remove the time dimension either by compositing over it or with .squeeze()
             if isinstance(stac_item, list):
-                out_image = xarray.median(dim="time")
+                image = xarray.median(dim="time")
             else:
-                out_image = xarray.squeeze()
+                image = xarray.squeeze()
 
-            out_image = torch.from_numpy(out_image.values).float()
-
-            return out_image
+            # normalise and return image
+            # Note: need to catch errors for images that are all 0s
+            try:
+                image = image.values
+                torch_image = torch.from_numpy(image).float()
+                torch_image = minmax_normalize_image(torch_image)
+                return torch_image
+            except Exception as e:
+                print(f"Skipping {idx}:", e)
+                return None
