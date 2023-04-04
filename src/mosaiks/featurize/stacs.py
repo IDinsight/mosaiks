@@ -347,6 +347,12 @@ def get_stac_api(api_name):
     return stac_api
 
 
+def minmax_normalize_image(image):
+
+    img_min, img_max = image.min(), image.max()
+    return (image - img_min) / (img_max - img_min)
+
+
 class CustomDataset(Dataset):
     def __init__(
         self,
