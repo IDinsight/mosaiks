@@ -23,7 +23,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements_test.txt
 
-          pip install git+https://idi-machine-user:${{env.GH_TOKEN_MACHINE_USER}}@github.com/IDinsight/mosaiks@external_run_prep
+          pip install git+https://${{secrets.GH_TOKEN_MACHINE_USER}}@github.com/IDinsight/mosaiks@external_run_prep
 
       - name: Run Unit Tests
         env:
