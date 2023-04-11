@@ -30,7 +30,7 @@ jobs:
           PLANETARY_COMPUTE_TOKEN: ${{env.PLANETARY_COMPUTE_TOKEN}}
         run: |
           coverage run -m pytest tests
-          coverage lcov --include="mosaiks/*"
+          coverage lcov
 
       - name: Coveralls Test Coverage
         uses: coverallsapp/github-action@master
