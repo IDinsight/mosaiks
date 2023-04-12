@@ -31,12 +31,18 @@ def partition_run(
 
 
 def test_column_correctness(sample_test_data):
+    """
+    Check required columns exist in test data
+    """
     assert all(x in sample_test_data.columns for x in ["Lon", "Lat", "geometry"])
 
 
 def test_image_fetch(
     sample_test_data, featurization_params, satellite_config, local_cluster_client
 ):
+    """
+    Check images can be fetched, features generated and basic summary stats are as expected
+    """
     points_gdf_with_stac = fetch_image_refs(
         sample_test_data,
         featurization_params["dask"]["n_partitions"],
