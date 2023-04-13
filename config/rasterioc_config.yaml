@@ -1,6 +1,5 @@
 # See https://github.com/pangeo-data/cog-best-practices
 
-CURL_CA_BUNDLE : /etc/ssl/certs/ca-certificates.crt
 GDAL_DISABLE_READDIR_ON_OPEN : EMPTY_DIR
 GDAL_MAX_RAW_BLOCK_CACHE_SIZE : "200000000"
 GDAL_SWATH_SIZE : "200000000"
