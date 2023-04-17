@@ -1,10 +1,5 @@
 import logging
 
-import matplotlib.pyplot as plt
-
-import rasterio
-from rasterio.mask import mask
-
 import planetary_computer
 import pystac_client
 import stackstac
