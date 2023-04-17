@@ -47,6 +47,11 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
     for images in dataloader:
         for i, image in enumerate(images, start=i + 1):
             if image is not None:
+                
+                # in case of single-band image, force-add a band dimension
+                if len(image.shape) == 2:
+                    image = image.unsqueeze(0)
+                    
                 if (image.shape[1] >= min_image_edge) and (
                     image.shape[2] >= min_image_edge
                 ):
