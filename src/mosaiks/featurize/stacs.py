@@ -38,6 +38,10 @@ def get_dask_gdf(points_gdf, chunksize):
         chunksize=chunksize,
         sort=False,
     )
+    
+    logging.info(
+        f"{chunksize} points per partition results in {len(points_dgdf.divisions)} partitions."
+    )
 
     logging.info(
         f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
