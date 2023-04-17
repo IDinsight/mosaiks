@@ -1,3 +1,10 @@
+import logging
+
+import matplotlib.pyplot as plt
+
+import rasterio
+from rasterio.mask import mask
+
 import planetary_computer
 import pystac_client
 import stackstac
@@ -16,7 +23,7 @@ from torch.utils.data import DataLoader, Dataset
 __all__ = ["fetch_image_refs", "create_data_loader"]
 
 
-def fetch_image_refs(points_gdf, n_partitions, satellite_search_params):
+def fetch_image_refs(points_gdf, chunksize, satellite_search_params):
     """
     Find a STAC item for points in the `points_gdf` GeoDataFrame.
 
@@ -27,8 +34,8 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_search_params):
     ----------
     points_gdf : geopandas.GeoDataFrame
         A GeoDataFrame with a column named "geometry" containing shapely Point objects.
-    n_partitions : int
-        The number of partitions to use when creating the Dask GeoDataFrame.
+    chunksize : int
+        The number of points per partition to use creating the Dask GeoDataFrame.
     satellite_search_params : dict
         A dictionary containing the parameters for the STAC search.
 
@@ -36,13 +43,16 @@ def fetch_image_refs(points_gdf, n_partitions, satellite_search_params):
     -------
     geopandas.GeoDataFrame
         A GeoDataFrame with a column named "stac_item" containing STAC items.
-    """
-
+    """    
     points_gdf = sort_by_hilbert_distance(points_gdf)
     points_dgdf = dask_gpd.from_geopandas(
         points_gdf,
-        npartitions=n_partitions,
+        chunksize=chunksize,
         sort=False,
+    )
+    
+    logging.info(
+        f"{chunksize} points per partition results in {len(points_dgdf.divisions)} partitions."
     )
 
     # # meta not needed at the moment, speed is adequate

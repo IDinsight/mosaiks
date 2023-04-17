@@ -14,5 +14,5 @@ batch_size : 10
 device: cuda # cpu 
 
 dask :
-  n_partitions : 200
+    chunksize : 500
 
