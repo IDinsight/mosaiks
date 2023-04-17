@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from time import time
 
 import pandas as pd
 import yaml
@@ -179,7 +178,7 @@ def load_df_w_latlons_to_gdf(
     lat_name="Lat",
     lon_name="Lon",
     crs="EPSG:4326",
-    **kwargs
+    **kwargs,
 ):
     """
     Load CSV with Lat-Lon columns into a GeoDataFrame.
@@ -249,6 +248,28 @@ def get_filtered_filenames(folder_path, prefix="df_"):
     return sorted(filtered_filenames)
 
 
+def make_features_path_from_dict(featurization_params, coord_set_name):
+    """
+    Get the path to the folder where the mosaiks features should be saved.
+    """
+
+    satellite = featurization_params["satellite_search_params"]["satellite_name"]
+    year = featurization_params["satellite_search_params"]["search_start"].split("-")[0]
+    n_features = str(featurization_params["num_features"])
+
+    mosaiks_folder_path = make_features_path(
+        satellite,
+        year,
+        coord_set_name,
+        n_features,
+        filename=None,
+    )
+
+    os.makedirs(mosaiks_folder_path, exist_ok=True)
+
+    return mosaiks_folder_path
+
+
 def make_features_path(
     satellite,
     year,
@@ -257,8 +278,8 @@ def make_features_path(
     filename="features.parquet.gzip",
 ):
     """
-    Creates path to mosaiks features file or folder from 
-    a given satellite, year, number of features, and 
+    Creates path to mosaiks features file or folder from
+    a given satellite, year, number of features, and
     filename (optional).
 
     Parameters
@@ -288,3 +309,11 @@ def make_features_path(
     )
 
     return file_path
+
+
+def get_mosaiks_package_link():
+    """Get the link to the mosaiks package."""
+
+    secrets = load_yaml_config("../config/secrets.yml")
+    GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
+    return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks"
