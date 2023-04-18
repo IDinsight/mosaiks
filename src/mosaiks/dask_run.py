@@ -10,7 +10,11 @@ from dask import delayed
 from dask.distributed import as_completed
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_data_loader, create_features
+from mosaiks.featurize import (
+    create_data_loader,
+    create_data_loader_GEE,
+    create_features,
+)
 
 __all__ = [
     "get_dask_client",
@@ -69,7 +73,7 @@ def run_partitions(
 
     if partition_ids is None:
         partition_ids = list(range(n_partitions))
-        
+
     mosaiks_column_names = [
         f"mosaiks_{i}" for i in range(featurization_config["num_features"])
     ]
@@ -250,11 +254,20 @@ def delayed_partition_run(
 ):
     """Run featurization for a single partition."""
 
-    data_loader = create_data_loader(
-        points_gdf_with_stac=df,
-        satellite_params=satellite_config,
-        batch_size=featurization_config["batch_size"],
-    )
+    if featurization_config["imagery_source"] == "MPC":
+        data_loader = create_data_loader(
+            points_gdf_with_stac=df,
+            satellite_params=satellite_config,
+            batch_size=featurization_config["batch_size"],
+        )
+
+    elif featurization_config["imagery_source"] == "GEE":
+        data_loader = create_data_loader_GEE(
+            points_gdf=df,
+            satellite_params=satellite_config,
+            featurization_params=featurization_config,
+            batch_size=featurization_config["batch_size"],
+        )
 
     X_features = create_features(
         dataloader=data_loader,

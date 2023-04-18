@@ -1,5 +1,8 @@
 import logging
 
+import ee
+
+ee.Initialize()
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import pandas as pd
@@ -9,6 +12,7 @@ import pystac_client
 import shapely
 import stackstac
 import torch
+import wxee
 from torch.utils.data import DataLoader, Dataset
 
 __all__ = ["get_dask_gdf", "fetch_image_refs", "create_data_loader"]
@@ -468,7 +472,124 @@ class CustomDataset(Dataset):
                 image = image.values
                 torch_image = torch.from_numpy(image).float()
                 torch_image = minmax_normalize_image(torch_image)
+                print(f"dimensions of torch_image: {torch_image.shape}")
                 return torch_image
             except Exception as e:
                 print(f"Skipping {idx}:", e)
                 return None
+
+
+def create_data_loader_GEE(
+    points_gdf, satellite_params, featurization_params, batch_size
+):
+    """
+    Creates a PyTorch DataLoader from a GeoDataFrame with STAC items.
+
+    Parameters
+    ----------
+    points_gdf : geopandas.GeoDataFrame
+        A GeoDataFrame with the points we want to fetch imagery for
+    satellite_params : dict
+        A dictionary of parameters for the satellite imagery to fetch
+    featurization_params : dict
+        A dictionary of parameters for the featurization process.
+    batch_size : int
+        The batch size to use for the DataLoader
+
+    Returns
+    -------
+    torch.utils.data.DataLoader
+    """
+
+    points_list = points_gdf[["Lon", "Lat"]].to_numpy()
+    dataset = CustomDataset_GEE(
+        points=points_list,
+        buffer=satellite_params["buffer_distance"],
+        bands=satellite_params["bands"],
+        search_start=featurization_params["satellite_search_params"]["search_start"],
+        search_end=featurization_params["satellite_search_params"]["search_end"],
+    )
+
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=lambda x: x,
+        pin_memory=False,
+    )
+
+    return data_loader
+
+
+class CustomDataset_GEE(Dataset):
+    def __init__(self, points, buffer, bands, search_start, search_end):
+        """
+        Parameters
+        ----------
+        points : np.array
+            Array of points to sample from
+        buffer : int
+            Buffer in meters around each point to sample from
+        bands : list
+            List of bands to sample
+        search_start : str
+            Start date for the search
+        search_end : str
+            End date for the search
+
+        Returns
+        -------
+        None
+        """
+
+        self.points = points
+        self.buffer = buffer
+        self.bands = bands
+        self.search_start = search_start
+        self.search_end = search_end
+
+    def __len__(self):
+        """Returns the number of points in the dataset"""
+
+        return self.points.shape[0]
+
+    def __getitem__(self, idx):
+        """
+        Parameters
+        ----------
+        idx : int
+            Index of the point to get imagery for
+
+        Returns
+        -------
+        out_image : torch.Tensor
+            Image tensor of shape (C, H, W)
+        """
+
+        lon, lat = self.points[idx]
+
+        point = ee.Geometry.Point(lon, lat)
+        crop = point.buffer(self.buffer).bounds()
+
+        collection = (
+            ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+            .filterBounds(crop)
+            .filterDate(self.search_start, self.search_end)
+            .sort("CLOUD_COVER")
+        )
+
+        least_cloudy_image = collection.first()
+
+        xarray = least_cloudy_image.wx.to_xarray(region=crop, scale=30)
+        xarray = xarray[self.bands].to_array()
+        final_xarray = xarray.transpose("time", "variable", "y", "x").squeeze()
+
+        # normalise and return image
+        try:
+            image = final_xarray.values
+            torch_image = torch.from_numpy(image).float()
+            torch_image = minmax_normalize_image(torch_image)
+            return torch_image
+        except Exception as e:
+            print(f"Skipping {idx}:", e)
+            return None
