@@ -47,9 +47,8 @@ def run_partitions(
         PyTorch model.
     client : dask.distributed.Client
         Dask client.
-    mosaiks_folder_path : str, default=None
-        Path to the folder where the mosaiks features should be saved. If None,
-        the features will not be saved.
+    mosaiks_folder_path : str
+        Path to the folder where the mosaiks features should be saved.
     partition_ids : list, optional, default=None
         List of partition IDs corresponding to each partition in `partitions`.
         If None, the partition IDs will be inferred from the order of the
@@ -57,38 +56,40 @@ def run_partitions(
 
     Returns
     -------
-    failed_list : list
+    failed_ids : list
         List of partition IDs that failed to be featurized.
     """
 
     n_partitions = len(partitions)
+    if n_partitions < n_per_run:
+        logging.info(f"n_per_run is bigger than number of partitions. Running all {n_partitions} partitions.")
+        n_per_run = n_partitions
 
     if partition_ids is None:
-        partition_ids = list(range(len(partitions)))
+        partition_ids = list(range(n_partitions))
 
-    failed_list = []
-    checkpoint_idices = np.arange(0, n_partitions + n_per_run, n_per_run)
-    for p_start_id, p_end_id in zip(checkpoint_idices[:-1], checkpoint_idices[1:]):
+    failed_ids = []
+    checkpoint_indices = np.arange(0, n_partitions + n_per_run, n_per_run)
+    for p_start_id, p_end_id in zip(checkpoint_indices[:-1], checkpoint_indices[1:]):
 
         now = datetime.now().strftime("%d-%b %H:%M:%S")
-        logging.info(f"{now} Running batch: ", p_start_id, "to", p_end_id - 1)
-
+        logging.info(f"{now} Running batch: {p_start_id} to {p_end_id - 1}")
+    
         batch_indices = list(range(p_start_id, p_end_id))
+        batch_p_ids = [partition_ids[i] for i in batch_indices]
+        batch_partitions = [partitions[i] for i in batch_indices]
 
-        batch_p_ids = partition_ids[batch_indices]
-        batch_partitions = partitions[batch_indices]
-
-        failed_list += run_batch(
+        failed_ids += run_batch(
             batch_partitions,
             batch_p_ids,
             satellite_config,
             featurization_params,
             model,
-            mosaiks_folder_path,
             client,
+            mosaiks_folder_path,
         )
 
-    return failed_list
+    return failed_ids
 
 
 def run_batch(
@@ -98,7 +99,7 @@ def run_batch(
     featurization_params,
     model,
     client,
-    mosaiks_folder_path=None,
+    mosaiks_folder_path,
 ):
     """
     Run a batch of partitions and save the result for each partition to a parquet file.
@@ -118,17 +119,16 @@ def run_batch(
         PyTorch model.
     client : dask.distributed.Client
         Dask client.
-    mosaiks_folder_path : str, default=None
-        Path to the folder where the mosaiks features should be saved. If None,
-        the features will not be saved.
+    mosaiks_folder_path : str
+        Path to the folder where the mosaiks features should be saved.
 
     Returns
     -------
-    failed_list : list
+    failed_ids : list
         List of partition labels that failed to be featurized.
     """
 
-    failed_list = []
+    failed_ids = []
     delayed_dfs = []
 
     # collect futures
@@ -144,21 +144,18 @@ def run_batch(
         )
         delayed_dfs.append(f)
 
-    # compute futures
+    # delayed -> futures -> collected results
     futures_dfs = client.compute(delayed_dfs)
-    if mosaiks_folder_path:
-        failed_list = save_futures_dfs(futures_dfs, mosaiks_folder_path)
-    else:
-        failed_list = [f.key for f in as_completed(futures_dfs) if f.status == "error"]
+    failed_ids = collect_results(futures_dfs, mosaiks_folder_path)
 
     # prep for next run
     client.restart()
     sleep(5)
 
-    return failed_list
+    return failed_ids
 
 
-def save_futures_dfs(futures_dfs, mosaiks_folder_path):
+def collect_results(futures_dfs, mosaiks_folder_path):
     """
     Save computed dataframes to parquet files. If a partition fails to be featurized,
     the partition ID is added to a list.
@@ -172,21 +169,22 @@ def save_futures_dfs(futures_dfs, mosaiks_folder_path):
 
     Returns
     -------
-    failed_list : list
-        List of partition IDs that failed to be featurized."""
+    failed_ids : list
+        List of partition IDs that failed to be featurized.
+    """
 
-    failed_list = []
+    failed_ids = []
     for f in as_completed(futures_dfs):
         try:
             df = f.result()
-            df.to_parquet(f"{mosaiks_folder_path}/df_{f.key}.parquet.gzip")
+            utl.save_dataframe(df, file_path=f"{mosaiks_folder_path}/df_{f.key}.parquet.gzip")
         except Exception as e:
             f_key = f.key
             partition_id = int(f_key.split("features_")[1])
             logging.info(f"Partition {partition_id} failed. Error:", e)
-            failed_list.append(partition_id)
+            failed_ids.append(partition_id)
 
-    return failed_list
+    return failed_ids
 
 
 def run_single_partition(
@@ -267,6 +265,7 @@ def get_dask_client(kind="local"):
             threads_per_worker=4,
             silence_logs=logging.ERROR,
         )
+        logging.info(cluster.dashboard_link)
         client = Client(cluster)
         return client
 
@@ -281,8 +280,8 @@ def get_dask_client(kind="local"):
         options.worker_memory = "8GiB"
 
         cluster = gateway.new_cluster(options)
-        client = cluster.get_client()
         logging.info(cluster.dashboard_link)
+        client = cluster.get_client()
 
         mosaiks_package_link = utl.get_mosaiks_package_link()
         plugin = PipInstall(
