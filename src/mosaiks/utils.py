@@ -248,14 +248,14 @@ def get_filtered_filenames(folder_path, prefix="df_"):
     return sorted(filtered_filenames)
 
 
-def make_features_path_from_dict(featurization_params, coord_set_name):
+def make_features_path_from_dict(featurization_config, coord_set_name):
     """
     Get the path to the folder where the mosaiks features should be saved.
     """
 
-    satellite = featurization_params["satellite_search_params"]["satellite_name"]
-    year = featurization_params["satellite_search_params"]["search_start"].split("-")[0]
-    n_features = str(featurization_params["num_features"])
+    satellite = featurization_config["satellite_search_params"]["satellite_name"]
+    year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
+    n_features = str(featurization_config["num_features"])
 
     mosaiks_folder_path = make_features_path(
         satellite,
