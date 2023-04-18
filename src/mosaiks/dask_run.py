@@ -69,6 +69,10 @@ def run_partitions(
 
     if partition_ids is None:
         partition_ids = list(range(n_partitions))
+        
+    mosaiks_column_names = [
+        f"mosaiks_{i}" for i in range(featurization_config["num_features"])
+    ]
 
     failed_ids = []
     checkpoint_indices = np.arange(0, n_partitions + n_per_run, n_per_run)
@@ -86,6 +90,7 @@ def run_partitions(
             partition_ids=batch_p_ids,
             satellite_config=satellite_config,
             featurization_config=featurization_config,
+            mosaiks_column_names=mosaiks_column_names,
             model=model,
             client=client,
             mosaiks_folder_path=mosaiks_folder_path,
@@ -99,6 +104,7 @@ def run_batch(
     partition_ids,
     satellite_config,
     featurization_config,
+    mosaiks_column_names,
     model,
     client,
     mosaiks_folder_path,
@@ -132,9 +138,6 @@ def run_batch(
 
     failed_ids = []
     delayed_dfs = []
-    mosaiks_column_names = [
-        f"mosaiks_{i}" for i in range(featurization_config["num_features"])
-    ]
 
     # collect futures
     for p_id, p in zip(partition_ids, partitions):
@@ -221,10 +224,15 @@ def run_single_partition(
         Dataframe containing the featurized data.
     """
 
+    mosaiks_column_names = [
+        f"mosaiks_{i}" for i in range(featurization_config["num_features"])
+    ]
+
     f = delayed_partition_run(
         df=partition,
         satellite_config=satellite_config,
         featurization_config=featurization_config,
+        mosaiks_column_names=mosaiks_column_names,
         model=model,
         dask_key_name="single_run",
     )
