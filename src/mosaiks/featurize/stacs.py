@@ -2,7 +2,6 @@ import logging
 
 import dask_geopandas as dask_gpd
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import planetary_computer
 import pyproj
@@ -38,7 +37,7 @@ def get_dask_gdf(points_gdf, chunksize):
         chunksize=chunksize,
         sort=False,
     )
-    
+
     logging.info(
         f"{chunksize} points per partition results in {len(points_dgdf.divisions)} partitions."
     )
