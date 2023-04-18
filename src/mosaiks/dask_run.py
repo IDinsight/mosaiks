@@ -62,7 +62,9 @@ def run_partitions(
 
     n_partitions = len(partitions)
     if n_partitions < n_per_run:
-        logging.info(f"n_per_run is bigger than number of partitions. Running all {n_partitions} partitions.")
+        logging.info(
+            f"n_per_run is bigger than number of partitions. Running all {n_partitions} partitions."
+        )
         n_per_run = n_partitions
 
     if partition_ids is None:
@@ -74,7 +76,7 @@ def run_partitions(
 
         now = datetime.now().strftime("%d-%b %H:%M:%S")
         logging.info(f"{now} Running batch: {p_start_id} to {p_end_id - 1}")
-    
+
         batch_indices = list(range(p_start_id, p_end_id))
         batch_p_ids = [partition_ids[i] for i in batch_indices]
         batch_partitions = [partitions[i] for i in batch_indices]
@@ -177,7 +179,9 @@ def collect_results(futures_dfs, mosaiks_folder_path):
     for f in as_completed(futures_dfs):
         try:
             df = f.result()
-            utl.save_dataframe(df, file_path=f"{mosaiks_folder_path}/df_{f.key}.parquet.gzip")
+            utl.save_dataframe(
+                df, file_path=f"{mosaiks_folder_path}/df_{f.key}.parquet.gzip"
+            )
         except Exception as e:
             f_key = f.key
             partition_id = int(f_key.split("features_")[1])

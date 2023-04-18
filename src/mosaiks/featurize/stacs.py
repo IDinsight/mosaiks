@@ -1,17 +1,14 @@
 import logging
 
-import planetary_computer
-import pystac_client
-import stackstac
-
 import dask_geopandas as dask_gpd
-
 import geopandas as gpd
-import shapely
-import pyproj
-
 import numpy as np
 import pandas as pd
+import planetary_computer
+import pyproj
+import pystac_client
+import shapely
+import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -21,15 +18,15 @@ __all__ = ["get_dask_gdf", "fetch_image_refs", "create_data_loader"]
 def get_dask_gdf(points_gdf, chunksize):
     """
     Spatially sort and split the gdf up by the given chunksize.
-    
+
     Parameters
     ----------
     points_dgdf : geopandas.GeoDataFrame
         A GeoDataFrame with a column named "geometry" containing shapely Point objects.
     chunksize : int
         The number of points per partition to use creating the Dask GeoDataFrame.
-        
-    Returns 
+
+    Returns
     -------
     Dask GeoDataFrame
         Dask GeoDataFrame split into partitions of size `chunksize`.
@@ -41,17 +38,17 @@ def get_dask_gdf(points_gdf, chunksize):
         chunksize=chunksize,
         sort=False,
     )
-    
+
     logging.info(
         f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
     )
-    
+
     return points_dgdf
 
 
 def fetch_image_refs(points_dgdf, satellite_search_params):
     """
-    Find a STAC item for points in the `points_dgdf` Dask GeoDataFrame. Returns a 
+    Find a STAC item for points in the `points_dgdf` Dask GeoDataFrame. Returns a
     Dask GeoDataFrame with STAC items as a new column.
 
     Parameters
@@ -65,7 +62,7 @@ def fetch_image_refs(points_dgdf, satellite_search_params):
     -------
     Dask GeoDataFrame
         A Dask GeoDataFrame with a column named "stac_item" containing STAC items.
-    """    
+    """
 
     # # meta not needed at the moment, speed is adequate
     # meta = points_dgdf._meta
