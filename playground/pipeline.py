@@ -12,8 +12,8 @@ import mosaiks.utils as utl
 from mosaiks.dask_run import *
 from mosaiks.featurize import *
 
-if __name__ == '__main__':
-    
+if __name__ == "__main__":
+
     # Setup Rasterio
     rasterio_config = utl.load_yaml_config("rasterioc_config.yaml")
     os.environ.update(rasterio_config)
@@ -29,6 +29,7 @@ if __name__ == '__main__':
     ]
 
     # Load point coords
+    logging.info(f"Loading {featurization_params.coord_set_name} points...")
     points_gdf = utl.load_df_w_latlons_to_gdf(
         dataset_name=featurization_params["coord_set_name"]
     )
@@ -61,20 +62,27 @@ if __name__ == '__main__':
     )
 
     # Re-run failed partitions
-    failed_partitions = [partitions[i] for i in failed_partition_ids]
-    failed_partition_ids_1 = run_partitions(
-        partitions=failed_partitions,
-        partition_ids=failed_partition_ids,
-        satellite_config=satellite_config,
-        featurization_params=featurization_params,
-        model=model,
-        client=client,
-        mosaiks_folder_path=mosaiks_folder_path,
-    )
+    if len(failed_partition_ids) > 0:
+
+        logging.info(f"Re-running {len(failed_partition_ids)} failed partitions...")
+        failed_partitions = [partitions[i] for i in failed_partition_ids]
+
+        failed_partition_ids_1 = run_partitions(
+            partitions=failed_partitions,
+            partition_ids=failed_partition_ids,
+            satellite_config=satellite_config,
+            featurization_params=featurization_params,
+            model=model,
+            client=client,
+            mosaiks_folder_path=mosaiks_folder_path,
+        )
 
     # Load checkpoint files and combine
+    logging.info("Loading and combining checkpoint files...")
     checkpoint_filenames = utl.get_filtered_filenames(mosaiks_folder_path, prefix="df_")
-    combined_df = utl.load_and_combine_dataframes(mosaiks_folder_path, checkpoint_filenames)
+    combined_df = utl.load_and_combine_dataframes(
+        mosaiks_folder_path, checkpoint_filenames
+    )
     combined_df = combined_df.join(points_gdf[["Lat", "Lon", "shrid"]])
     print("Dataset size in memory (MB):", combined_df.memory_usage().sum() / 1000000)
 
