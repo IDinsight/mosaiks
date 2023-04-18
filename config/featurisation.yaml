@@ -11,7 +11,7 @@ satellite_search_params:
 num_features : 4000
 kernel_size : 3
 batch_size : 10
-device: cpu #cuda 
+device: cuda #cpu
 
 dask :
     chunksize : 500
