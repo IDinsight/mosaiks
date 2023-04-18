@@ -59,9 +59,11 @@ def run_partitions(
 
     n_per_run = featurization_params["dask"]["n_per_run"]
     n_partitions = len(partitions)
+    logging.info(f"Running {n_partitions} partitions...")
+
     if n_partitions < n_per_run:
         logging.info(
-            f"n_per_run is bigger than number of partitions. Running all {n_partitions} partitions."
+            f"n_partitions is smaller than n_per_run. Running all {n_partitions} partitions."
         )
         n_per_run = n_partitions
 
