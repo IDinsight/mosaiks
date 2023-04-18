@@ -88,11 +88,11 @@ if __name__ == "__main__":
         folder_path=mosaiks_folder_path, filenames=checkpoint_filenames
     )
     combined_df = combined_df.join(points_gdf[["Lat", "Lon", "shrid"]])
-    logging.info("Dataset size in memory (MB):", combined_df.memory_usage().sum() / 1000000)
-    
+    logging.info(
+        "Dataset size in memory (MB):", combined_df.memory_usage().sum() / 1000000
+    )
+
     combined_filename = "features.parquet.gzip"
     combined_filepath = mosaiks_folder_path / combined_filename
     logging.info(f"Saving combined file to {str(combined_filepath)}...")
-    utl.save_dataframe(
-        df=combined_df, file_path=combined_filepath
-    )
+    utl.save_dataframe(df=combined_df, file_path=combined_filepath)
