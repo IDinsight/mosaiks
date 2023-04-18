@@ -29,7 +29,8 @@ if __name__ == "__main__":
     ]
 
     # Load point coords
-    logging.info(f"Loading {featurization_config.coord_set_name} points...")
+    coord_set_name = featurization_config["coord_set_name"]
+    logging.info(f"Loading {coord_set_name} points...")
     points_gdf = utl.load_df_w_latlons_to_gdf(
         dataset_name=featurization_config["coord_set_name"]
     )
@@ -88,8 +89,10 @@ if __name__ == "__main__":
     )
     combined_df = combined_df.join(points_gdf[["Lat", "Lon", "shrid"]])
     print("Dataset size in memory (MB):", combined_df.memory_usage().sum() / 1000000)
-
+    
     combined_filename = "features.parquet.gzip"
+    combined_filepath = mosaiks_folder_path / combined_filename
+    logging.info(f"Saving combined file to {str(combined_filepath)}...")
     utl.save_dataframe(
-        df=combined_df, file_path=mosaiks_folder_path / combined_filename
+        df=combined_df, file_path=combined_filepath
     )
