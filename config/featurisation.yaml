@@ -1,3 +1,5 @@
+coord_set : request_points_grid_05
+
 satellite_search_params:
   satellite_name : landsat-8-c2-l2 #sentinel-2-l2a
   seasonal: False
@@ -8,11 +10,13 @@ satellite_search_params:
   stac_api: planetary-compute # earth-search
 
 # move image buffer distance var here?
+# these should be under "model : "?
 num_features : 4000
 kernel_size : 3
 batch_size : 10
 device: cuda #cpu
 
 dask :
+    n_per_run : 8
     chunksize : 500
 

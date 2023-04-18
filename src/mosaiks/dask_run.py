@@ -21,7 +21,6 @@ __all__ = [
 
 def run_partitions(
     partitions,
-    n_per_run,
     satellite_config,
     featurization_params,
     model,
@@ -37,8 +36,6 @@ def run_partitions(
     ----------
     partitions : list
         List of dataframes.
-    n_per_run : int
-        Number of partitions to run in each batch.
     satellite_config : dict
         Dictionary containing the satellite configuration.
     featurization_params : dict
@@ -60,6 +57,7 @@ def run_partitions(
         List of partition IDs that failed to be featurized.
     """
 
+    n_per_run = featurization_params["dask"]["n_per_run"]
     n_partitions = len(partitions)
     if n_partitions < n_per_run:
         logging.info(
