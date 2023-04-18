@@ -22,7 +22,7 @@ __all__ = [
 def run_partitions(
     partitions,
     satellite_config,
-    featurization_params,
+    featurization_config,
     model,
     client,
     mosaiks_folder_path=None,
@@ -38,7 +38,7 @@ def run_partitions(
         List of dataframes.
     satellite_config : dict
         Dictionary containing the satellite configuration.
-    featurization_params : dict
+    featurization_config : dict
         Dictionary containing the featurization parameters.
     model : torch.nn.Module
         PyTorch model.
@@ -57,7 +57,7 @@ def run_partitions(
         List of partition IDs that failed to be featurized.
     """
 
-    n_per_run = featurization_params["dask"]["n_per_run"]
+    n_per_run = featurization_config["dask"]["n_per_run"]
     n_partitions = len(partitions)
     logging.info(f"Running {n_partitions} partitions...")
 
@@ -82,13 +82,13 @@ def run_partitions(
         batch_partitions = [partitions[i] for i in batch_indices]
 
         failed_ids += run_batch(
-            batch_partitions,
-            batch_p_ids,
-            satellite_config,
-            featurization_params,
-            model,
-            client,
-            mosaiks_folder_path,
+            partitions=batch_partitions,
+            partition_ids=batch_p_ids,
+            satellite_config=satellite_config,
+            featurization_config=featurization_config,
+            model=model,
+            client=client,
+            mosaiks_folder_path=mosaiks_folder_path,
         )
 
     return failed_ids
@@ -98,7 +98,7 @@ def run_batch(
     partitions,
     partition_ids,
     satellite_config,
-    featurization_params,
+    featurization_config,
     model,
     client,
     mosaiks_folder_path,
@@ -115,7 +115,7 @@ def run_batch(
         for naming saved files and reference in case of failure).
     satellite_config : dict
         Dictionary containing the satellite configuration.
-    featurization_params : dict
+    featurization_config : dict
         Dictionary containing the featurization parameters.
     model : torch.nn.Module
         PyTorch model.
@@ -132,23 +132,29 @@ def run_batch(
 
     failed_ids = []
     delayed_dfs = []
+    mosaiks_column_names = [
+        f"mosaiks_{i}" for i in range(featurization_config["num_features"])
+    ]
 
     # collect futures
     for p_id, p in zip(partition_ids, partitions):
         str_id = str(p_id).zfill(3)  # makes 1 into '001'
+
         f = delayed_partition_run(
-            p,
-            satellite_config,
-            featurization_params,
-            model,
-            featurization_params["device"],
+            df=p,
+            satellite_config=satellite_config,
+            featurization_config=featurization_config,
+            mosaiks_column_names=mosaiks_column_names,
+            model=model,
             dask_key_name=f"features_{str_id}",
         )
         delayed_dfs.append(f)
 
     # delayed -> futures -> collected results
     futures_dfs = client.compute(delayed_dfs)
-    failed_ids = collect_results(futures_dfs, mosaiks_folder_path)
+    failed_ids = collect_results(
+        futures_dfs=futures_dfs, mosaiks_folder_path=mosaiks_folder_path
+    )
 
     # prep for next run
     client.restart()
@@ -180,7 +186,7 @@ def collect_results(futures_dfs, mosaiks_folder_path):
         try:
             df = f.result()
             utl.save_dataframe(
-                df, file_path=f"{mosaiks_folder_path}/df_{f.key}.parquet.gzip"
+                df=df, file_path=f"{mosaiks_folder_path}/df_{f.key}.parquet.gzip"
             )
         except Exception as e:
             f_key = f.key
@@ -192,7 +198,7 @@ def collect_results(futures_dfs, mosaiks_folder_path):
 
 
 def run_single_partition(
-    partition, satellite_config, featurization_params, model, client
+    partition, satellite_config, featurization_config, model, client
 ):
     """Run featurization for a single partition. For testing.
 
@@ -202,7 +208,7 @@ def run_single_partition(
         Dataframe containing the data to featurize.
     satellite_config : dict
         Dictionary containing the satellite configuration.
-    featurization_params : dict
+    featurization_config : dict
         Dictionary containing the featurization parameters.
     model : torch.nn.Module
         PyTorch model.
@@ -216,11 +222,10 @@ def run_single_partition(
     """
 
     f = delayed_partition_run(
-        partition,
-        satellite_config,
-        featurization_params,
-        model,
-        featurization_params["device"],
+        df=partition,
+        satellite_config=satellite_config,
+        featurization_config=featurization_config,
+        model=model,
         dask_key_name="single_run",
     )
 
@@ -232,26 +237,29 @@ def run_single_partition(
 
 
 @delayed
-def delayed_partition_run(df, satellite_config, featurization_params, model, device):
+def delayed_partition_run(
+    df, satellite_config, featurization_config, mosaiks_column_names, model
+):
     """Run featurization for a single partition."""
 
     data_loader = create_data_loader(
-        df, satellite_config, featurization_params["batch_size"]
-    )
-    X_features = create_features(
-        data_loader,
-        featurization_params["num_features"],
-        len(df),
-        model,
-        device,
-        satellite_config["min_image_edge"],
+        points_gdf_with_stac=df,
+        satellite_params=satellite_config,
+        batch_size=featurization_config["batch_size"],
     )
 
-    # TODO: take column names out of the loop and do it once
-    mosaiks_column_names = [
-        f"mosaiks_{i}" for i in range(featurization_params["num_features"])
-    ]
-    df = pd.DataFrame(X_features, index=df.index.copy(), columns=mosaiks_column_names)
+    X_features = create_features(
+        dataloader=data_loader,
+        n_features=featurization_config["num_features"],
+        n_points=len(df),
+        model=model,
+        device=featurization_config["device"],
+        min_image_edge=satellite_config["min_image_edge"],
+    )
+
+    df = pd.DataFrame(
+        data=X_features, index=df.index.copy(), columns=mosaiks_column_names
+    )
 
     return df
 
