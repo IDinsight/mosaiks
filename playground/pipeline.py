@@ -19,7 +19,7 @@ if __name__ == "__main__":
     os.environ.update(rasterio_config)
 
     # Setup Dask Cluster and Client
-    client = get_dask_client(kind="local")
+    client = get_local_dask_client()
 
     # Load params
     featurization_config = utl.load_yaml_config("featurisation.yaml")

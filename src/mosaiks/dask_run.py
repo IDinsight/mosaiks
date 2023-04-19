@@ -5,15 +5,13 @@ from time import sleep
 import numpy as np
 import pandas as pd
 from dask import delayed
-
-# dask - SOME IMPORTS IN CODE - is that okay?
-from dask.distributed import as_completed
+from dask.distributed import Client, LocalCluster, as_completed
 
 import mosaiks.utils as utl
 from mosaiks.featurize import create_data_loader, create_features
 
 __all__ = [
-    "get_dask_client",
+    "get_local_dask_client",
     "run_single_partition",
     "run_partitions",
 ]
@@ -272,43 +270,15 @@ def delayed_partition_run(
     return df
 
 
-def get_dask_client(kind="local"):
-    """Get a dask client. "local" or "gateway" are the only options for now."""
+def get_local_dask_client():
+    """Get a local dask client."""
 
-    if kind == "local":
-
-        from dask.distributed import Client, LocalCluster
-
-        cluster = LocalCluster(
-            n_workers=4,
-            processes=True,
-            threads_per_worker=4,
-            silence_logs=logging.ERROR,
-        )
-        logging.info(cluster.dashboard_link)
-        client = Client(cluster)
-        return client
-
-    if kind == "gateway":
-
-        from dask.distributed import PipInstall
-        from dask_gateway import Gateway
-
-        gateway = Gateway()
-        options = gateway.cluster_options()
-        options.worker_cores = 4
-        options.worker_memory = "8GiB"
-
-        cluster = gateway.new_cluster(options)
-        logging.info(cluster.dashboard_link)
-        client = cluster.get_client()
-
-        mosaiks_package_link = utl.get_mosaiks_package_link()
-        plugin = PipInstall(
-            packages=[mosaiks_package_link], pip_options=["--upgrade"], restart=False
-        )
-        client.register_worker_plugin(plugin)
-
-        cluster.scale(10)
-
-        return client
+    cluster = LocalCluster(
+        n_workers=4,
+        processes=True,
+        threads_per_worker=4,
+        silence_logs=logging.ERROR,
+    )
+    logging.info(cluster.dashboard_link)
+    client = Client(cluster)
+    return client
