@@ -1,49 +1,71 @@
-import planetary_computer
-import pystac_client
-import stackstac
+import logging
 
 import dask_geopandas as dask_gpd
-
 import geopandas as gpd
-import shapely
-import pyproj
-
-import numpy as np
 import pandas as pd
+import planetary_computer
+import pyproj
+import pystac_client
+import shapely
+import stackstac
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["fetch_image_refs", "create_data_loader"]
+__all__ = ["get_dask_gdf", "fetch_image_refs", "create_data_loader"]
 
 
-def fetch_image_refs(points_gdf, n_partitions, satellite_search_params):
+def get_dask_gdf(points_gdf, chunksize):
     """
-    Find a STAC item for points in the `points_gdf` GeoDataFrame.
-
-    Takes a GeoDataFrame of points and returns a GeoDataFrame with STAC items.
-    Uses dask to parallelize the STAC search.
+    Spatially sort and split the gdf up by the given chunksize.
 
     Parameters
     ----------
-    points_gdf : geopandas.GeoDataFrame
+    points_dgdf : geopandas.GeoDataFrame
         A GeoDataFrame with a column named "geometry" containing shapely Point objects.
-    n_partitions : int
-        The number of partitions to use when creating the Dask GeoDataFrame.
-    satellite_search_params : dict
-        A dictionary containing the parameters for the STAC search.
+    chunksize : int
+        The number of points per partition to use creating the Dask GeoDataFrame.
 
     Returns
     -------
-    geopandas.GeoDataFrame
-        A GeoDataFrame with a column named "stac_item" containing STAC items.
+    Dask GeoDataFrame
+        Dask GeoDataFrame split into partitions of size `chunksize`.
     """
 
     points_gdf = sort_by_hilbert_distance(points_gdf)
     points_dgdf = dask_gpd.from_geopandas(
         points_gdf,
-        npartitions=n_partitions,
+        chunksize=chunksize,
         sort=False,
     )
+
+    logging.info(
+        f"{chunksize} points per partition results in {len(points_dgdf.divisions)} partitions."
+    )
+
+    logging.info(
+        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
+    )
+
+    return points_dgdf
+
+
+def fetch_image_refs(points_dgdf, satellite_search_params):
+    """
+    Find a STAC item for points in the `points_dgdf` Dask GeoDataFrame. Returns a
+    Dask GeoDataFrame with STAC items as a new column.
+
+    Parameters
+    ----------
+    points_dgdf : geopandas.GeoDataFrame
+        A DaskGeoDataFrame with a column named "geometry" containing shapely Point objects.
+    satellite_search_params : dict
+        A dictionary containing the parameters for the STAC search.
+
+    Returns
+    -------
+    Dask GeoDataFrame
+        A Dask GeoDataFrame with a column named "stac_item" containing STAC items.
+    """
 
     # # meta not needed at the moment, speed is adequate
     # meta = points_dgdf._meta

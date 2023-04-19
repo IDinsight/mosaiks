@@ -4,6 +4,9 @@ data/
 logs/
 config/secrets.env
 config/secrets.yml
+config/secrets.yaml
+**/*.parquet
+**/*.parquet.gzip
 
 # Temporary files
 *.swp

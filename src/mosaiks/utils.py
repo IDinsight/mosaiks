@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from time import time
 
 import pandas as pd
 import yaml
@@ -179,7 +178,7 @@ def load_df_w_latlons_to_gdf(
     lat_name="Lat",
     lon_name="Lon",
     crs="EPSG:4326",
-    **kwargs
+    **kwargs,
 ):
     """
     Load CSV with Lat-Lon columns into a GeoDataFrame.
@@ -249,42 +248,42 @@ def get_filtered_filenames(folder_path, prefix="df_"):
     return sorted(filtered_filenames)
 
 
-def make_features_path(
-    satellite,
-    year,
-    coord_set_name,
-    n_features,
-    filename="features.parquet.gzip",
-):
+def make_output_folder_path(featurization_config):
     """
-    Creates path to mosaiks features file or folder from 
-    a given satellite, year, number of features, and 
-    filename (optional).
+    Get the path to the folder where the mosaiks features should be saved.
 
     Parameters
     ----------
-    satellite : str
-        The satellite name.
-    year : str
-        The year.
-    coord_set_name : str
-        The name of the coordinate set.
-    n_features : str
-        The number of features.
-    filename : str, optional
-        The filename. Default is 'features.parquet.gzip'.
-        If None, the path is only given up to the last folder.
+    featurization_config : dict
+        The featurization configuration dictionary. Must contain the keys
+        'coord_set_name', 'satellite_search_params', and 'model'.
+
+    Returns
+    -------
+    Path
     """
 
+    coord_set_name = featurization_config["coord_set_name"]
+    satellite = featurization_config["satellite_search_params"]["satellite_name"]
+    year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
+    n_features = str(featurization_config["model"]["num_features"])
+
     data_path = Path(__file__).parents[2].resolve() / "data"
-    file_path = (
+    folder_path = (
         data_path
         / "00_raw/mosaiks"
         / satellite
         / str(year)
         / coord_set_name
         / str(n_features)
-        / (filename if filename else "")
     )
 
-    return file_path
+    return folder_path
+
+
+def get_mosaiks_package_link():
+    """Get the link to the mosaiks package."""
+
+    secrets = load_yaml_config("../config/secrets.yml")
+    GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
+    return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks"
