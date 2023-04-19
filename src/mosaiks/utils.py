@@ -248,67 +248,37 @@ def get_filtered_filenames(folder_path, prefix="df_"):
     return sorted(filtered_filenames)
 
 
-def make_features_path_from_dict(featurization_config, coord_set_name):
+def make_output_folder_path(featurization_config):
     """
     Get the path to the folder where the mosaiks features should be saved.
+
+    Parameters
+    ----------
+    featurization_config : dict
+        The featurization configuration dictionary. Must contain the keys
+        'coord_set_name', 'satellite_search_params', and 'model'.
+
+    Returns
+    -------
+    Path
     """
 
+    coord_set_name = featurization_config["coord_set_name"]
     satellite = featurization_config["satellite_search_params"]["satellite_name"]
     year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
     n_features = str(featurization_config["model"]["num_features"])
 
-    mosaiks_folder_path = make_features_path(
-        satellite,
-        year,
-        coord_set_name,
-        n_features,
-        filename=None,
-    )
-
-    os.makedirs(mosaiks_folder_path, exist_ok=True)
-
-    return mosaiks_folder_path
-
-
-def make_features_path(
-    satellite,
-    year,
-    coord_set_name,
-    n_features,
-    filename="features.parquet.gzip",
-):
-    """
-    Creates path to mosaiks features file or folder from
-    a given satellite, year, number of features, and
-    filename (optional).
-
-    Parameters
-    ----------
-    satellite : str
-        The satellite name.
-    year : str
-        The year.
-    coord_set_name : str
-        The name of the coordinate set.
-    n_features : str
-        The number of features.
-    filename : str, optional
-        The filename. Default is 'features.parquet.gzip'.
-        If None, the path is only given up to the last folder.
-    """
-
     data_path = Path(__file__).parents[2].resolve() / "data"
-    file_path = (
+    folder_path = (
         data_path
         / "00_raw/mosaiks"
         / satellite
         / str(year)
         / coord_set_name
         / str(n_features)
-        / (filename if filename else "")
     )
 
-    return file_path
+    return folder_path
 
 
 def get_mosaiks_package_link():

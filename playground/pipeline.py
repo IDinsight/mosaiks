@@ -51,9 +51,8 @@ if __name__ == "__main__":
     )
 
     # Run in parallel
-    mosaiks_folder_path = utl.make_features_path_from_dict(
-        featurization_config, featurization_config["coord_set_name"]
-    )
+    mosaiks_folder_path = utl.make_output_folder_path(featurization_config)
+    os.makedirs(mosaiks_folder_path, exist_ok=True)
     failed_partition_ids = run_partitions(
         partitions=partitions,
         satellite_config=satellite_config,
