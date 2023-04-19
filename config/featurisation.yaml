@@ -10,12 +10,11 @@ satellite_search_params:
   stac_output : least_cloudy
   stac_api: planetary-compute # earth-search
 
-# move image buffer distance var here?
-# these should be under "model : "?
-num_features : 4000
-kernel_size : 3
-batch_size : 10
-device: cpu #cuda
+model :
+  num_features : 4000
+  kernel_size : 3
+  batch_size : 10
+  device: cuda #cpu
 
 dask :
     n_per_run : 8
