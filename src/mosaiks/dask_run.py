@@ -248,20 +248,11 @@ def delayed_partition_run(
 ):
     """Run featurization for a single partition."""
 
-    if featurization_config["imagery_source"] == "MPC":
-        data_loader = create_data_loader(
-            points_gdf_with_stac=df,
-            satellite_params=satellite_config,
-            batch_size=featurization_config["model"]["batch_size"],
-        )
-
-    elif featurization_config["imagery_source"] == "GEE":
-        data_loader = create_data_loader_GEE(
-            points_gdf=df,
-            satellite_params=satellite_config,
-            featurization_params=featurization_config,
-            batch_size=featurization_config["model"]["batch_size"],
-        )
+    data_loader = create_data_loader(
+        points_gdf_with_stac=df,
+        satellite_params=satellite_config,
+        batch_size=featurization_config["model"]["batch_size"],
+    )
 
     X_features = create_features(
         dataloader=data_loader,
