@@ -14,11 +14,11 @@ def partition_run(
 ):
 
     data_loader = create_data_loader(
-        df, satellite_config, featurization_params["batch_size"]
+        df, satellite_config, featurization_params["model"]["batch_size"]
     )
     X_features = create_features(
         data_loader,
-        featurization_params["num_features"],
+        featurization_params["model"]["num_features"],
         len(df),
         model,
         device,
@@ -50,14 +50,14 @@ def test_image_fetch(
     )
 
     mosaiks_column_names = [
-        f"mosaiks_{i}" for i in range(featurization_params["num_features"])
+        f"mosaiks_{i}" for i in range(featurization_params["model"]["num_features"])
     ]
 
     partitions = points_gdf_with_stac.to_delayed()
 
     model = RCF(
-        featurization_params["num_features"],
-        featurization_params["kernel_size"],
+        featurization_params["model"]["num_features"],
+        featurization_params["model"]["kernel_size"],
         len(satellite_config["bands"]),
     )
 
@@ -69,7 +69,7 @@ def test_image_fetch(
         featurization_params,
         mosaiks_column_names,
         model,
-        featurization_params["device"],
+        featurization_params["model"]["device"],
         dask_key_name=f"run_{i}",
     )
     df_future = local_cluster_client.compute(f)

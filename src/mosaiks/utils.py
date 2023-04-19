@@ -255,7 +255,7 @@ def make_features_path_from_dict(featurization_config, coord_set_name):
 
     satellite = featurization_config["satellite_search_params"]["satellite_name"]
     year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
-    n_features = str(featurization_config["num_features"])
+    n_features = str(featurization_config["model"]["num_features"])
 
     mosaiks_folder_path = make_features_path(
         satellite,

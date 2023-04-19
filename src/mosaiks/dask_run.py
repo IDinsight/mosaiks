@@ -69,9 +69,9 @@ def run_partitions(
 
     if partition_ids is None:
         partition_ids = list(range(n_partitions))
-        
+
     mosaiks_column_names = [
-        f"mosaiks_{i}" for i in range(featurization_config["num_features"])
+        f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
 
     failed_ids = []
@@ -225,7 +225,7 @@ def run_single_partition(
     """
 
     mosaiks_column_names = [
-        f"mosaiks_{i}" for i in range(featurization_config["num_features"])
+        f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
 
     f = delayed_partition_run(
@@ -253,15 +253,15 @@ def delayed_partition_run(
     data_loader = create_data_loader(
         points_gdf_with_stac=df,
         satellite_params=satellite_config,
-        batch_size=featurization_config["batch_size"],
+        batch_size=featurization_config["model"]["batch_size"],
     )
 
     X_features = create_features(
         dataloader=data_loader,
-        n_features=featurization_config["num_features"],
+        n_features=featurization_config["model"]["num_features"],
         n_points=len(df),
         model=model,
-        device=featurization_config["device"],
+        device=featurization_config["model"]["device"],
         min_image_edge=satellite_config["min_image_edge"],
     )
 

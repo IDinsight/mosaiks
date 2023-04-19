@@ -45,8 +45,8 @@ if __name__ == "__main__":
 
     # setup model
     model = RCF(
-        num_features=featurization_config["num_features"],
-        kernel_size=featurization_config["kernel_size"],
+        num_features=featurization_config["model"]["num_features"],
+        kernel_size=featurization_config["model"]["kernel_size"],
         num_input_channels=len(satellite_config["bands"]),
     )
 
