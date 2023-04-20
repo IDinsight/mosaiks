@@ -8,6 +8,7 @@ import mosaiks.utils as utl
 
 @pytest.fixture(scope="session")
 def sample_test_data():
+    """Sample test data to use with tests."""
     df = pd.read_csv("tests/data/test_points.csv")
     geometries = gpd.points_from_xy(x=df["Lon"], y=df["Lat"])
     return gpd.GeoDataFrame(df, geometry=geometries, crs="EPSG:4326")
@@ -15,6 +16,7 @@ def sample_test_data():
 
 @pytest.fixture(scope="session")
 def featurization_params():
+    """Featurization configuration for testing."""
     params = {
         "satellite_search_params": {
             "satellite_name": "landsat-8-c2-l2",
@@ -35,7 +37,8 @@ def featurization_params():
 
 
 @pytest.fixture(scope="session")
-def satellite_config(featurization_params):
+def satellite_config():
+    """Satellite configuration for testing."""
     satellite_config = {
         "resolution": 30,
         "dtype": "int16",
@@ -49,6 +52,14 @@ def satellite_config(featurization_params):
 
 @pytest.fixture(scope="session")
 def local_cluster_client():
+    """Local cluster client for testing."""
     cluster = LocalCluster(n_workers=2, processes=True, threads_per_worker=4)
     client = Client(cluster)
     return client
+
+
+def test_column_correctness(sample_test_data):
+    """
+    Check required columns exist in test data
+    """
+    assert all(x in sample_test_data.columns for x in ["Lon", "Lat", "geometry"])
