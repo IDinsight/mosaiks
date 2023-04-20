@@ -270,13 +270,20 @@ def delayed_partition_run(
     return df
 
 
-def get_local_dask_client():
-    """Get a local dask client."""
+def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Client:
+    """
+    Get a local dask client.
+
+    Parameters:
+    -----------
+    n_workers : Number of workers to use.
+    threads_per_worker : Number of threads per worker.
+    """
 
     cluster = LocalCluster(
-        n_workers=4,
+        n_workers=n_workers,
         processes=True,
-        threads_per_worker=4,
+        threads_per_worker=threads_per_worker,
         silence_logs=logging.ERROR,
     )
     logging.info(cluster.dashboard_link)

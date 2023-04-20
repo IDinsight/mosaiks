@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import pandas as pd
 import yaml
@@ -28,7 +28,6 @@ def load_yaml_config(filename: str, config_subfolder: str = None):
 
 def get_data_catalog_params(dataset_name: str) -> dict:
     """Load data catalog yaml file and return dictionary."""
-
     data_catalog = load_yaml_config("data_catalog.yaml")
     return data_catalog[dataset_name]
 
@@ -81,7 +80,7 @@ def load_dataframe(
         raise ValueError("File extension not recognized")
 
 
-def load_and_combine_dataframes(folder_path: str, filenames: list(str)) -> pd.DataFrame:
+def load_and_combine_dataframes(folder_path: str, filenames: List[str]) -> pd.DataFrame:
     """
     Given folder path and filenames, load multiple dataframes and combine
     them, sording by the index.
@@ -202,7 +201,7 @@ def df_w_latlons_to_gdf(
     return gdf
 
 
-def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> list(str):
+def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
     """
     Get the paths to all files in a folder that start with a given prefix.
 
