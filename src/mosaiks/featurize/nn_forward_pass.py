@@ -16,27 +16,27 @@ torch.manual_seed(SEED)
 __all__ = ["create_features"]
 
 
-def create_features(dataloader, n_features, n_points, model, device, min_image_edge):
+def create_features(
+    dataloader: torch.utils.data.DataLoader,
+    n_features: int,
+    n_points: int,
+    model: nn.Module,
+    device: str,
+    min_image_edge: str,
+) -> np.ndarray:
     """
     Parameters:
     -----------
-    dataloader: torch.utils.data.DataLoader
-        A dataloader object that yields batches of images.
-    n_features: int
-        The number of features to extract from each image.
-    n_points: int
-        The number of images to extract features from.
-    model: torch.nn.Module
-        A model that extracts features from images.
-    device: str
-        The device to run the model on.
-    min_image_edge: int
-        The minimum edge length of an image to extract features from.
+    dataloader: A dataloader object that yields batches of images.
+    n_features: The number of features to extract from each image.
+    n_points: The number of images to extract features from.
+    model: A model that extracts features from images.
+    device: The device to run the model on.
+    min_image_edge: The minimum edge length of an image to extract features from.
 
     Returns:
     --------
-    features_array: np.ndarray
-        An array of shape (n_points, n_features) containing the extracted features.
+    features_array: An array of shape (n_points, n_features) containing the extracted features.
 
     """
 
@@ -68,17 +68,14 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
     return features_array
 
 
-def featurize(image, model, device):
+def featurize(image: torch.Tensor, model: nn.Module, device: str):
     """Helper method for running an image patch through a model.
 
     Parameters:
     -----------
-    image: torch.Tensor
-        A tensor of shape (BANDS, X, Y) containing an image patch.
-    model: torch.nn.Module
-        A model that extracts features from images.
-    device: str
-        The device to run the model on.
+    image: A tensor of shape (BANDS, X, Y) containing an image patch.
+    model: A model that extracts features from images.
+    device: The device to run the model on.
 
     Returns:
     --------
@@ -86,7 +83,8 @@ def featurize(image, model, device):
         An array of shape (1, n_features) containing the extracted features.
     """
     image = image.to(device)
-
+    # TODO: this causes torch NOT to save the computational graph.
+    # Might need to change if we want to attribution analysis / add trainable layers.
     with torch.no_grad():
         feats = model(image).cpu().unsqueeze(0).numpy()
     return feats
