@@ -71,7 +71,7 @@ def test_data_loader(test_data: gpd.GeoDataFrame, satellite_config: dict):
     bands = len(satellite_config["bands"])
     buffer = satellite_config["buffer_distance"]
     resolution = satellite_config["resolution"]
-    image_size = math.floor(buffer * 2 / resolution)
+    image_size = math.ceil(buffer * 2 / resolution)
 
     image = data_loader.dataset.__getitem__(5)
 
@@ -80,6 +80,8 @@ def test_data_loader(test_data: gpd.GeoDataFrame, satellite_config: dict):
         assert image.shape == (bands, image_size + 1, image_size + 1)
         assert image.min() == 0.0 and image.max() == 1.0
 
+
+# TODO: test seasonal image fetch
 
 # @delayed
 # def partition_run(
