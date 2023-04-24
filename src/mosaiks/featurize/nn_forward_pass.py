@@ -141,9 +141,7 @@ class RCF(nn.Module):
         -----------
         x: A tensor of shape (BANDS, X, Y) containing an image patch.
         """
-        assert torch.all(
-            x.shape[1:] > self.conv1.kernel_size
-        ), "Image too small for kernel size"
+        assert x.shape[1:] > self.conv1.kernel_size, "Image too small for kernel size"
         x1a = F.relu(self.conv1(x))
         x1b = F.relu(-self.conv1(x))
 
