@@ -9,6 +9,11 @@ sys.path += ["../"]
 warnings.filterwarnings("ignore")
 
 import mosaiks.utils as utl
+from mosaiks.checks import (
+    _check_satellite_name,
+    _check_search_dates,
+    _check_stac_api_name,
+)
 from mosaiks.dask_run import *
 from mosaiks.featurize import *
 
@@ -18,15 +23,28 @@ if __name__ == "__main__":
     rasterio_config = utl.load_yaml_config("rasterioc_config.yaml")
     os.environ.update(rasterio_config)
 
-    # Setup Dask Cluster and Client
-    client = get_local_dask_client()
-
     # Load params
     featurization_config = utl.load_yaml_config("featurisation.yaml")
     satellite_config = utl.load_yaml_config("satellite_config.yaml")
     satellite_config = satellite_config[
         featurization_config["satellite_search_params"]["satellite_name"]
     ]
+
+    # Check params
+    _check_satellite_name(
+        featurization_config["satellite_search_params"]["satellite_name"]
+    )
+    _check_search_dates(
+        featurization_config["satellite_search_params"]["search_start_date"],
+        featurization_config["satellite_search_params"]["search_end_date"],
+    )
+    _check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
+
+    # Setup Dask Cluster and Client
+    client = get_local_dask_client(
+        featurization_config["dask"]["n_workers"],
+        featurization_config["dask"]["threads_per_worker"],
+    )
 
     # Load point coords
     coord_set_name = featurization_config["coord_set_name"]
