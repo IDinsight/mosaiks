@@ -133,6 +133,10 @@ class RCF(nn.Module):
         # Fills the input Tensor 'conv1.bias' with the value 'val = -1'.
         nn.init.constant_(self.conv1.bias, -1.0)
 
+        # Explicitly freeze convolutional weights and bias
+        self.conv1.weight.requires_grad_(False)
+        self.conv1.bias.requires_grad_(False)
+
     def forward(self, x: torch.tensor) -> torch.tensor:
         """
         Parameters:
