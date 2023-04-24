@@ -4,6 +4,7 @@ from time import sleep
 
 import numpy as np
 import pandas as pd
+import torch.nn as nn
 from dask import delayed
 from dask.distributed import Client, LocalCluster, as_completed
 
@@ -18,41 +19,33 @@ __all__ = [
 
 
 def run_partitions(
-    partitions,
-    satellite_config,
-    featurization_config,
-    model,
-    client,
-    mosaiks_folder_path=None,
-    partition_ids=None,
-):
+    partitions: list,
+    satellite_config: dict,
+    featurization_config: dict,
+    model: nn.Module,
+    client: Client,
+    mosaiks_folder_path: str = None,
+    partition_ids: list = None,
+) -> list:
     """Run partitions in batches of n_per_run and save the result for each partition
     to a parquet file. If a partition fails to be featurized, the partition ID is added
     to a list and returned at the end of the run.
 
     Parameters
     ----------
-    partitions : list
-        List of dataframes.
-    satellite_config : dict
-        Dictionary containing the satellite configuration.
-    featurization_config : dict
-        Dictionary containing the featurization parameters.
-    model : torch.nn.Module
-        PyTorch model.
-    client : dask.distributed.Client
-        Dask client.
-    mosaiks_folder_path : str
-        Path to the folder where the mosaiks features should be saved.
-    partition_ids : list, optional, default=None
-        List of partition IDs corresponding to each partition in `partitions`.
+    partitions : List of dataframes.
+    satellite_config : Dictionary containing the satellite configuration.
+    featurization_config : Dictionary containing the featurization parameters.
+    model : PyTorch random convolutional feature model.
+    client : Dask client.
+    mosaiks_folder_path : Path to the folder where the mosaiks features should be saved.
+    partition_ids : List of partition IDs corresponding to each partition in `partitions`.
         If None, the partition IDs will be inferred from the order of the
-        partitions in the list.
+        partitions in the list. Default is None.
 
     Returns
     -------
-    failed_ids : list
-        List of partition IDs that failed to be featurized.
+    failed_ids : List of partition IDs that failed to be featurized.
     """
 
     n_per_run = featurization_config["dask"]["n_per_run"]
@@ -98,40 +91,32 @@ def run_partitions(
 
 
 def run_batch(
-    partitions,
-    partition_ids,
-    satellite_config,
-    featurization_config,
-    mosaiks_column_names,
-    model,
-    client,
-    mosaiks_folder_path,
-):
+    partitions: list,
+    partition_ids: list,
+    satellite_config: dict,
+    featurization_config: dict,
+    mosaiks_column_names: list,
+    model: nn.Module,
+    client: Client,
+    mosaiks_folder_path: str,
+) -> list:
     """
     Run a batch of partitions and save the result for each partition to a parquet file.
 
     Parameters
     ----------
-    partitions : list
-        List of dataframes to process.
-    partition_ids : list of int
-        List containing IDs corresponding to the partitions passed (to be used
+    partitions :List of dataframes to process.
+    partition_ids : List containing IDs corresponding to the partitions passed (to be used
         for naming saved files and reference in case of failure).
-    satellite_config : dict
-        Dictionary containing the satellite configuration.
-    featurization_config : dict
-        Dictionary containing the featurization parameters.
-    model : torch.nn.Module
-        PyTorch model.
-    client : dask.distributed.Client
-        Dask client.
-    mosaiks_folder_path : str
-        Path to the folder where the mosaiks features should be saved.
+    satellite_config : Dictionary containing the satellite configuration.
+    featurization_config : Dictionary containing the featurization parameters.
+    model : PyTorch random convolutional feature model.
+    client : Dask client.
+    mosaiks_folder_path : Path to the folder where the mosaiks features should be saved.
 
     Returns
     -------
-    failed_ids : list
-        List of partition labels that failed to be featurized.
+    failed_ids : List of partition labels that failed to be featurized.
     """
 
     failed_ids = []
@@ -164,22 +149,19 @@ def run_batch(
     return failed_ids
 
 
-def collect_results(futures_dfs, mosaiks_folder_path):
+def collect_results(futures_dfs: list, mosaiks_folder_path: str) -> list:
     """
     Save computed dataframes to parquet files. If a partition fails to be featurized,
     the partition ID is added to a list.
 
     Parameters
     ----------
-    futures_dfs : list
-        List of futures containing the computed dataframes.
-    mosaiks_folder_path : str
-        Path to the folder where the mosaiks features should be saved.
+    futures_dfs : List of futures containing the computed dataframes.
+    mosaiks_folder_path : Path to the folder where the mosaiks features should be saved.
 
     Returns
     -------
-    failed_ids : list
-        List of partition IDs that failed to be featurized.
+    failed_ids : List of partition IDs that failed to be featurized.
     """
 
     failed_ids = []
@@ -199,27 +181,25 @@ def collect_results(futures_dfs, mosaiks_folder_path):
 
 
 def run_single_partition(
-    partition, satellite_config, featurization_config, model, client
-):
+    partition: pd.DataFrame,
+    satellite_config: dict,
+    featurization_config: dict,
+    model: nn.Module,
+    client: Client,
+) -> pd.DataFrame:
     """Run featurization for a single partition. For testing.
 
     Parameters
     ----------
-    partition : pandas.DataFrame
-        Dataframe containing the data to featurize.
-    satellite_config : dict
-        Dictionary containing the satellite configuration.
-    featurization_config : dict
-        Dictionary containing the featurization parameters.
-    model : torch.nn.Module
-        PyTorch model.
-    client : dask.distributed.Client
-        Dask client.
+    partition : Dataframe containing the data to featurize.
+    satellite_config : Dictionary containing the satellite configuration.
+    featurization_config : Dictionary containing the featurization parameters.
+    model : PyTorch random convolutional feature model.
+    client : Dask client.
 
     Returns
     -------
-    df : pandas.DataFrame
-        Dataframe containing the featurized data.
+    df : Dataframe containing the featurized data.
     """
 
     mosaiks_column_names = [
@@ -244,8 +224,12 @@ def run_single_partition(
 
 @delayed
 def delayed_partition_run(
-    df, satellite_config, featurization_config, mosaiks_column_names, model
-):
+    df: pd.DataFrame,
+    satellite_config: dict,
+    featurization_config: dict,
+    mosaiks_column_names: list,
+    model: nn.Module,
+) -> pd.DataFrame:
     """Run featurization for a single partition."""
 
     data_loader = create_data_loader(
