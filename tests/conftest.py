@@ -48,11 +48,11 @@ def featurization_params():
 def satellite_config():
     """Satellite configuration for testing."""
     satellite_config = {
-        "resolution": 30,
+        "resolution": 53,
         "dtype": "int16",
-        "bands": ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"],
-        "buffer_distance": 1200,
-        "min_image_edge": 30,
+        "bands": ["SR_B2", "SR_B3", "SR_B6", "SR_B7"],
+        "buffer_distance": 1001,
+        "min_image_edge": 23,
     }
 
     return satellite_config
