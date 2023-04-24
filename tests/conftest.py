@@ -35,11 +35,12 @@ def featurization_params():
             "stac_output": "least_cloudy",
             "stac_api": "planetary-compute",
         },
-        "num_features": 4000,
-        "kernel_size": 3,
-        "batch_size": 10,
-        "device": "cpu",
-        "dask": {"n_partitions": 200},
+        "model": {
+            "num_features": 4,
+            "kernel_size": 3,
+            "batch_size": 1,
+            "device": "cpu",
+        },
     }
     return params
 

@@ -1,5 +1,4 @@
 """Tests for featurization functions."""
-import pytest
 import torch
 
 from mosaiks.featurize import RCF
