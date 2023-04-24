@@ -15,6 +15,14 @@ def sample_test_data():
 
 
 @pytest.fixture(scope="session")
+def sample_test_null_data():
+    """Sample test data with null points to use with tests."""
+    df = pd.read_csv("tests/data/test_points_null.csv")
+    geometries = gpd.points_from_xy(x=df["Lon"], y=df["Lat"])
+    return gpd.GeoDataFrame(df, geometry=geometries, crs="EPSG:4326")
+
+
+@pytest.fixture(scope="session")
 def featurization_params():
     """Featurization configuration for testing."""
     params = {
