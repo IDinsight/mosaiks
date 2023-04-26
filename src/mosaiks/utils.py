@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import List, Tuple
 
 import pandas as pd
 import yaml
@@ -9,10 +10,8 @@ os.environ["USE_PYGEOS"] = "0"
 import geopandas as gpd  # noqa: E402
 
 
-def load_yaml_config(filename, config_subfolder=None):
-    """
-    Load generic yaml files from config and return dictionary
-    """
+def load_yaml_config(filename: str, config_subfolder: str = None):
+    """Load generic yaml files from config and return dictionary."""
 
     if config_subfolder:
         full_path = (
@@ -27,28 +26,21 @@ def load_yaml_config(filename, config_subfolder=None):
     return yaml_dict
 
 
-def get_data_catalog_params(dataset_name):
-    """
-    Load data catalog yaml file and return dictionary
-    """
-
+def get_data_catalog_params(dataset_name: str) -> dict:
+    """Load data catalog yaml file and return dictionary."""
     data_catalog = load_yaml_config("data_catalog.yaml")
     return data_catalog[dataset_name]
 
 
-def create_dataset_path(folder, filename):
-    """
-    Create data path from folder and filename
-    """
+def create_dataset_path(folder: str, filename: str) -> str:
+    """Create data path from folder and filename."""
 
     path = Path(__file__).resolve().parents[2] / "data" / folder / filename
     return str(path)
 
 
-def get_dataset_path_and_kwargs(dataset_name):
-    """
-    Get data path and kwargs from data catalog.
-    """
+def get_dataset_path_and_kwargs(dataset_name: str) -> Tuple[str, dict]:
+    """Get data path and kwargs from data catalog."""
 
     data_catalog = get_data_catalog_params(dataset_name)
     folder = data_catalog.pop("folder")
@@ -60,23 +52,19 @@ def get_dataset_path_and_kwargs(dataset_name):
     return file_path, kwargs
 
 
-def load_dataframe(file_path=None, dataset_name=None, **kwargs):
+def load_dataframe(
+    file_path: str = None, dataset_name: str = None, **kwargs
+) -> pd.DataFrame:
     """
     Load file with tabular data (csv or parquet) as a pandas DataFrame.
     Either dataset_name or file_path must be given.
 
     Parameters
     ----------
-    dataset_name : str, optional
-        The name of the dataset to load from the data catalog. If given, the
+    dataset_name : The name of the dataset to load from the data catalog. If given, the
         load the filepath and kwargs from the data catalog.
-    file_path : str, optional
-        If given, the path to the file to load.
-
-
-    Returns
-    -------
-    pd.DataFrame
+    file_path : If given, the path to the file to load.
+    **kwargs : Keyword arguments to pass to the pandas read function.
     """
 
     if dataset_name:
@@ -92,7 +80,7 @@ def load_dataframe(file_path=None, dataset_name=None, **kwargs):
         raise ValueError("File extension not recognized")
 
 
-def load_and_combine_dataframes(folder_path, filenames):
+def load_and_combine_dataframes(folder_path: str, filenames: List[str]) -> pd.DataFrame:
     """
     Given folder path and filenames, load multiple dataframes and combine
     them, sording by the index.
@@ -109,22 +97,20 @@ def load_and_combine_dataframes(folder_path, filenames):
     return combined_df
 
 
-def save_dataframe(df, file_path=None, dataset_name=None, **kwargs):
+def save_dataframe(
+    df: pd.DataFrame, file_path: str = None, dataset_name: str = None, **kwargs
+) -> None:
     """
-    Save pandas dataframe to .csv .parquet etc file based on extension.
+    Save pandas dataframe to .csv, .parquet etc file based on extension.
     Either dataset_name or file_path must be given.
 
     Parameters
     ----------
-    df : pd.DataFrame
-        The dataframe to save.
-    dataset_name : str, optional
-        The name of the dataset to load from the data catalog. If given, the
+    df : The dataframe to save.
+    dataset_name : The name of the dataset to load from the data catalog. If given, the
         load the filepath and kwargs from the data catalog.
-    file_path : str, optional
-        If given, the path to the file to load.
+    file_path : If given, the path to the file to load.
     """
-
     if dataset_name:
         file_path, kwargs = get_dataset_path_and_kwargs(dataset_name)
     elif file_path:
@@ -141,29 +127,24 @@ def save_dataframe(df, file_path=None, dataset_name=None, **kwargs):
 
 
 def save_geodataframe_as_dataframe(
-    gdf, file_path=None, dataset_name=None, add_latlon_cols=False, **kwargs
-):
+    gdf: gpd.GeoDataFrame,
+    file_path: str = None,
+    dataset_name: str = None,
+    add_latlon_cols: bool = False,
+    **kwargs,
+) -> None:
     """
     Save GeoDataFrame as a DataFrame by dropping geometry column.
     Either dataset_name or file_path must be given.
 
     Parameters
     ----------
-    gdf : gpd.GeoDataFrame
-        The GeoDataFrame to save.
-    dataset_name : str, optional
-        The name of the dataset to load from the data catalog. If given, the
+    gdf : The GeoDataFrame to save.
+    dataset_name : The name of the dataset to load from the data catalog. If given, the
         load the filepath and kwargs from the data catalog.
-    file_path : str, optional
-        If given, the path to the file to load.
-    add_latlon_cols : bool, optional
-        If True, add columns for latitude and longitude.
-
-    Returns
-    -------
-    None
+    file_path : If given, the path to the file to load.
+    add_latlon_cols : If True, add columns for latitude and longitude.
     """
-
     df = gdf.drop(columns="geometry")
     if add_latlon_cols:
         df["Lat"] = gdf.geometry.y
@@ -173,74 +154,61 @@ def save_geodataframe_as_dataframe(
 
 
 def load_df_w_latlons_to_gdf(
-    file_path=None,
-    dataset_name=None,
-    lat_name="Lat",
-    lon_name="Lon",
-    crs="EPSG:4326",
+    file_path: str = None,
+    dataset_name: str = None,
+    lat_name: str = "Lat",
+    lon_name: str = "Lon",
+    crs: str = "EPSG:4326",
     **kwargs,
-):
+) -> gpd.GeoDataFrame:
     """
     Load CSV with Lat-Lon columns into a GeoDataFrame.
     Either dataset_name or file_path must be given.
 
-    dataset_name : str, optional
-        The name of the dataset to load from the data catalog. If given, the
+    Parameters
+    ----------
+    dataset_name : The name of the dataset to load from the data catalog. If given, the
         load the filepath and kwargs from the data catalog.
-    file_path : str, optional
-        If given, the path to the file to load.
-    lat_name, lon_name : str, optional
-        The names of the columns containing the latitude and longitude values.
+    file_path : If given, the path to the file to load.
+    lat_name, lon_name : The names of the columns containing the latitude and longitude
+        values.
         Default is 'Lat' and 'Lon'.
-    crs : str, optional
-        The coordinate reference system of the lat-lon columns.
+    crs : The coordinate reference system of the lat-lon columns.
         Default is 'EPSG:4326'.
-
-    Returns
-    -------
-    gpd.GeoDataFrame
     """
-
     df = load_dataframe(file_path=file_path, dataset_name=dataset_name, **kwargs)
     return df_w_latlons_to_gdf(df, lat_name, lon_name, crs)
 
 
-def df_w_latlons_to_gdf(df, lat_name="Lat", lon_name="Lon", crs="EPSG:4326"):
+def df_w_latlons_to_gdf(
+    df: pd.DataFrame,
+    lat_name: str = "Lat",
+    lon_name: str = "Lon",
+    crs: str = "EPSG:4326",
+) -> gpd.GeoDataFrame:
     """
     Convert DataFrame to GeoDataFrame by creating geometries from lat-lon columns.
 
     Parameters
     ----------
-    df : pd.DataFrame
-        The DataFrame to convert.
-    lat_name, lon_name : str, optional
-        The names of the columns containing the latitude and longitude values.
+    df : The DataFrame to convert.
+    lat_name, lon_name : The names of the columns containing the latitude and longitude values.
         Default is 'Lat' and 'Lon'.
-    crs : str, optional
-        The coordinate reference system of the lat-lon columns.
-
-    Returns
-    -------
-    gpd.GeoDataFrame
+    crs : The coordinate reference system of the lat-lon columns.
     """
-
     latlon_point_geoms = gpd.points_from_xy(x=df[lon_name], y=df[lat_name])
     gdf = gpd.GeoDataFrame(df.copy(), geometry=latlon_point_geoms, crs=crs)
     return gdf
 
 
-def get_filtered_filenames(folder_path, prefix="df_"):
+def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
     """
     Get the paths to all files in a folder that start with a given prefix.
 
     Parameters
     ----------
-    folder_path : str
-        The path to the folder.
-
-    Returns
-    -------
-    list of str
+    folder_path : The path to the folder.
+    prefix : The prefix that the filenames must start with.
     """
 
     all_filenames = os.listdir(folder_path)
@@ -248,19 +216,14 @@ def get_filtered_filenames(folder_path, prefix="df_"):
     return sorted(filtered_filenames)
 
 
-def make_output_folder_path(featurization_config):
+def make_output_folder_path(featurization_config: dict) -> Path:
     """
     Get the path to the folder where the mosaiks features should be saved.
 
     Parameters
     ----------
-    featurization_config : dict
-        The featurization configuration dictionary. Must contain the keys
+    featurization_config : The featurization configuration dictionary. Must contain the keys
         'coord_set_name', 'satellite_search_params', and 'model'.
-
-    Returns
-    -------
-    Path
     """
 
     coord_set_name = featurization_config["coord_set_name"]
@@ -281,7 +244,7 @@ def make_output_folder_path(featurization_config):
     return folder_path
 
 
-def get_mosaiks_package_link():
+def get_mosaiks_package_link() -> str:
     """Get the link to the mosaiks package."""
 
     secrets = load_yaml_config("../config/secrets.yml")

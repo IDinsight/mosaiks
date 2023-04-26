@@ -23,7 +23,8 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements_test.txt
 
-          pip install -e .
+          # pip install git+https://${{secrets.GH_TOKEN_MACHINE_USER}}@github.com/IDinsight/mosaiks
+          pip install .
 
       - name: Run Unit Tests
         env:
