@@ -83,10 +83,7 @@ def featurize(image: torch.Tensor, model: nn.Module, device: str):
         An array of shape (1, n_features) containing the extracted features.
     """
     image = image.to(device)
-    # TODO: this causes torch NOT to save the computational graph.
-    # Might need to change if we want to attribution analysis / add trainable layers.
-    with torch.no_grad():
-        feats = model(image).cpu().unsqueeze(0).numpy()
+    feats = model(image).cpu().unsqueeze(0).numpy()
     return feats
 
 
