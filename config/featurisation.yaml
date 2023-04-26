@@ -19,4 +19,5 @@ model :
 dask :
     n_per_run : 8
     chunksize : 500
-
+    n_workers: 4
+    threads_per_worker: 4

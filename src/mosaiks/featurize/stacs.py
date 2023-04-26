@@ -1,10 +1,12 @@
 import logging
+from typing import List
 
 import ee
 
 ee.Initialize()
 import dask_geopandas as dask_gpd
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import planetary_computer
 import pyproj
@@ -13,26 +15,25 @@ import shapely
 import stackstac
 import torch
 import wxee
+from pystac.item import Item
+from pystac.item_collection import ItemCollection
 from torch.utils.data import DataLoader, Dataset
 
 __all__ = ["get_dask_gdf", "fetch_image_refs", "create_data_loader"]
 
 
-def get_dask_gdf(points_gdf, chunksize):
+def get_dask_gdf(points_gdf: gpd.GeoDataFrame, chunksize: int) -> dask_gpd.GeoDataFrame:
     """
     Spatially sort and split the gdf up by the given chunksize.
 
     Parameters
     ----------
-    points_dgdf : geopandas.GeoDataFrame
-        A GeoDataFrame with a column named "geometry" containing shapely Point objects.
-    chunksize : int
-        The number of points per partition to use creating the Dask GeoDataFrame.
+    points_dgdf : A GeoDataFrame with a column named "geometry" containing shapely Point objects.
+    chunksize : The number of points per partition to use creating the Dask GeoDataFrame.
 
     Returns
     -------
-    Dask GeoDataFrame
-        Dask GeoDataFrame split into partitions of size `chunksize`.
+    points_dgdf: Dask GeoDataFrame split into partitions of size `chunksize`.
     """
 
     points_gdf = sort_by_hilbert_distance(points_gdf)
@@ -53,22 +54,24 @@ def get_dask_gdf(points_gdf, chunksize):
     return points_dgdf
 
 
-def fetch_image_refs(points_dgdf, satellite_search_params):
+def fetch_image_refs(
+    points_dgdf: gpd.GeoDataFrame, satellite_search_params: dict
+) -> dask_gpd.GeoDataFrame:
     """
     Find a STAC item for points in the `points_dgdf` Dask GeoDataFrame. Returns a
     Dask GeoDataFrame with STAC items as a new column.
 
     Parameters
     ----------
-    points_dgdf : geopandas.GeoDataFrame
-        A DaskGeoDataFrame with a column named "geometry" containing shapely Point objects.
-    satellite_search_params : dict
-        A dictionary containing the parameters for the STAC search.
+    points_dgdf : A DaskGeoDataFrame with a column named "geometry" containing shapely
+        Point objects.
+    satellite_search_params : A dictionary containing the parameters for the STAC
+        search.
 
     Returns
     -------
-    Dask GeoDataFrame
-        A Dask GeoDataFrame with a column named "stac_item" containing STAC items.
+    points_dgdf: A Dask GeoDataFrame with a column named "stac_item" containing STAC
+        items.
     """
 
     # # meta not needed at the moment, speed is adequate
@@ -99,22 +102,18 @@ def fetch_image_refs(points_dgdf, satellite_search_params):
     return points_gdf_with_stac
 
 
-def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
+def create_data_loader(
+    points_gdf_with_stac: gpd.GeoDataFrame, satellite_params: dict, batch_size: int
+) -> DataLoader:
     """
     Creates a PyTorch DataLoader from a GeoDataFrame with STAC items.
 
     Parameters
     ----------
-    points_gdf_with_stac : geopandas.GeoDataFrame
-        A GeoDataFrame with the points we want to fetch imagery for + its STAC ref
-    satellite_params : dict
-        A dictionary of parameters for the satellite imagery to fetch
-    batch_size : int
-        The batch size to use for the DataLoader
+    points_gdf_with_stac : A GeoDataFrame with the points we want to fetch imagery for + its STAC ref
+    satellite_params : A dictionary of parameters for the satellite imagery to fetch
+    batch_size : The batch size to use for the DataLoader
 
-    Returns
-    -------
-    torch.utils.data.DataLoader
     """
 
     stac_item_list = points_gdf_with_stac.stac_item.tolist()
@@ -139,7 +138,7 @@ def create_data_loader(points_gdf_with_stac, satellite_params, batch_size):
     return data_loader
 
 
-def sort_by_hilbert_distance(points_gdf):
+def sort_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Sort the points in the GeoDataFrame by their Hilbert distance."""
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
@@ -151,12 +150,12 @@ def sort_by_hilbert_distance(points_gdf):
 
 
 def fetch_seasonal_stac_items(
-    points_gdf,
-    satellite_name,
-    year,
-    stac_api,
-    stac_output="least_cloudy",
-):
+    points_gdf: gpd.GeoDataFrame,
+    satellite_name: str,
+    year: int,
+    stac_api: str,
+    stac_output: str = "least_cloudy",
+) -> gpd.GeoDataFrame:
     """
     Takes a year as input and creates date ranges for the four seasons, runs these
     through fetch_stac_items, and concatenates the results. Can be used where-ever
@@ -194,36 +193,29 @@ def fetch_seasonal_stac_items(
 
 
 def fetch_stac_items(
-    points_gdf,
-    satellite_name,
-    search_start,
-    search_end,
-    stac_api,
-    stac_output="least_cloudy",
-):
+    points_gdf: gpd.GeoDataFrame,
+    satellite_name: str,
+    search_start: str,
+    search_end: str,
+    stac_api: str,
+    stac_output: str = "least_cloudy",
+) -> gpd.GeoDataFrame:
     """
     Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame.
 
     Parameters
     ----------
-    points_gdf : geopandas.GeoDataFrame
-        A GeoDataFrame
-    satellite_name : string
-        Name of MPC-hosted satellite
-    search_start : string
-        Date formatted as YYYY-MM-DD
-    search_end : string
-        Date formatted as YYYY-MM-DD
-    stac_api: string
-        The stac api that pystac should connect to
-    stac_output : string
-        Whether to store "all" images found or just the "least_cloudy"
+    points_gdf : A GeoDataFrame
+    satellite_name : Name of MPC-hosted satellite
+    search_start : Date formatted as YYYY-MM-DD
+    search_end : Date formatted as YYYY-MM-DD
+    stac_api: The stac api that pystac should connect to
+    stac_output : Whether to store "all" images found or just the "least_cloudy"
 
     Returns
     -------
-    geopandas.GeoDataFrame
-        A new geopandas.GeoDataFrame with a `stac_item` column containing the STAC
-        item that covers each point.
+    points_gdf: A new geopandas.GeoDataFrame with a `stac_item` column containing the
+        STAC item that covers each point.
     """
 
     stac_api = get_stac_api(stac_api)
@@ -269,21 +261,16 @@ def fetch_stac_items(
         return points_gdf
 
 
-def _get_trimmed_stac_shapes_gdf(item_collection):
+def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoDataFrame:
     """
     To prevent the edge case where a point sits inside the STAC geometry
     but outwith the STAC proj:bbox shape (resulting in a dud xarray to be
     returned later), trim the STAC shapes to within the proj:bbox borders.
 
-    Parameters
-    ----------
-    item_collection : pystac.ItemCollection
-
     Returns
     -------
-    geopandas.GeoDataFrame
-        GeoDataFrame where each row is an Item and columns include
-        cloud cover percentage and item shape trimmed to within proj:bbox.
+    GeoDataFrame where each row is an Item and columns include cloud cover percentage
+    and item shape trimmed to within proj:bbox.
     """
 
     rows_list = []
@@ -323,7 +310,9 @@ def _get_trimmed_stac_shapes_gdf(item_collection):
     return pd.concat(rows_list)
 
 
-def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
+def _least_cloudy_item_covering_point(
+    row: gpd.GeoDataFrame, sorted_stac_gdf: gpd.GeoDataFrame
+) -> Item:
     """
     Takes in a sorted dataframe of stac items and returns the
     least cloudy item that covers the current row. For use in
@@ -340,7 +329,9 @@ def _least_cloudy_item_covering_point(row, sorted_stac_gdf):
         return least_cloudy_item  # , least_cloudy_item.properties["eo:cloud_cover"]
 
 
-def _items_covering_point(row, stac_gdf):
+def _items_covering_point(
+    row: gpd.GeoDataFrame, stac_gdf: gpd.GeoDataFrame
+) -> List[Item]:
     """Takes in a sorted dataframe of stac items and returns all
     stac items that cover the current row as a list. For use in
     `fetch_stac_items`
@@ -353,7 +344,7 @@ def _items_covering_point(row, stac_gdf):
         return items_covering_point["stac_item"].tolist()
 
 
-def get_stac_api(api_name):
+def get_stac_api(api_name: str) -> pystac_client.Client:
     """Get a STAC API client for a given API name."""
 
     if api_name == "planetary-compute":
@@ -371,7 +362,7 @@ def get_stac_api(api_name):
     return stac_api
 
 
-def minmax_normalize_image(image):
+def minmax_normalize_image(image: torch.tensor) -> torch.tensor:
 
     img_min, img_max = image.min(), image.max()
     return (image - img_min) / (img_max - img_min)
@@ -380,34 +371,24 @@ def minmax_normalize_image(image):
 class CustomDataset(Dataset):
     def __init__(
         self,
-        points,
-        items,
-        buffer,
-        bands,
-        resolution,
-        dtype="int16",
-    ):
+        points: np.array,
+        items: List[Item],
+        buffer: int,
+        bands: List[str],
+        resolution: int,
+        dtype: str = "int16",
+    ) -> None:
         """
         Parameters
         ----------
-        points : np.array
-            Array of points to sample from
-        items : list
-            List of STAC items to sample from
-        buffer : int
-            Buffer in meters around each point to sample from
-        bands : list
-            List of bands to sample
-        resolution : int
-            Resolution of the image to sample
-        dtype : str
-            Data type of the image to sample. Defaults to "int16".
+        points : Array of points to sample from
+        items : List of STAC items to sample from
+        buffer : Buffer in meters around each point to sample from
+        bands : List of bands to sample
+        resolution : Resolution of the image to sample
+        dtype : Data type of the image to sample. Defaults to "int16".
             NOTE - np.uint8 results in loss of signal in the features
             and np.uint16 is not supported by PyTorch.
-
-        Returns
-        -------
-        None
         """
 
         self.points = points
@@ -422,17 +403,15 @@ class CustomDataset(Dataset):
 
         return self.points.shape[0]
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> torch.Tensor:
         """
         Parameters
         ----------
-        idx : int
-            Index of the point to get imagery for
+        idx :Index of the point to get imagery for
 
         Returns
         -------
-        out_image : torch.Tensor
-            Image tensor of shape (C, H, W)
+        out_image : Image tensor of shape (C, H, W)
         """
 
         lon, lat = self.points[idx]

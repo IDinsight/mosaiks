@@ -16,27 +16,27 @@ torch.manual_seed(SEED)
 __all__ = ["create_features"]
 
 
-def create_features(dataloader, n_features, n_points, model, device, min_image_edge):
+def create_features(
+    dataloader: torch.utils.data.DataLoader,
+    n_features: int,
+    n_points: int,
+    model: nn.Module,
+    device: str,
+    min_image_edge: str,
+) -> np.ndarray:
     """
     Parameters:
     -----------
-    dataloader: torch.utils.data.DataLoader
-        A dataloader object that yields batches of images.
-    n_features: int
-        The number of features to extract from each image.
-    n_points: int
-        The number of images to extract features from.
-    model: torch.nn.Module
-        A model that extracts features from images.
-    device: str
-        The device to run the model on.
-    min_image_edge: int
-        The minimum edge length of an image to extract features from.
+    dataloader: A dataloader object that yields batches of images.
+    n_features: The number of features to extract from each image.
+    n_points: The number of images to extract features from.
+    model: A model that extracts features from images.
+    device: The device to run the model on.
+    min_image_edge: The minimum edge length of an image to extract features from.
 
     Returns:
     --------
-    features_array: np.ndarray
-        An array of shape (n_points, n_features) containing the extracted features.
+    features_array: An array of shape (n_points, n_features) containing the extracted features.
 
     """
 
@@ -68,17 +68,14 @@ def create_features(dataloader, n_features, n_points, model, device, min_image_e
     return features_array
 
 
-def featurize(image, model, device):
+def featurize(image: torch.Tensor, model: nn.Module, device: str):
     """Helper method for running an image patch through a model.
 
     Parameters:
     -----------
-    image: torch.Tensor
-        A tensor of shape (BANDS, X, Y) containing an image patch.
-    model: torch.nn.Module
-        A model that extracts features from images.
-    device: str
-        The device to run the model on.
+    image: A tensor of shape (BANDS, X, Y) containing an image patch.
+    model: A model that extracts features from images.
+    device: The device to run the model on.
 
     Returns:
     --------
@@ -86,9 +83,7 @@ def featurize(image, model, device):
         An array of shape (1, n_features) containing the extracted features.
     """
     image = image.to(device)
-
-    with torch.no_grad():
-        feats = model(image).cpu().unsqueeze(0).numpy()
+    feats = model(image).cpu().unsqueeze(0).numpy()
     return feats
 
 
@@ -98,16 +93,21 @@ class RCF(nn.Module):
 
     Parameters:
     -----------
-    num_features: int
-        The number of features to extract from each image.
-    kernel_size: int
-        The size of the convolutional kernel.
-    num_input_channels: int
-        The number of bands in the satellite image.
+    num_features: The number of features to extract from each image.
+        NB: this should be an even number, since the features are produced by
+        generating random filters, and concatenating the positive and negative
+        convolutions from the filters.
+    kernel_size: The size of the convolutional kernel.
+    num_input_channels: The number of bands in the satellite image.
 
     """
 
-    def __init__(self, num_features=1000, kernel_size=3, num_input_channels=6):
+    def __init__(
+        self,
+        num_features: int = 1000,
+        kernel_size: int = 3,
+        num_input_channels: int = 6,
+    ):
         super().__init__()
         # We create `num_features / 2` filters so require `num_features` to be
         # divisible by 2
@@ -128,13 +128,17 @@ class RCF(nn.Module):
         # Fills the input Tensor 'conv1.bias' with the value 'val = -1'.
         nn.init.constant_(self.conv1.bias, -1.0)
 
-    def forward(self, x):
+        # Explicitly freeze convolutional weights and bias
+        self.conv1.weight.requires_grad_(False)
+        self.conv1.bias.requires_grad_(False)
+
+    def forward(self, x: torch.tensor) -> torch.tensor:
         """
         Parameters:
         -----------
-        x: torch.Tensor
-            A tensor of shape (BANDS, X, Y) containing an image patch.
+        x: A tensor of shape (BANDS, X, Y) containing an image patch.
         """
+        assert x.shape[1:] > self.conv1.kernel_size, "Image too small for kernel size"
         x1a = F.relu(self.conv1(x))
         x1b = F.relu(-self.conv1(x))
 
