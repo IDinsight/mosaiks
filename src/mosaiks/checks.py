@@ -6,7 +6,8 @@ valid_satellite_names = ["sentinel-2-l2a", "landsat-8-l1"]
 valid_stac_api_names = ["planetary-compute", "earth"]
 
 
-def _check_satellite_name(satellite_name: str) -> None:
+def check_satellite_name(satellite_name: str) -> None:
+    """Check that satellite name is valid."""
     if satellite_name not in valid_satellite_names:
         raise ValueError(
             f"Satellite name must be one of {list(valid_satellite_names)},\
@@ -14,7 +15,8 @@ def _check_satellite_name(satellite_name: str) -> None:
         )
 
 
-def _check_stac_api_name(stac_api: str) -> None:
+def check_stac_api_name(stac_api: str) -> None:
+    """Check that stac api name is valid."""
     if stac_api not in valid_stac_api_names:
         raise ValueError(
             f"STAC api must be one of {list(valid_stac_api_names)},\
@@ -22,7 +24,8 @@ def _check_stac_api_name(stac_api: str) -> None:
         )
 
 
-def _check_search_dates(search_start_date: str, search_end_date: str) -> None:
+def check_search_dates(search_start_date: str, search_end_date: str) -> None:
+    """Check that search dates are valid."""
     # Check date formats: datetime.strptime will raise a ValueError if the format is
     # wrong
     datetime.strptime(search_start_date, "%Y-%m-%d")

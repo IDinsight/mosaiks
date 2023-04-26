@@ -9,11 +9,7 @@ sys.path += ["../"]
 warnings.filterwarnings("ignore")
 
 import mosaiks.utils as utl
-from mosaiks.checks import (
-    _check_satellite_name,
-    _check_search_dates,
-    _check_stac_api_name,
-)
+from mosaiks.checks import check_satellite_name, check_search_dates, check_stac_api_name
 from mosaiks.dask_run import *
 from mosaiks.featurize import *
 
@@ -31,14 +27,14 @@ if __name__ == "__main__":
     ]
 
     # Check params
-    _check_satellite_name(
+    check_satellite_name(
         featurization_config["satellite_search_params"]["satellite_name"]
     )
-    _check_search_dates(
+    check_search_dates(
         featurization_config["satellite_search_params"]["search_start_date"],
         featurization_config["satellite_search_params"]["search_end_date"],
     )
-    _check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
+    check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
 
     # Setup Dask Cluster and Client
     client = get_local_dask_client(
