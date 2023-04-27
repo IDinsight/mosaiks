@@ -1,9 +1,11 @@
 import logging
 from typing import List
 
-import ee
 
-ee.Initialize()
+import ee
+# ee.Authenticate()
+# ee.Initialize()
+
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import numpy as np
@@ -451,7 +453,6 @@ class CustomDataset(Dataset):
                 image = image.values
                 torch_image = torch.from_numpy(image).float()
                 torch_image = minmax_normalize_image(torch_image)
-                print(f"dimensions of torch_image: {torch_image.shape}")
                 return torch_image
             except Exception as e:
                 print(f"Skipping {idx}:", e)
