@@ -31,8 +31,8 @@ if __name__ == "__main__":
         featurization_config["satellite_search_params"]["satellite_name"]
     )
     check_search_dates(
-        featurization_config["satellite_search_params"]["search_start_date"],
-        featurization_config["satellite_search_params"]["search_end_date"],
+        featurization_config["satellite_search_params"]["search_start"],
+        featurization_config["satellite_search_params"]["search_end"],
     )
     check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
 
