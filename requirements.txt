@@ -1,17 +1,17 @@
-pre-commit
-ipykernel
+pre-commit>=3.3.1
+ipykernel>=6.15.3
 
-torch==1.13.1
-numpy==1.23.3
-pandas==1.4.4
-matplotlib==3.7.1
+torch>=1.13.1
+numpy>=1.23.3
+pandas>=1.4.4
+matplotlib>=3.7.1
 
-planetary_computer==0.4.7
-pystac_client==0.5.0
-stackstac==0.4.3
-dask==2022.3.0
+planetary_computer>=0.4.7
+pystac_client>=0.5.0
+stackstac>=0.4.3
+dask>=2022.3.0
 
-geopandas==0.11.1
-dask_geopandas==0.2.0
-shapely==1.8.4
-pyproj==3.4.0
+geopandas>=0.11.1
+dask_geopandas>=0.2.0
+shapely>=1.8.4
+pyproj>=3.4.0
