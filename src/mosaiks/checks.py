@@ -2,7 +2,7 @@
 
 import datetime
 
-valid_satellite_names = ["sentinel-2-l2a", "landsat-8-l1"]
+valid_satellite_names = ["sentinel-2-l2a", "landsat-8-c2-l2"]
 valid_stac_api_names = ["planetary-compute", "earth"]
 
 
