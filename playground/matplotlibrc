@@ -1,10 +1,6 @@
 # http://matplotlib.org/users/customizing.html
 
 text.usetex          : False
-font.family          : serif
-font.serif           : Arial, sans-serif
-font.sans-serif      : Arial, sans-serif
-font.cursive         : Arial, sans-serif
 font.size            : 12
 legend.fontsize      : 12
 axes.labelsize       : 12
