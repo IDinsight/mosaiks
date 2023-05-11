@@ -1,7 +1,6 @@
 import logging
 from typing import List
 
-import dask_geopandas as dask_gpd
 import geopandas as gpd
 import numpy as np
 import pandas as pd

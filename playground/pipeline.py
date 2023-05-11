@@ -8,8 +8,6 @@ logger.setLevel(logging.INFO)
 sys.path += ["../"]
 warnings.filterwarnings("ignore")
 
-from dask.distributed import progress
-
 import mosaiks.utils as utl
 from mosaiks.checks import check_satellite_name, check_search_dates, check_stac_api_name
 from mosaiks.dask_run import *
@@ -55,7 +53,7 @@ if __name__ == "__main__":
         kernel_size=featurization_config["model"]["kernel_size"],
         num_input_channels=len(satellite_config["bands"]),
     )
-    
+
     # Set output path
     mosaiks_folder_path = utl.make_output_folder_path(featurization_config)
     os.makedirs(mosaiks_folder_path, exist_ok=True)
@@ -73,7 +71,7 @@ if __name__ == "__main__":
         column_names=mosaiks_column_names,
         save_folder_path=mosaiks_folder_path,
     )
-    
+
     # Load checkpoint files and combine
     logging.info("Loading and combining checkpoint files...")
     checkpoint_filenames = utl.get_filtered_filenames(
@@ -82,13 +80,13 @@ if __name__ == "__main__":
     combined_df = utl.load_and_combine_dataframes(
         folder_path=mosaiks_folder_path, filenames=checkpoint_filenames
     )
-    
+
     # Add context columns
     combined_df = combined_df.join(points_gdf[["Lat", "Lon", "shrid"]])
     logging.info(
         "Dataset size in memory (MB):", combined_df.memory_usage().sum() / 1000000
     )
-    
+
     # Save to file
     combined_filename = "combined_features.parquet.gzip"
     combined_filepath = mosaiks_folder_path / combined_filename
