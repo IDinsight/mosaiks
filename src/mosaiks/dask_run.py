@@ -9,7 +9,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import torch.nn as nn
-from dask.distributed import Client, LocalCluster, as_completed
+from dask.distributed import Client, LocalCluster, wait, as_completed
 
 import mosaiks.utils as utl
 from mosaiks.featurize import create_data_loader, create_features, fetch_image_refs
@@ -18,7 +18,7 @@ __all__ = [
     "run_pipeline",
     "get_local_dask_client",
     "run_queued_futures_pipeline",
-    "run_batched_delayed_task",
+    "run_batched_delayed_pipeline",
     "make_delayed_task",
     "make_all_delayed_tasks",
 ]
@@ -185,17 +185,14 @@ def run_queued_futures_pipeline(
     )
 
     # get total number of threads available
-    n_threads = (
-        featurization_config["dask"]["n_workers"]
-        * featurization_config["dask"]["threads_per_worker"]
-    )
+    n_concurrent = featurization_config["dask"]["n_concurrent"]
 
-    # kickoff "n_threads" number of tasks. Each of these will be replaced by a new task
+    # kickoff "n_concurrent" number of tasks. Each of these will be replaced by a new task
     # upon completion.
     now = datetime.now().strftime("%d-%b %H:%M:%S")
-    logging.info(f"{now} Trying to kick off initial {n_threads} partitions...")
+    logging.info(f"{now} Trying to kick off initial {n_concurrent} partitions...")
     initial_futures_list = []
-    for i in range(n_threads):
+    for i in range(n_concurrent):
 
         try:
             partition = next(partitions)
@@ -203,6 +200,7 @@ def run_queued_futures_pipeline(
             logging.info(
                 f"There are less partitions than processors. All {i} partitions running."
             )
+            wait(initial_futures_list)
             break
 
         future = client.submit(
@@ -237,12 +235,18 @@ def run_queued_futures_pipeline(
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
         )
         as_completed_generator.add(new_future)
-
+    
+    # wait for all futures to process
+    for completed_future in as_completed_generator:
+        pass
+    
     now = datetime.now().strftime("%d-%b %H:%M:%S")
-    logging.info(f"{now} Added last partition.")
+    logging.info(f"{now} Finished.")
 
 
 # ALTERNATIVE - BATCHED DASK DELAYED ###################################################
+
+
 def get_sorted_dask_gdf(
     points_gdf: gpd.GeoDataFrame, chunksize: int
 ) -> dask_gpd.GeoDataFrame:
@@ -276,7 +280,7 @@ def get_sorted_dask_gdf(
     return points_dgdf
 
 
-def run_batched_delayed_task(
+def run_batched_delayed_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
@@ -321,19 +325,16 @@ def run_batched_delayed_task(
         n_partitions = len(partitions)
 
     # get total number of threads available
-    n_per_run = (
-        featurization_config["dask"]["n_workers"]
-        * featurization_config["dask"]["threads_per_worker"]
-    )
+    n_concurrent = featurization_config["dask"]["n_concurrent"]
 
-    if n_partitions < n_per_run:
+    if n_partitions < n_concurrent:
         logging.info(
-            f"n_partitions is smaller than n_per_run. Running all {n_partitions} partitions."
+            f"n_partitions is smaller than n_concurrent. Running all {n_partitions} partitions."
         )
-        n_per_run = n_partitions
+        n_concurrent = n_partitions
 
     failed_ids = []
-    checkpoint_indices = list(np.arange(0, n_partitions, n_per_run)) + [n_partitions]
+    checkpoint_indices = list(np.arange(0, n_partitions, n_concurrent)) + [n_partitions]
     for p_start_id, p_end_id in zip(checkpoint_indices[:-1], checkpoint_indices[1:]):
 
         now = datetime.now().strftime("%d-%b %H:%M:%S")

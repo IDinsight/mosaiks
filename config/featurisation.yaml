@@ -16,7 +16,7 @@ model :
   device: cuda #cpu
 
 dask :
-    # n_per_run : 8 # deprecated
+    n_concurrent : 4
     chunksize : 500
     n_workers: 4
-    threads_per_worker: 1
+    threads_per_worker: 4
