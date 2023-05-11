@@ -6,22 +6,79 @@ from typing import Generator
 import dask.delayed
 import dask_geopandas as dask_gpd
 import geopandas as gpd
+import numpy as np
 import pandas as pd
-import torch.nn
+import torch.nn as nn
 from dask.distributed import Client, LocalCluster, as_completed
 
 import mosaiks.utils as utl
 from mosaiks.featurize import create_data_loader, create_features, fetch_image_refs
 
 __all__ = [
-    "get_local_dask_client",
-    "get_sorted_partitions_generator",
     "run_pipeline",
-    "run_partitions_as_queue",
-    "get_sorted_dask_gdf",
-    "make_all_delayed_pipelines",
-    "make_delayed_pipeline",
+    "get_local_dask_client",
+    "run_queued_futures_pipeline",
+    "run_batched_delayed_task",
+    "make_delayed_task",
+    "make_all_delayed_tasks",
 ]
+
+
+def run_pipeline(
+    points_gdf: gpd.GeoDataFrame,
+    model: nn.Module,
+    featurization_config: dict,
+    satellite_config: dict,
+    column_names: list,
+    save_folder_path: str,
+    save_filename: str,
+    return_df: bool = False,
+) -> None:  # or DataFrame...
+    """
+    For a given GeoDataFrame of coordinate points, this function runs the necessary
+    functions and saves resulting mosaiks features to file. No Dask is necessary.
+
+    Parameters
+    -----------
+    points_gdf : GeoDataFrame of points to be featurized.
+    model : PyTorch model to be used for featurization.
+    featurization_config : Dictionary of featurization parameters.
+    satellite_config : Dictionary of satellite parameters.
+    column_names : List of column names to be used for saving the features.
+    save_folder_path : Path to folder where features will be saved.
+    save_filename : Name of file where features will be saved.
+    return_df : Whether to return the features as a DataFrame.
+
+    Returns
+    --------
+    None or DataFrame
+    """
+
+    satellite_search_params = featurization_config["satellite_search_params"]
+
+    points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
+
+    data_loader = create_data_loader(
+        points_gdf_with_stac=points_gdf_with_stac,
+        satellite_params=satellite_config,
+        batch_size=featurization_config["model"]["batch_size"],
+    )
+
+    X_features = create_features(
+        dataloader=data_loader,
+        n_features=featurization_config["model"]["num_features"],
+        model=model,
+        device=featurization_config["model"]["device"],
+        min_image_edge=satellite_config["min_image_edge"],
+    )
+
+    df = pd.DataFrame(data=X_features, index=points_gdf.index, columns=column_names)
+
+    if save_folder_path is not None:
+        utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
+
+    if return_df:
+        return df
 
 
 def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Client:
@@ -91,66 +148,10 @@ def _sort_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return points_gdf
 
 
-def run_pipeline(
-    points_gdf: gpd.GeoDataFrame,
-    model: torch.nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
-    column_names: list,
-    save_folder_path: str,
-    save_filename: str,
-    return_df: bool = False,
-) -> None:
-    """
-    For a given GeoDataFrame of coordinate points, this function runs the necessary functions
-    and saves resulting mosaiks features to file.
-
-    Parameters
-    -----------
-    points_gdf : GeoDataFrame of points to be featurized.
-    model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for saving the features.
-    save_folder_path : Path to folder where features will be saved.
-    save_filename : Name of file where features will be saved.
-
-    Returns
-    --------
-    None
-    """
-
-    satellite_search_params = featurization_config["satellite_search_params"]
-
-    points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
-
-    data_loader = create_data_loader(
-        points_gdf_with_stac=points_gdf_with_stac,
-        satellite_params=satellite_config,
-        batch_size=featurization_config["model"]["batch_size"],
-    )
-
-    X_features = create_features(
-        dataloader=data_loader,
-        n_features=featurization_config["model"]["num_features"],
-        model=model,
-        device=featurization_config["model"]["device"],
-        min_image_edge=satellite_config["min_image_edge"],
-    )
-
-    df = pd.DataFrame(data=X_features, index=points_gdf.index, columns=column_names)
-
-    if save_folder_path is not None:
-        utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
-
-    if return_df:
-        return df
-
-
-def run_partitions_as_queue(
+def run_queued_futures_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
-    model: torch.nn.Module,
+    model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
     column_names: list,
@@ -241,7 +242,7 @@ def run_partitions_as_queue(
     logging.info(f"{now} Added last partition.")
 
 
-# OLD - USING DASK DELAYED ################
+# ALTERNATIVE - BATCHED DASK DELAYED ###################################################
 def get_sorted_dask_gdf(
     points_gdf: gpd.GeoDataFrame, chunksize: int
 ) -> dask_gpd.GeoDataFrame:
@@ -251,8 +252,10 @@ def get_sorted_dask_gdf(
 
     Parameters
     ----------
-    points_dgdf : A GeoDataFrame with a column named "geometry" containing shapely Point objects.
-    chunksize : The number of points per partition to use creating the Dask GeoDataFrame.
+    points_dgdf : A GeoDataFrame with a column named "geometry" containing shapely
+        Point objects.
+    chunksize : The number of points per partition to use creating the Dask
+        GeoDataFrame.
 
     Returns
     -------
@@ -273,28 +276,166 @@ def get_sorted_dask_gdf(
     return points_dgdf
 
 
-def make_all_delayed_pipelines(
+def run_batched_delayed_task(
     points_gdf: gpd.GeoDataFrame,
-    model: torch.nn.Module,
+    client: Client,
+    model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
+    column_names: list,
     save_folder_path: str,
-) -> list[dask.delayed]:
+    partition_ids: list[int] = None,
+) -> list[int]:
     """
-    Given a partitioned Dask GeoDataFrame of coordinate points, returns a list of each partition's
-    respective Dask Delayed pipeline.
+    Run partitions in batches and save the result for each partition
+    to a parquet file.
 
     Parameters
-    ----------
-    points_gdf : A GeoDataFrame with a column named "geometry" containing shapely Point objects.
+    -----------
+    points_gdf : GeoDataFrame of points to be featurized.
+    client : Dask client.
     model : PyTorch model to be used for featurization.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
+    column_names : List of column names to be used for saving the features.
+    save_folder_path : Path to folder where features will be saved.
+    partition_ids : Optional. List of partition ids to be used for featurization.
+
+    Returns
+    --------
+    list of failed partition ids
+    """
+
+    # make delayed gdf partitions
+    dask_gdf = get_sorted_dask_gdf(
+        points_gdf, featurization_config["dask"]["chunksize"]
+    )
+    partitions = dask_gdf.to_delayed()
+
+    # only use the partitions specified by partition_ids if given
+    if partition_ids is None:
+        n_partitions = len(partitions)
+        partition_ids = list(range(n_partitions))
+    else:
+        partitions = [partitions[i] for i in partition_ids]
+        n_partitions = len(partitions)
+
+    # get total number of threads available
+    n_per_run = (
+        featurization_config["dask"]["n_workers"]
+        * featurization_config["dask"]["threads_per_worker"]
+    )
+
+    if n_partitions < n_per_run:
+        logging.info(
+            f"n_partitions is smaller than n_per_run. Running all {n_partitions} partitions."
+        )
+        n_per_run = n_partitions
+
+    failed_ids = []
+    checkpoint_indices = list(np.arange(0, n_partitions, n_per_run)) + [n_partitions]
+    for p_start_id, p_end_id in zip(checkpoint_indices[:-1], checkpoint_indices[1:]):
+
+        now = datetime.now().strftime("%d-%b %H:%M:%S")
+        logging.info(f"{now} Running batch: {p_start_id} to {p_end_id - 1}")
+
+        batch_indices = list(range(p_start_id, p_end_id))
+        batch_p_ids = [partition_ids[i] for i in batch_indices]
+        batch_partitions = [partitions[i] for i in batch_indices]
+
+        failed_ids += run_batch(
+            partitions=batch_partitions,
+            partition_ids=batch_p_ids,
+            client=client,
+            model=model,
+            featurization_config=featurization_config,
+            satellite_config=satellite_config,
+            column_names=column_names,
+            save_folder_path=save_folder_path,
+        )
+
+    return failed_ids
+
+
+def run_batch(
+    partitions: list,
+    partition_ids: list,
+    client: Client,
+    model: nn.Module,
+    featurization_config: dict,
+    satellite_config: dict,
+    column_names: list,
+    save_folder_path: str,
+) -> list[int]:
+    """
+    Run a batch of partitions and save the result for each partition to a parquet file.
+
+    Parameters
+    ----------
+    partitions :List of dataframes to process.
+    partition_ids : List containing IDs corresponding to the partitions passed (to be
+        used for naming saved files and reference in case of failure).
+    client : Dask client.
+    model : PyTorch model to be used for featurization.
+    featurization_config : Dictionary of featurization parameters.
+    satellite_config : Dictionary of satellite parameters.
+    column_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
 
     Returns
     -------
-    delayed_pipelines : List of Dask Delayed pipelines.
+    failed_ids : List of partition labels that failed to be featurized.
+    """
+
+    failed_ids = []
+    delayed_tasks = []
+
+    # collect delayed tasks
+    for partition_id, partition in zip(partition_ids, partitions):
+        str_id = str(partition_id).zfill(3)  # makes 1 into '001'
+
+        delayed_task = dask.delayed(run_pipeline)(
+            points_gdf=partition,
+            model=model,
+            featurization_config=featurization_config,
+            satellite_config=satellite_config,
+            column_names=column_names,
+            save_folder_path=save_folder_path,
+            save_filename=f"df_{str_id}.parquet.gzip",
+            dask_key_name=f"features_{str_id}",
+        )
+        delayed_tasks.append(delayed_task)
+
+    # compute delayed tasks
+    futures = client.compute(delayed_tasks)
+
+    # check for errors
+    for completed_future in as_completed(futures):
+        if completed_future.status == "error":
+            f_key = completed_future.key
+            partition_id = int(f_key.split("features_")[1])
+            failed_ids.append(partition_id)
+
+    # prep for next run
+    # client.restart()
+    # sleep(5)
+
+    return failed_ids
+
+
+# ALTERNATIVE - UNBATCHED DASK DELAYED  ################################################
+
+
+def make_all_delayed_tasks(
+    points_gdf,
+    model,
+    featurization_config,
+    satellite_config,
+    save_folder_path,
+):
+    """
+    Given a partitioned Dask GeoDataFrame of coordinate points, returns a list of each partition's
+    respective Dask Delayed pipeline.
     """
 
     dask_gdf = get_sorted_dask_gdf(
@@ -306,12 +447,12 @@ def make_all_delayed_pipelines(
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
 
-    delayed_pipelines = []
+    delayed_tasks = []
 
     for i, partition in enumerate(partitions):
 
         str_i = str(i).zfill(3)
-        delayed_pipeline = make_delayed_pipeline(
+        delayed_task = make_delayed_task(
             points_gdf=partition,
             model=model,
             featurization_config=featurization_config,
@@ -320,37 +461,26 @@ def make_all_delayed_pipelines(
             save_folder_path=save_folder_path,
             save_filename=f"df_{str_i}.parquet.gzip",
         )
-        delayed_pipelines.append(delayed_pipeline)
+        delayed_tasks.append(delayed_task)
 
-    return delayed_pipelines
+    return delayed_tasks
 
 
-def make_delayed_pipeline(
-    points_gdf: gpd.GeoDataFrame,
-    model: torch.nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
-    column_names: list[str],
-    save_folder_path: str,
-    save_filename: str,
-) -> dask.delayed:
+def make_delayed_task(
+    points_gdf,
+    model,
+    featurization_config,
+    satellite_config,
+    column_names,
+    save_folder_path,
+    save_filename,
+):
     """
     For a given GeoDataFrame of coordinate points, this function creates the necesary chain
     of delayed dask operations for image fetching and feaurisation.
 
-    Parameters
-    ----------
-    points_gdf : A GeoDataFrame with a column named "geometry" containing shapely Point objects.
-    model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for the output GeoDataFrame.
-    save_folder_path : Path to folder where features will be saved.
-    save_filename : Filename of the output GeoDataFrame.
-
-    Returns
-    --------
-    delayed_pipeline : Dask Delayed pipeline.
+    Returns:
+        Dask.Delayed object
     """
 
     satellite_search_params = featurization_config["satellite_search_params"]
@@ -377,8 +507,8 @@ def make_delayed_pipeline(
         data=X_features, index=points_gdf.index, columns=column_names
     )
 
-    delayed_pipeline = dask.delayed(utl.save_dataframe)(
+    delayed_task = dask.delayed(utl.save_dataframe)(
         df=df, file_path=save_folder_path / save_filename
     )
 
-    return delayed_pipeline
+    return delayed_task

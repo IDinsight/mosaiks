@@ -62,7 +62,7 @@ if __name__ == "__main__":
     mosaiks_column_names = [
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
-    run_partitions_as_queue(
+    run_queued_futures_pipeline(
         points_gdf[:10],
         client=client,
         model=model,
