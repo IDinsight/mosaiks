@@ -9,7 +9,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import torch.nn as nn
-from dask.distributed import Client, LocalCluster, wait, as_completed
+from dask.distributed import Client, LocalCluster, as_completed, wait
 
 import mosaiks.utils as utl
 from mosaiks.featurize import create_data_loader, create_features, fetch_image_refs
@@ -235,11 +235,11 @@ def run_queued_futures_pipeline(
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
         )
         as_completed_generator.add(new_future)
-    
+
     # wait for all futures to process
     for completed_future in as_completed_generator:
         pass
-    
+
     now = datetime.now().strftime("%d-%b %H:%M:%S")
     logging.info(f"{now} Finished.")
 
