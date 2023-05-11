@@ -15,95 +15,44 @@ from pystac.item import Item
 from pystac.item_collection import ItemCollection
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["get_dask_gdf", "fetch_image_refs", "create_data_loader"]
-
-
-def get_dask_gdf(points_gdf: gpd.GeoDataFrame, chunksize: int) -> dask_gpd.GeoDataFrame:
-    """
-    Spatially sort and split the gdf up by the given chunksize.
-
-    Parameters
-    ----------
-    points_dgdf : A GeoDataFrame with a column named "geometry" containing shapely Point objects.
-    chunksize : The number of points per partition to use creating the Dask GeoDataFrame.
-
-    Returns
-    -------
-    points_dgdf: Dask GeoDataFrame split into partitions of size `chunksize`.
-    """
-
-    points_gdf = _sort_by_hilbert_distance(points_gdf)
-    points_dgdf = dask_gpd.from_geopandas(
-        points_gdf,
-        chunksize=chunksize,
-        sort=False,
-    )
-
-    logging.info(
-        f"{chunksize} points per partition results in {len(points_dgdf.divisions)} partitions."
-    )
-
-    logging.info(
-        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
-    )
-
-    return points_dgdf
-
-
-def _sort_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Sort the points in the GeoDataFrame by their Hilbert distance."""
-
-    ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
-    hilbert_distance = ddf.hilbert_distance().compute()
-    points_gdf["hilbert_distance"] = hilbert_distance
-    points_gdf = points_gdf.sort_values("hilbert_distance")
-
-    return points_gdf
+__all__ = ["fetch_image_refs", "create_data_loader"]
 
 
 def fetch_image_refs(
-    points_dgdf: gpd.GeoDataFrame, satellite_search_params: dict
-) -> dask_gpd.GeoDataFrame:
+    points_gdf: gpd.GeoDataFrame, satellite_search_params: dict
+) -> gpd.GeoDataFrame:
     """
-    Find a STAC item for points in the `points_dgdf` Dask GeoDataFrame. Returns a
-    Dask GeoDataFrame with STAC items as a new column.
+    Find a STAC item for points in the `points_gdf` GeoDataFrame. Returns a
+    GeoDataFrame with STAC items as a new column.
 
     Parameters
     ----------
-    points_dgdf : A DaskGeoDataFrame with a column named "geometry" containing shapely
+    points_gdf : A GeoDataFrame with a column named "geometry" containing shapely
         Point objects.
     satellite_search_params : A dictionary containing the parameters for the STAC
         search.
 
     Returns
     -------
-    points_dgdf: A Dask GeoDataFrame with a column named "stac_item" containing STAC
+    points_gdf: A GeoDataFrame with a column named "stac_item" containing STAC
         items.
     """
-
-    # # meta not needed at the moment, speed is adequate
-    # meta = points_dgdf._meta
-    # meta = meta.assign(stac_item=pd.Series([], dtype="object"))
-    # meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
-
     if satellite_search_params["seasonal"]:
-        points_gdf_with_stac = points_dgdf.map_partitions(
-            fetch_seasonal_stac_items,
+        points_gdf_with_stac = fetch_seasonal_stac_items(
+            points_gdf=points_gdf,
             satellite_name=satellite_search_params["satellite_name"],
             year=satellite_search_params["year"],
             stac_output=satellite_search_params["stac_output"],
             stac_api=satellite_search_params["stac_api"],
-            # meta=meta,
         )
     else:
-        points_gdf_with_stac = points_dgdf.map_partitions(
-            fetch_stac_items,
+        points_gdf_with_stac = fetch_stac_items(
+            points_gdf=points_gdf,
             satellite_name=satellite_search_params["satellite_name"],
             search_start=satellite_search_params["search_start"],
             search_end=satellite_search_params["search_end"],
             stac_api=satellite_search_params["stac_api"],
             stac_output=satellite_search_params["stac_output"],
-            # meta=meta,
         )
 
     return points_gdf_with_stac
