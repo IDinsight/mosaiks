@@ -25,7 +25,7 @@ def create_features(
 ) -> np.ndarray:
     """
     Create features for images fetched through a dataloader.
-    
+
     Parameters:
     -----------
     dataloader: A dataloader object that yields batches of images.
@@ -38,7 +38,7 @@ def create_features(
     --------
     features_array: An array with n_features columns.
     """
-    
+
     n_points = len(dataloader.dataset)
     features_array = np.full([n_points, n_features], np.nan, dtype=float)
     model.eval().to(device)
