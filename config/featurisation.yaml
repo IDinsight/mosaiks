@@ -13,7 +13,7 @@ model :
   num_features : 4000
   kernel_size : 3
   batch_size : 10
-  device: cuda #cpu
+  device: cpu #cuda
 
 dask :
     n_concurrent : 4
