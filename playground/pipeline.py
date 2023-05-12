@@ -31,8 +31,8 @@ if __name__ == "__main__":
         featurization_config["satellite_search_params"]["satellite_name"]
     )
     check_search_dates(
-        featurization_config["satellite_search_params"]["search_start_date"],
-        featurization_config["satellite_search_params"]["search_end_date"],
+        featurization_config["satellite_search_params"]["search_start"],
+        featurization_config["satellite_search_params"]["search_end"],
     )
     check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
     run_queued_futures_pipeline(
-        points_gdf[:10],
+        points_gdf=points_gdf,
         client=client,
         model=model,
         featurization_config=featurization_config,
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # Add context columns
     combined_df = combined_df.join(points_gdf[["Lat", "Lon", "shrid"]])
     logging.info(
-        "Dataset size in memory (MB):", combined_df.memory_usage().sum() / 1000000
+        f"Dataset size in memory (MB): {combined_df.memory_usage().sum() / 1000000}"
     )
 
     # Save to file
