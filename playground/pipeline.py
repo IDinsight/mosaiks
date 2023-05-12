@@ -10,8 +10,8 @@ warnings.filterwarnings("ignore")
 
 import mosaiks.utils as utl
 from mosaiks.checks import check_satellite_name, check_search_dates, check_stac_api_name
-from mosaiks.dask_run import *
-from mosaiks.featurize import *
+from mosaiks.dask_run import get_local_dask_client, run_queued_futures_pipeline
+from mosaiks.featurize import RCF
 
 if __name__ == "__main__":
 
@@ -27,14 +27,14 @@ if __name__ == "__main__":
     ]
 
     # Check params
-    # check_satellite_name(
-    #     featurization_config["satellite_search_params"]["satellite_name"]
-    # )
-    # check_search_dates(
-    #     featurization_config["satellite_search_params"]["search_start_date"],
-    #     featurization_config["satellite_search_params"]["search_end_date"],
-    # )
-    # check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
+    check_satellite_name(
+        featurization_config["satellite_search_params"]["satellite_name"]
+    )
+    check_search_dates(
+        featurization_config["satellite_search_params"]["search_start_date"],
+        featurization_config["satellite_search_params"]["search_end_date"],
+    )
+    check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
 
     # Setup Dask Cluster and Client
     client = get_local_dask_client(
