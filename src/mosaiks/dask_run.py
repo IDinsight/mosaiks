@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 from dask.distributed import Client, LocalCluster, as_completed, wait
+from dask_gateway import Gateway
 
 import mosaiks.utils as utl
 from mosaiks.featurize import create_data_loader, create_features, fetch_image_refs
@@ -17,6 +18,7 @@ from mosaiks.featurize import create_data_loader, create_features, fetch_image_r
 __all__ = [
     "run_pipeline",
     "get_local_dask_client",
+    "get_gateway_cluster_client",
     "run_queued_futures_pipeline",
     "run_batched_delayed_pipeline",
     "run_unbatched_delayed_pipeline",
@@ -104,6 +106,22 @@ def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Cl
     logging.info(cluster.dashboard_link)
     client = Client(cluster)
     return client
+
+
+def get_gateway_cluster_client():
+
+    gateway = Gateway()
+    clusters = gateway.list_clusters()
+
+    if len(clusters) == 0:
+        cluster = gateway.new_cluster()
+    else:
+        cluster_name = gateway.list_clusters()[0].name
+        cluster = gateway.connect(cluster_name)
+
+    client = cluster.get_client()
+
+    return cluster, client
 
 
 def get_sorted_partitions_generator(
