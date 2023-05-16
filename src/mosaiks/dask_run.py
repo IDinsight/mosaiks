@@ -108,18 +108,34 @@ def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Cl
     return client
 
 
-def get_gateway_cluster_client():
+def get_gateway_cluster_client(worker_cores=4, worker_memory=2, pip_install=False):
 
     gateway = Gateway()
-    clusters = gateway.list_clusters()
 
-    if len(clusters) == 0:
-        cluster = gateway.new_cluster()
-    else:
-        cluster_name = gateway.list_clusters()[0].name
-        cluster = gateway.connect(cluster_name)
+    # shutdown running clusters (if any)
+    for cluster_info in gateway.list_clusters():
+        cluster = gateway.connect(cluster_info.name)
+        cluster.shutdown()
 
+    # spin up new cluster
+    gateway = Gateway()
+    options = gateway.cluster_options()
+    options.worker_cores = worker_cores  # this doesn't seem to work - set with .scale()
+    options.worker_memory = worker_memory  # in GB
+
+    cluster = gateway.new_cluster(options)
+    cluster.scale(worker_cores)
     client = cluster.get_client()
+
+    # install mosaiks on the workers
+    if pip_install:
+        from dask.distributed import PipInstall
+
+        mosaiks_package_link = utl.get_mosaiks_package_link("dask-improvements")
+        plugin = PipInstall(
+            packages=[mosaiks_package_link], pip_options=["--upgrade"], restart=False
+        )
+        client.register_worker_plugin(plugin)
 
     return cluster, client
 
