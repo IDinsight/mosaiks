@@ -2,6 +2,7 @@ import logging
 from typing import List
 
 import geopandas as gpd
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import planetary_computer
@@ -341,46 +342,109 @@ class CustomDataset(Dataset):
             print(f"Skipping {idx}: No STAC item given.")
             return None
         else:
-            # calculate crop bounds
-            crs = stac_item.properties["proj:epsg"]
-            proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
-            x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
-            x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
-            y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
-
-            # get image(s) as xarray
-            xarray = stackstac.stack(
-                stac_item,
-                assets=self.bands,
-                resolution=self.resolution,
-                rescale=False,
-                dtype=self.dtype,
-                bounds=[x_min, y_min, x_max, y_max],
-                fill_value=0,
-            )
-
-            # remove the time dimension either by compositing over it or with .squeeze()
-            if isinstance(stac_item, list):
-                image = xarray.median(dim="time")
-            else:
-                image = xarray.squeeze()
-
-            # normalise and return image
             # Note: need to catch errors for images that are all 0s
             try:
-                image = image.values
+                image = fetch_image_crop(
+                    lon=lon,
+                    lat=lat,
+                    stac_item=stac_item,
+                    buffer=self.buffer,
+                    bands=self.bands,
+                    resolution=self.resolution,
+                    dtype=self.dtype,
+                    normalise=True,
+                )
                 torch_image = torch.from_numpy(image).float()
-                torch_image = _minmax_normalize_image(torch_image)
                 return torch_image
             except Exception as e:
-                print(f"Skipping {idx}:", e)
+                print(f"Skipping {idx}: {e}")
                 return None
+
+
+def fetch_image_crop(
+    lon: float,
+    lat: float,
+    stac_item: Item,
+    buffer: int,
+    bands: List[str],
+    resolution: int,
+    dtype: str = "int16",
+    normalise: bool = True,
+) -> np.array:
+    """
+    Fetches a crop of satellite imagery referenced by the given STAC item,
+    centered around the given point and with the given buffer.
+
+    Parameters
+    ----------
+    lon : Longitude of the centerpoint to fetch imagery for
+    lat : Latitude of the centerpoint to fetch imagery for
+    stac_item : STAC item to fetch imagery for
+    buffer : Buffer in meters around the centerpoint to fetch imagery for
+    bands : List of bands to fetch
+    resolution : Resolution of the image to fetch
+    dtype : Data type of the image to fetch. Defaults to "int16".
+        NOTE - np.uint8 results in loss of signal in the features
+        and np.uint16 is not supported by PyTorch.
+    normalise : Whether to normalise the image. Defaults to True.
+
+    Returns
+    -------
+    image : numpy array of shape (C, H, W)
+    """
+
+    # calculate crop bounds
+    if isinstance(stac_item, list):
+        # if multiple items, use the projection of the first one
+        crs = stac_item[0].properties["proj:epsg"]
+    else:
+        crs = stac_item.properties["proj:epsg"]
+    proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
+    x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
+    x_min, x_max = x_utm - buffer, x_utm + buffer
+    y_min, y_max = y_utm - buffer, y_utm + buffer
+
+    # get image(s) as xarray
+    xarray = stackstac.stack(
+        stac_item,
+        assets=bands,
+        resolution=resolution,
+        rescale=True,
+        dtype=dtype,
+        bounds=[x_min, y_min, x_max, y_max],
+        fill_value=0,
+    )
+
+    # remove the time dimension
+    if isinstance(stac_item, list):
+        # if there are multiple image, make composite over time
+        # this results in a float image
+        image = xarray.median(dim="time")
+    else:
+        # if there is only one image, just remove the redundant time dimension
+        image = xarray.squeeze()
+
+    # turn xarray to np.array
+    image = image.values
+
+    if normalise:
+        image = _minmax_normalize_image(image)
+
+    return image
 
 
 def _minmax_normalize_image(image: torch.tensor) -> torch.tensor:
 
     img_min, img_max = image.min(), image.max()
     return (image - img_min) / (img_max - img_min)
+
+
+def display_numpy_image(image: np.array):
+    """Displays a numpy image in RGB format."""
+
+    rgb_image = image[[2, 1, 0], :, :].transpose(1, 2, 0)
+    plt.imshow(rgb_image)
+    plt.show()
 
 
 def get_stac_api(api_name: str) -> pystac_client.Client:

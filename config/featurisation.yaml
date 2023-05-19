@@ -6,7 +6,7 @@ satellite_search_params:
   year: 2014 # only needed if seasonal = True
   search_start : "2013-04-01" #"2021-04-01" #"2015-11-01"
   search_end : "2014-03-31" #"2022-03-31" #"2016-10-31"
-  stac_output : least_cloudy
+  stac_output : least_cloudy #all
   stac_api: planetary-compute # earth-search
 
 model :
