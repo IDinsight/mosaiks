@@ -66,6 +66,8 @@ def fetch_seasonal_stac_items(
     stac_output: str = "least_cloudy",
 ) -> gpd.GeoDataFrame:
     """
+    CAUTION - THIS IS BROKEN, FIX.
+
     Takes a year as input and creates date ranges for the four seasons, runs these
     through fetch_stac_items, and concatenates the results. Can be used where-ever
     `fetch_stac_items` is used.
