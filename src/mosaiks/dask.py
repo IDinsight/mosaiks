@@ -7,13 +7,12 @@ import dask.delayed
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import numpy as np
-import pandas as pd
 import torch.nn as nn
 from dask.distributed import Client, LocalCluster, as_completed, wait
 from dask_gateway import Gateway
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_features
+from mosaiks.featurize import create_features, make_result_df
 
 # for fully-delayd pipeline
 from mosaiks.fetch import create_data_loader, fetch_image_refs
@@ -109,10 +108,10 @@ def get_sorted_partitions_generator(
     num_chunks = math.ceil(len(points_gdf) / chunksize)
 
     logging.info(
-        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {num_chunks} partitions."
+        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions "
+        f"results in {num_chunks} partitions."
     )
 
-    chunked_df_list = []
     for i in range(num_chunks):
         yield points_gdf.iloc[i * chunksize : (i + 1) * chunksize]
 
@@ -134,7 +133,7 @@ def run_queued_futures_pipeline(
     model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
-    column_names: list,
+    col_names: list,
     save_folder_path: str,
 ) -> None:
     """
@@ -151,7 +150,7 @@ def run_queued_futures_pipeline(
     model : PyTorch model to be used for featurization.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for saving the features.
+    col_names : List of column names to be used for saving the features.
     save_folder_path : Path to folder where features will be saved.
 
     Returns
@@ -188,7 +187,7 @@ def run_queued_futures_pipeline(
             model=model,
             featurization_config=featurization_config,
             satellite_config=satellite_config,
-            column_names=column_names,
+            col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
         )
@@ -209,7 +208,7 @@ def run_queued_futures_pipeline(
             model=model,
             featurization_config=featurization_config,
             satellite_config=satellite_config,
-            column_names=column_names,
+            col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
         )
@@ -265,7 +264,7 @@ def run_batched_delayed_pipeline(
     model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
-    column_names: list,
+    col_names: list,
     save_folder_path: str,
     partition_ids: list[int] = None,
 ) -> list[int]:
@@ -280,7 +279,7 @@ def run_batched_delayed_pipeline(
     model : PyTorch model to be used for featurization.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for saving the features.
+    col_names : List of column names to be used for saving the features.
     save_folder_path : Path to folder where features will be saved.
     partition_ids : Optional. List of partition indexes to be used for featurization.
 
@@ -329,7 +328,7 @@ def run_batched_delayed_pipeline(
             model=model,
             featurization_config=featurization_config,
             satellite_config=satellite_config,
-            column_names=column_names,
+            col_names=col_names,
             save_folder_path=save_folder_path,
         )
 
@@ -343,7 +342,7 @@ def run_batch(
     model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
-    column_names: list,
+    col_names: list,
     save_folder_path: str,
 ) -> list[int]:
     """
@@ -358,7 +357,7 @@ def run_batch(
     model : PyTorch model to be used for featurization.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for the output dataframe.
+    col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
 
     Returns
@@ -379,7 +378,7 @@ def run_batch(
             model=model,
             featurization_config=featurization_config,
             satellite_config=satellite_config,
-            column_names=column_names,
+            col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str_id}.parquet.gzip",
             dask_key_name=f"features_{str_id}",
@@ -412,8 +411,9 @@ def run_unbatched_delayed_pipeline(
     model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
-    column_names: list,
+    col_names: list,
     save_folder_path: str,
+    selected_context_cols: list[str] = None,
 ) -> list[dask.delayed]:
     """
     Given a GeoDataFrame of coordinate points, partitions it, creates a list of each
@@ -426,8 +426,9 @@ def run_unbatched_delayed_pipeline(
     model : PyTorch model to be used for featurization.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for the output dataframe.
+    col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
+    selected_context_cols : List of context column names to keep in the output.
 
     Returns
     -------
@@ -449,9 +450,10 @@ def run_unbatched_delayed_pipeline(
             model=model,
             featurization_config=featurization_config,
             satellite_config=satellite_config,
-            column_names=column_names,
+            col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str_i}.parquet.gzip",
+            selected_context_cols=selected_context_cols,
         )
         delayed_tasks.append(delayed_task)
 
@@ -464,13 +466,14 @@ def delayed_pipeline(
     model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
-    column_names: list,
+    col_names: list,
     save_folder_path: str,
     save_filename: str,
+    selected_context_cols: list[str] = None,
 ) -> dask.delayed:
     """
-    For a given GeoDataFrame of coordinate points, this function creates the necesary chain
-    of delayed dask operations for image fetching and feaurisation.
+    For a given GeoDataFrame of coordinate points, this function creates the necesary
+    chain of delayed dask operations for image fetching and feaurisation.
 
     Parameters
     ----------
@@ -478,9 +481,10 @@ def delayed_pipeline(
     model : PyTorch model to be used for featurization.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for the output dataframe.
+    col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
     save_filename : Name of file to save features to.
+    selected_context_cols : List of context column names to keep in the output.
 
     Returns:
         Dask.Delayed object
@@ -506,8 +510,11 @@ def delayed_pipeline(
         min_image_edge=satellite_config["min_image_edge"],
     )
 
-    df = dask.delayed(pd.DataFrame)(
-        data=X_features, index=points_gdf.index, columns=column_names
+    df = dask.delayed(make_result_df)(
+        features=X_features,
+        mosaiks_col_names=col_names,
+        context_gdf=points_gdf_with_stac,
+        selected_context_cols=selected_context_cols,
     )
 
     delayed_task = dask.delayed(utl.save_dataframe)(

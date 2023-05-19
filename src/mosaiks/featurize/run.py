@@ -1,7 +1,9 @@
+import geopandas as gpd
 import numpy as np
+import pandas as pd
 import torch
 
-__all__ = ["create_features"]
+__all__ = ["create_features", "make_result_df"]
 
 
 def create_features(
@@ -73,3 +75,37 @@ def featurize(image: torch.Tensor, model: torch.nn.Module, device: str):
     image = image.to(device)
     feats = model(image).cpu().unsqueeze(0).numpy()
     return feats
+
+
+def make_result_df(
+    features: np.ndarray,
+    mosaiks_col_names: list[str],
+    context_gdf: gpd.GeoDataFrame,
+    selected_context_cols: list[str] = None,
+) -> pd.DataFrame:
+    """
+    Takes the features array and a context dataframe and returns a dataframe with the
+    features and chosen context columns, with the same index as the context dataframe.
+
+    Parameters
+    -----------
+    features : Array of features.
+    mosaiks_col_names : List of column names to label the feature columns as.
+    context_gdf : GeoDataFrame of context variables. Must have the same index size as
+        the features array.
+    selected_context_cols : List of context columns to include in final dataframe
+        (optional). If not given, no context columns will be included.
+
+    Returns
+    --------
+    DataFrame
+    """
+
+    features_df = pd.DataFrame(
+        data=features, index=context_gdf.index, columns=mosaiks_col_names
+    )
+    if selected_context_cols is None:
+        return features_df
+    else:
+        context_gdf = context_gdf[selected_context_cols]
+        return pd.concat([context_gdf, features_df], axis=1)

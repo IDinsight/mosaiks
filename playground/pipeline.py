@@ -59,7 +59,7 @@ if __name__ == "__main__":
     os.makedirs(mosaiks_folder_path, exist_ok=True)
 
     # Run in parallel
-    mosaiks_column_names = [
+    mosaiks_col_names = [
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
     run_queued_futures_pipeline(
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         model=model,
         featurization_config=featurization_config,
         satellite_config=satellite_config,
-        column_names=mosaiks_column_names,
+        col_names=mosaiks_col_names,
         save_folder_path=mosaiks_folder_path,
     )
 
@@ -80,9 +80,6 @@ if __name__ == "__main__":
     combined_df = utl.load_and_combine_dataframes(
         folder_path=mosaiks_folder_path, filenames=checkpoint_filenames
     )
-
-    # Add context columns
-    combined_df = combined_df.join(points_gdf[["Lat", "Lon", "shrid"]])
     logging.info(
         f"Dataset size in memory (MB): {combined_df.memory_usage().sum() / 1000000}"
     )

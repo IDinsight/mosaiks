@@ -1,9 +1,10 @@
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import torch.nn as nn
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_features
+from mosaiks.featurize import create_features, make_result_df
 from mosaiks.fetch import create_data_loader, fetch_image_refs
 
 __all__ = ["full_pipeline"]
@@ -14,10 +15,11 @@ def full_pipeline(
     model: nn.Module,
     featurization_config: dict,
     satellite_config: dict,
-    column_names: list,
+    col_names: list,
     save_folder_path: str,
     save_filename: str,
     return_df: bool = False,
+    selected_context_cols: list[str] = ["Lat", "Lon", "stac_item"],
 ) -> None:  # or DataFrame...
     """
     For a given GeoDataFrame of coordinate points, this function runs the necessary
@@ -29,10 +31,12 @@ def full_pipeline(
     model : PyTorch model to be used for featurization.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for saving the features.
+    col_names : List of column names to be used for saving the features.
     save_folder_path : Path to folder where features will be saved.
     save_filename : Name of file where features will be saved.
     return_df : Whether to return the features as a DataFrame.
+    selected_context_cols : List of context columns to include in final dataframe
+        (optional). If not given, no context columns will be included.
 
     Returns
     --------
@@ -57,7 +61,12 @@ def full_pipeline(
         min_image_edge=satellite_config["min_image_edge"],
     )
 
-    df = pd.DataFrame(data=X_features, index=points_gdf.index, columns=column_names)
+    df = make_result_df(
+        features=X_features,
+        mosaiks_col_names=col_names,
+        context_gdf=points_gdf_with_stac,
+        selected_context_cols=selected_context_cols,
+    )
 
     if save_folder_path is not None:
         utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
