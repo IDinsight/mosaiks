@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 import mosaiks.utils as utl
 from mosaiks.checks import check_satellite_name, check_search_dates, check_stac_api_name
-from mosaiks.dask_run import get_local_dask_client, run_queued_futures_pipeline
+from mosaiks.dask import get_local_dask_client, run_queued_futures_pipeline
 from mosaiks.featurize import RCF
 
 if __name__ == "__main__":
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
     run_queued_futures_pipeline(
-        points_gdf=points_gdf,
+        points_gdf=points_gdf.iloc[1:2],
         client=client,
         model=model,
         featurization_config=featurization_config,
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     )
 
     # Save to file
-    combined_filename = "combined_features.parquet.gzip"
+    combined_filename = "new_combined_features.parquet.gzip"
     combined_filepath = mosaiks_folder_path / combined_filename
     logging.info(f"Saving combined file to {str(combined_filepath)}...")
     utl.save_dataframe(df=combined_df, file_path=combined_filepath)

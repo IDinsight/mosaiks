@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from dask.delayed import Delayed
 
-from mosaiks.dask_run import delayed_partition_run
+from mosaiks.dask import delayed_partition_run
 from mosaiks.featurize import RCF, fetch_image_refs, get_dask_gdf
 from mosaiks.utils import df_w_latlons_to_gdf
 

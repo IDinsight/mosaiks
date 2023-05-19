@@ -13,10 +13,13 @@ from dask.distributed import Client, LocalCluster, as_completed, wait
 from dask_gateway import Gateway
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_data_loader, create_features, fetch_image_refs
+from mosaiks.featurize import create_features
+
+# for fully-delayd pipeline
+from mosaiks.fetch import create_data_loader, fetch_image_refs
+from mosaiks.run import full_pipeline
 
 __all__ = [
-    "run_pipeline",
     "get_local_dask_client",
     "get_gateway_cluster_client",
     "run_queued_futures_pipeline",
@@ -24,63 +27,6 @@ __all__ = [
     "run_unbatched_delayed_pipeline",
     "delayed_pipeline",
 ]
-
-
-def run_pipeline(
-    points_gdf: gpd.GeoDataFrame,
-    model: nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
-    column_names: list,
-    save_folder_path: str,
-    save_filename: str,
-    return_df: bool = False,
-) -> None:  # or DataFrame...
-    """
-    For a given GeoDataFrame of coordinate points, this function runs the necessary
-    functions and saves resulting mosaiks features to file. No Dask is necessary.
-
-    Parameters
-    -----------
-    points_gdf : GeoDataFrame of points to be featurized.
-    model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
-    column_names : List of column names to be used for saving the features.
-    save_folder_path : Path to folder where features will be saved.
-    save_filename : Name of file where features will be saved.
-    return_df : Whether to return the features as a DataFrame.
-
-    Returns
-    --------
-    None or DataFrame
-    """
-
-    satellite_search_params = featurization_config["satellite_search_params"]
-
-    points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
-
-    data_loader = create_data_loader(
-        points_gdf_with_stac=points_gdf_with_stac,
-        satellite_params=satellite_config,
-        batch_size=featurization_config["model"]["batch_size"],
-    )
-
-    X_features = create_features(
-        dataloader=data_loader,
-        n_features=featurization_config["model"]["num_features"],
-        model=model,
-        device=featurization_config["model"]["device"],
-        min_image_edge=satellite_config["min_image_edge"],
-    )
-
-    df = pd.DataFrame(data=X_features, index=points_gdf.index, columns=column_names)
-
-    if save_folder_path is not None:
-        utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
-
-    if return_df:
-        return df
 
 
 def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Client:
@@ -237,7 +183,7 @@ def run_queued_futures_pipeline(
             break
 
         future = client.submit(
-            run_pipeline,
+            full_pipeline,
             points_gdf=partition,
             model=model,
             featurization_config=featurization_config,
@@ -258,7 +204,7 @@ def run_queued_futures_pipeline(
         logging.info(f"Adding partition {i}")
 
         new_future = client.submit(
-            run_pipeline,
+            full_pipeline,
             points_gdf=partition,
             model=model,
             featurization_config=featurization_config,
@@ -428,7 +374,7 @@ def run_batch(
         str_id = str(partition_id).zfill(3)  # makes 1 into '001'
 
         # this can be swapped for delayed_pipeline(...)
-        delayed_task = dask.delayed(run_pipeline)(
+        delayed_task = dask.delayed(full_pipeline)(
             points_gdf=partition,
             model=model,
             featurization_config=featurization_config,
@@ -497,7 +443,7 @@ def run_unbatched_delayed_pipeline(
     for i, partition in enumerate(partitions):
 
         str_i = str(i).zfill(3)
-        # this can be swapped for dask.delayed(run_pipeline)(...)
+        # this can be swapped for dask.delayed(full_pipeline)(...)
         delayed_task = delayed_pipeline(
             points_gdf=partition,
             model=model,

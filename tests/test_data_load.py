@@ -7,7 +7,7 @@ import pytest
 from pystac.item import Item
 
 import mosaiks.utils as utl
-from mosaiks.featurize.stacs import (
+from mosaiks.fetch.stacs import (
     create_data_loader,
     fetch_stac_items,
     sort_by_hilbert_distance,
