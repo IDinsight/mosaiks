@@ -1,7 +1,6 @@
 import logging
 from typing import List
 
-import dask_geopandas as dask_gpd
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -15,134 +14,47 @@ from pystac.item import Item
 from pystac.item_collection import ItemCollection
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["get_dask_gdf", "fetch_image_refs", "create_data_loader"]
-
-
-def get_dask_gdf(points_gdf: gpd.GeoDataFrame, chunksize: int) -> dask_gpd.GeoDataFrame:
-    """
-    Spatially sort and split the gdf up by the given chunksize.
-
-    Parameters
-    ----------
-    points_dgdf : A GeoDataFrame with a column named "geometry" containing shapely Point objects.
-    chunksize : The number of points per partition to use creating the Dask GeoDataFrame.
-
-    Returns
-    -------
-    points_dgdf: Dask GeoDataFrame split into partitions of size `chunksize`.
-    """
-
-    points_gdf = sort_by_hilbert_distance(points_gdf)
-    points_dgdf = dask_gpd.from_geopandas(
-        points_gdf,
-        chunksize=chunksize,
-        sort=False,
-    )
-
-    logging.info(
-        f"{chunksize} points per partition results in {len(points_dgdf.divisions)} partitions."
-    )
-
-    logging.info(
-        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
-    )
-
-    return points_dgdf
+__all__ = ["fetch_image_refs", "create_data_loader"]
 
 
 def fetch_image_refs(
-    points_dgdf: gpd.GeoDataFrame, satellite_search_params: dict
-) -> dask_gpd.GeoDataFrame:
+    points_gdf: gpd.GeoDataFrame, satellite_search_params: dict
+) -> gpd.GeoDataFrame:
     """
-    Find a STAC item for points in the `points_dgdf` Dask GeoDataFrame. Returns a
-    Dask GeoDataFrame with STAC items as a new column.
+    Find a STAC item for points in the `points_gdf` GeoDataFrame. Returns a
+    GeoDataFrame with STAC items as a new column.
 
     Parameters
     ----------
-    points_dgdf : A DaskGeoDataFrame with a column named "geometry" containing shapely
+    points_gdf : A GeoDataFrame with a column named "geometry" containing shapely
         Point objects.
     satellite_search_params : A dictionary containing the parameters for the STAC
         search.
 
     Returns
     -------
-    points_dgdf: A Dask GeoDataFrame with a column named "stac_item" containing STAC
+    points_gdf: A GeoDataFrame with a column named "stac_item" containing STAC
         items.
     """
-
-    # # meta not needed at the moment, speed is adequate
-    # meta = points_dgdf._meta
-    # meta = meta.assign(stac_item=pd.Series([], dtype="object"))
-    # meta = meta.assign(cloud_cover=pd.Series([], dtype="object"))
-
     if satellite_search_params["seasonal"]:
-        points_gdf_with_stac = points_dgdf.map_partitions(
-            fetch_seasonal_stac_items,
+        points_gdf_with_stac = fetch_seasonal_stac_items(
+            points_gdf=points_gdf,
             satellite_name=satellite_search_params["satellite_name"],
             year=satellite_search_params["year"],
             stac_output=satellite_search_params["stac_output"],
             stac_api=satellite_search_params["stac_api"],
-            # meta=meta,
         )
     else:
-        points_gdf_with_stac = points_dgdf.map_partitions(
-            fetch_stac_items,
+        points_gdf_with_stac = fetch_stac_items(
+            points_gdf=points_gdf,
             satellite_name=satellite_search_params["satellite_name"],
             search_start=satellite_search_params["search_start"],
             search_end=satellite_search_params["search_end"],
             stac_api=satellite_search_params["stac_api"],
             stac_output=satellite_search_params["stac_output"],
-            # meta=meta,
         )
 
     return points_gdf_with_stac
-
-
-def create_data_loader(
-    points_gdf_with_stac: gpd.GeoDataFrame, satellite_params: dict, batch_size: int
-) -> DataLoader:
-    """
-    Creates a PyTorch DataLoader from a GeoDataFrame with STAC items.
-
-    Parameters
-    ----------
-    points_gdf_with_stac : A GeoDataFrame with the points we want to fetch imagery for + its STAC ref
-    satellite_params : A dictionary of parameters for the satellite imagery to fetch
-    batch_size : The batch size to use for the DataLoader
-
-    """
-
-    stac_item_list = points_gdf_with_stac.stac_item.tolist()
-    points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
-    dataset = CustomDataset(
-        points_list,
-        stac_item_list,
-        buffer=satellite_params["buffer_distance"],
-        bands=satellite_params["bands"],
-        resolution=satellite_params["resolution"],
-        dtype=satellite_params["dtype"],
-    )
-
-    data_loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        collate_fn=lambda x: x,
-        pin_memory=False,
-    )
-
-    return data_loader
-
-
-def sort_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Sort the points in the GeoDataFrame by their Hilbert distance."""
-
-    ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
-    hilbert_distance = ddf.hilbert_distance().compute()
-    points_gdf["hilbert_distance"] = hilbert_distance
-    points_gdf = points_gdf.sort_values("hilbert_distance")
-
-    return points_gdf
 
 
 def fetch_seasonal_stac_items(
@@ -340,28 +252,40 @@ def _items_covering_point(
         return items_covering_point["stac_item"].tolist()
 
 
-def get_stac_api(api_name: str) -> pystac_client.Client:
-    """Get a STAC API client for a given API name."""
+def create_data_loader(
+    points_gdf_with_stac: gpd.GeoDataFrame, satellite_params: dict, batch_size: int
+) -> DataLoader:
+    """
+    Creates a PyTorch DataLoader from a GeoDataFrame with STAC items.
 
-    if api_name == "planetary-compute":
-        stac_api = pystac_client.Client.open(
-            "https://planetarycomputer.microsoft.com/api/stac/v1",
-            modifier=planetary_computer.sign_inplace,
-        )
-    elif api_name == "earth":
-        stac_api = pystac_client.Client.open(
-            "https://earth-search.aws.element84.com/v0"
-        )
-    else:
-        raise NotImplementedError(f"STAC api {api_name} is not implemented")
+    Parameters
+    ----------
+    points_gdf_with_stac : A GeoDataFrame with the points we want to fetch imagery for + its STAC ref
+    satellite_params : A dictionary of parameters for the satellite imagery to fetch
+    batch_size : The batch size to use for the DataLoader
 
-    return stac_api
+    """
 
+    stac_item_list = points_gdf_with_stac.stac_item.tolist()
+    points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
+    dataset = CustomDataset(
+        points_list,
+        stac_item_list,
+        buffer=satellite_params["buffer_distance"],
+        bands=satellite_params["bands"],
+        resolution=satellite_params["resolution"],
+        dtype=satellite_params["dtype"],
+    )
 
-def minmax_normalize_image(image: torch.tensor) -> torch.tensor:
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=lambda x: x,
+        pin_memory=False,
+    )
 
-    img_min, img_max = image.min(), image.max()
-    return (image - img_min) / (img_max - img_min)
+    return data_loader
 
 
 class CustomDataset(Dataset):
@@ -446,8 +370,32 @@ class CustomDataset(Dataset):
             try:
                 image = image.values
                 torch_image = torch.from_numpy(image).float()
-                torch_image = minmax_normalize_image(torch_image)
+                torch_image = _minmax_normalize_image(torch_image)
                 return torch_image
             except Exception as e:
                 print(f"Skipping {idx}:", e)
                 return None
+
+
+def _minmax_normalize_image(image: torch.tensor) -> torch.tensor:
+
+    img_min, img_max = image.min(), image.max()
+    return (image - img_min) / (img_max - img_min)
+
+
+def get_stac_api(api_name: str) -> pystac_client.Client:
+    """Get a STAC API client for a given API name."""
+
+    if api_name == "planetary-compute":
+        stac_api = pystac_client.Client.open(
+            "https://planetarycomputer.microsoft.com/api/stac/v1",
+            modifier=planetary_computer.sign_inplace,
+        )
+    elif api_name == "earth":
+        stac_api = pystac_client.Client.open(
+            "https://earth-search.aws.element84.com/v0"
+        )
+    else:
+        raise NotImplementedError(f"STAC api {api_name} is not implemented")
+
+    return stac_api

@@ -19,27 +19,27 @@ __all__ = ["create_features"]
 def create_features(
     dataloader: torch.utils.data.DataLoader,
     n_features: int,
-    n_points: int,
     model: nn.Module,
     device: str,
     min_image_edge: str,
 ) -> np.ndarray:
     """
+    Create features for images fetched through a dataloader.
+
     Parameters:
     -----------
     dataloader: A dataloader object that yields batches of images.
     n_features: The number of features to extract from each image.
-    n_points: The number of images to extract features from.
     model: A model that extracts features from images.
     device: The device to run the model on.
     min_image_edge: The minimum edge length of an image to extract features from.
 
     Returns:
     --------
-    features_array: An array of shape (n_points, n_features) containing the extracted features.
-
+    features_array: An array with n_features columns.
     """
 
+    n_points = len(dataloader.dataset)
     features_array = np.full([n_points, n_features], np.nan, dtype=float)
     model.eval().to(device)
 

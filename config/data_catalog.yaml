@@ -1,10 +1,15 @@
 # request coordinates for mosaiks
-request_points_grid_05:
+india_grid_05:
   filename : urb_rur_request_points.csv
   folder : 01_preprocessed/mosaiks_request_points
   index_col : 0
-  
-request_points_centroids:
+
+all_shrid_centroids:
   filename : all_shrid_centroids.csv
+  folder : 01_preprocessed/mosaiks_request_points
+  index_col : 0
+
+focus_shrid_centroids:
+  filename : focus_shrid_centroids.csv
   folder : 01_preprocessed/mosaiks_request_points
   index_col : 0

@@ -244,9 +244,9 @@ def make_output_folder_path(featurization_config: dict) -> Path:
     return folder_path
 
 
-def get_mosaiks_package_link() -> str:
+def get_mosaiks_package_link(branch="main") -> str:
     """Get the link to the mosaiks package."""
 
-    secrets = load_yaml_config("../config/secrets.yml")
+    secrets = load_yaml_config("secrets.yaml")
     GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
-    return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks"
+    return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks@{branch}"

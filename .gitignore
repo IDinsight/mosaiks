@@ -1,6 +1,7 @@
 # Custom
 **/dask-worker-space/
 data/
+test_outputs/
 logs/
 config/secrets.env
 config/secrets.yml
