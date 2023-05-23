@@ -57,7 +57,9 @@ if __name__ == "__main__":
     )
 
     # Set output path
-    mosaiks_folder_path = utl.make_output_folder_path(featurization_config)
+    mosaiks_folder_path = utl.make_output_folder_path(
+        featurization_config
+    )  # Path("DATA_TEST")
     os.makedirs(mosaiks_folder_path, exist_ok=True)
 
     # Run in parallel
@@ -65,7 +67,7 @@ if __name__ == "__main__":
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
     run_queued_futures_pipeline(
-        points_gdf=points_gdf,
+        points_gdf=points_gdf,  # iloc[:10]
         client=client,
         model=model,
         featurization_config=featurization_config,
