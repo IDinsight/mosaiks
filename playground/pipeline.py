@@ -3,6 +3,8 @@ import os
 import sys
 import warnings
 
+from pathlib import Path
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 sys.path += ["../"]
@@ -63,7 +65,7 @@ if __name__ == "__main__":
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
     run_queued_futures_pipeline(
-        points_gdf=points_gdf.iloc[1:2],
+        points_gdf=points_gdf,
         client=client,
         model=model,
         featurization_config=featurization_config,

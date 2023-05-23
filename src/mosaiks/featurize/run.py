@@ -85,16 +85,21 @@ def make_result_df(
 ) -> pd.DataFrame:
     """
     Takes the features array and a context dataframe and returns a dataframe with the
-    features and chosen context columns, with the same index as the context dataframe.
+    features, the stac_id of the images used to create each row, and chosen context columns. 
+    The output dataframe will have the same index as the context dataframe.
+    
+    Note: context_gdf must have a "stac_item" column which contains pystac.item.Item 
+    objects since the "stac_id" is always saved.
 
     Parameters
     -----------
     features : Array of features.
     mosaiks_col_names : List of column names to label the feature columns as.
     context_gdf : GeoDataFrame of context variables. Must have the same index size as
-        the features array.
+        the features array. Must also have a "stac_item" column which contains 
+        pystac.item.Item objects since the "stac_id" is always saved.
     context_cols_to_keep : List of context columns to include in final dataframe
-        (optional). If not given, no context columns will be included.
+        (optional). If not given, only "stac_id" will be included.
 
     Returns
     --------
@@ -104,7 +109,9 @@ def make_result_df(
     features_df = pd.DataFrame(
         data=features, index=context_gdf.index, columns=mosaiks_col_names
     )
-    context_cols_to_keep = context_cols_to_keep + ["stac_item"]
+    
+    context_gdf["stac_id"] = context_gdf["stac_item"].map(lambda x: x.id)
+    context_cols_to_keep = context_cols_to_keep + ["stac_id"]
     context_gdf = context_gdf[context_cols_to_keep]
 
     return pd.concat([context_gdf, features_df], axis=1)
