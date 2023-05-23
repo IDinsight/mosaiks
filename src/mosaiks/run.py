@@ -1,4 +1,5 @@
 import logging
+
 import geopandas as gpd
 import torch.nn as nn
 
@@ -38,7 +39,7 @@ def full_pipeline(
     --------
     None or DataFrame
     """
-    
+
     try:
         satellite_search_params = featurization_config["satellite_search_params"]
         context_cols_to_keep = featurization_config["context_cols_to_keep"]

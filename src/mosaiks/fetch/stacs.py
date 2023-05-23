@@ -270,10 +270,22 @@ def get_stac_api(api_name: str) -> pystac_client.Client:
 
 
 def fetch_stac_item_from_id(
-    ids: list[str],
-    stac_api_name: str = "planetary-compute"
+    ids: list[str], stac_api_name: str = "planetary-compute"
 ) -> list[Item]:
-    """For debugging."""
+    """
+    For debugging.
+
+    Fetches STAC items from a list of ids.
+
+    Parameters
+    ----------
+    ids: List of STAC item ids.
+    stac_api_name: Name of STAC API to use. Has to be supported by `get_stac_api`.
+
+    Returns
+    -------
+    List of STAC items.
+    """
 
     stac_api = get_stac_api(stac_api_name)
     search_results = stac_api.search(ids=ids)

@@ -85,10 +85,10 @@ def make_result_df(
 ) -> pd.DataFrame:
     """
     Takes the features array and a context dataframe and returns a dataframe with the
-    features, the stac_id of the images used to create each row, and chosen context columns. 
+    features, the stac_id of the images used to create each row, and chosen context columns.
     The output dataframe will have the same index as the context dataframe.
-    
-    Note: context_gdf must have a "stac_item" column which contains pystac.item.Item 
+
+    Note: context_gdf must have a "stac_item" column which contains pystac.item.Item
     objects since the "stac_id" is always saved.
 
     Parameters
@@ -96,7 +96,7 @@ def make_result_df(
     features : Array of features.
     mosaiks_col_names : List of column names to label the feature columns as.
     context_gdf : GeoDataFrame of context variables. Must have the same index size as
-        the features array. Must also have a "stac_item" column which contains 
+        the features array. Must also have a "stac_item" column which contains
         pystac.item.Item objects since the "stac_id" is always saved.
     context_cols_to_keep : List of context columns to include in final dataframe
         (optional). If not given, only "stac_id" will be included.
@@ -109,9 +109,11 @@ def make_result_df(
     features_df = pd.DataFrame(
         data=features, index=context_gdf.index, columns=mosaiks_col_names
     )
-    
+
     if isinstance(context_gdf["stac_item"].iloc[0], list):
-        context_gdf["stac_id"] = context_gdf["stac_item"].map(lambda item_list: [item.id for item in item_list])
+        context_gdf["stac_id"] = context_gdf["stac_item"].map(
+            lambda item_list: [item.id for item in item_list]
+        )
     else:
         context_gdf["stac_id"] = context_gdf["stac_item"].map(lambda item: item.id)
     context_cols_to_keep = context_cols_to_keep + ["stac_id"]

@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import geopandas as gpd
@@ -11,14 +12,18 @@ from torch.utils.data import DataLoader, Dataset
 
 from mosaiks.fetch.stacs import fetch_stac_item_from_id
 
-
-__all__ = ["create_data_loader", "fetch_image_crop_from_stac_id", "fetch_image_crop", "display_image"]
+__all__ = [
+    "create_data_loader",
+    "fetch_image_crop_from_stac_id",
+    "fetch_image_crop",
+    "display_image",
+]
 
 
 def fetch_image_crop(
     lon: float,
     lat: float,
-    stac_item: Item, #or list[Items]
+    stac_item: Item,  # or list[Items]
     buffer: int,
     bands: List[str],
     resolution: int,
@@ -214,22 +219,36 @@ def fetch_image_crop_from_stac_id(
     stac_id: str,
     lon: float,
     lat: float,
-    satellite_config: dict, 
+    satellite_config: dict,
     normalise=True,
     stac_api_name: str = "planetary-compute",
-    plot: bool=False,
+    plot: bool = False,
 ) -> np.array:
     """
-    Note: This function is necessary since STAC Items cannot be directly saved to file 
-    alongside the features in `.parquet` format, and so only their ID can be saved. 
-    This function uses the ID to first fetch the correct STAC Items, runs these 
+    Note: This function is necessary since STAC Items cannot be directly saved to file
+    alongside the features in `.parquet` format, and so only their ID can be saved.
+    This function uses the ID to first fetch the correct STAC Items, runs these
     through fetch_image_crop(), and optionally displays the image.
-    
-    Takes a stac_id (or list of stac_ids), lat, lon, and satellite 
+
+    Takes a stac_id (or list of stac_ids), lat, lon, and satellite
     parameters and returns and displays a cropped image. This image is fetched using the
     same process as when fetching for featurization.
-    
+
     If multiple STAC items are given, the median composite of the images is returned.
+
+    Parameters
+    ----------
+    stac_id : The STAC ID of the image to fetch
+    lon : Longitude of the centerpoint to fetch imagery for
+    lat : Latitude of the centerpoint to fetch imagery for
+    satellite_config : A dictionary of parameters for the satellite imagery to fetch
+    normalise : Whether to normalise the image. Defaults to True.
+    stac_api_name : The name of the STAC API to use. Defaults to "planetary-compute".
+    plot : Whether to plot the image. Defaults to False.
+
+    Returns
+    -------
+    image_crop : A numpy array of the cropped image
     """
 
     if not isinstance(stac_id, list):
@@ -249,7 +268,7 @@ def fetch_image_crop_from_stac_id(
             bands=satellite_config["bands"],
             resolution=satellite_config["resolution"],
             dtype=satellite_config["dtype"],
-            normalise=normalise
+            normalise=normalise,
         )
 
         if plot:
@@ -258,8 +277,18 @@ def fetch_image_crop_from_stac_id(
         return image_crop
 
 
-def display_image(image: np.array, RGB_band_order=[2,1,0]):
-    """Displays a numpy image in RGB format."""
+def display_image(image: np.array, RGB_band_order=[2, 1, 0]):
+    """Displays a numpy image in RGB format.
+
+    Parameters
+    ----------
+    image : A numpy array of shape (C, H, W)
+    RGB_band_order : The order of the bands to display. Defaults to [2, 1, 0].
+
+    Returns
+    -------
+    None
+    """
 
     rgb_image = image[RGB_band_order, :, :].transpose(1, 2, 0)
     plt.imshow(rgb_image)
