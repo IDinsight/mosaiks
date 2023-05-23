@@ -11,17 +11,6 @@ from pystac.item_collection import ItemCollection
 __all__ = ["fetch_image_refs", "fetch_stac_item_from_id"]
 
 
-def fetch_stac_item_from_id(
-    id: str, 
-    stac_api_name: str = "planetary-compute"
-):
-    """For debugging."""
-    
-    stac_api = get_stac_api(stac_api_name)
-    search_results = stac_api.search(ids=[id])
-    return next(search_results.items())
-
-
 def fetch_image_refs(
     points_gdf: gpd.GeoDataFrame, satellite_search_params: dict
 ) -> gpd.GeoDataFrame:
@@ -275,3 +264,17 @@ def get_stac_api(api_name: str) -> pystac_client.Client:
         raise NotImplementedError(f"STAC api {api_name} is not implemented")
 
     return stac_api
+
+
+# for debugging
+
+
+def fetch_stac_item_from_id(
+    ids: list[str],
+    stac_api_name: str = "planetary-compute"
+) -> list[Item]:
+    """For debugging."""
+
+    stac_api = get_stac_api(stac_api_name)
+    search_results = stac_api.search(ids=ids)
+    return list(search_results.items())

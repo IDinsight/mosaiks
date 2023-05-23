@@ -110,7 +110,10 @@ def make_result_df(
         data=features, index=context_gdf.index, columns=mosaiks_col_names
     )
     
-    context_gdf["stac_id"] = context_gdf["stac_item"].map(lambda x: x.id)
+    if isinstance(context_gdf["stac_item"].iloc[0], list):
+        context_gdf["stac_id"] = context_gdf["stac_item"].map(lambda item_list: [item.id for item in item_list])
+    else:
+        context_gdf["stac_id"] = context_gdf["stac_item"].map(lambda item: item.id)
     context_cols_to_keep = context_cols_to_keep + ["stac_id"]
     context_gdf = context_gdf[context_cols_to_keep]
 

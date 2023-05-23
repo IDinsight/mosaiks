@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 from mosaiks.fetch.stacs import fetch_stac_item_from_id
 
 
-__all__ = ["create_data_loader", "get_image_crop_from_stac_id", "fetch_image_crop", "display_image"]
+__all__ = ["create_data_loader", "fetch_image_crop_from_stac_id", "fetch_image_crop", "display_image"]
 
 
 def fetch_image_crop(
@@ -35,7 +35,7 @@ def fetch_image_crop(
     ----------
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
-    stac_item : STAC item to fetch imagery for. Can be a list of STAC Items.
+    stac_item : STAC Item to fetch imagery for. Can be a list of STAC Items.
     buffer : Buffer in meters around the centerpoint to fetch imagery for
     bands : List of bands to fetch
     resolution : Resolution of the image to fetch
@@ -210,7 +210,7 @@ class CustomDataset(Dataset):
 # for debugging
 
 
-def get_image_crop_from_stac_id(
+def fetch_image_crop_from_stac_id(
     stac_id: str,
     lon: float,
     lat: float,
@@ -220,32 +220,48 @@ def get_image_crop_from_stac_id(
     plot: bool=False,
 ) -> np.array:
     """
-    Takes a stac_id, lat, lon, and satellite parameters and returns
-    the cropped image that must have been used to create the feature.
+    Note: This function is necessary since STAC Items cannot be directly saved to file 
+    alongside the features in `.parquet` format, and so only their ID can be saved. 
+    This function uses the ID to first fetch the correct STAC Items, runs these 
+    through fetch_image_crop(), and optionally displays the image.
+    
+    Takes a stac_id (or list of stac_ids), lat, lon, and satellite 
+    parameters and returns and displays a cropped image. This image is fetched using the
+    same process as when fetching for featurization.
+    
+    If multiple STAC items are given, the median composite of the images is returned.
     """
-    
-    item = fetch_stac_item_from_id(stac_id, stac_api_name)
-    image_crop = fetch_image_crop(
-        lon=lon,
-        lat=lat,
-        stac_item=item,
-        buffer=satellite_config["buffer_distance"],
-        bands=satellite_config["bands"],
-        resolution=satellite_config["resolution"],
-        dtype=satellite_config["dtype"],
-        normalise=normalise
-    )
-    
-    if plot:
-        display_image(image_crop)
 
-    return image_crop
+    if not isinstance(stac_id, list):
+        stac_id = [stac_id]
+
+    stac_items = fetch_stac_item_from_id(stac_id, stac_api_name)
+    if len(stac_items) == 0:
+        logging.warn("No STAC items found.")
+        return None
+
+    else:
+        image_crop = fetch_image_crop(
+            lon=lon,
+            lat=lat,
+            stac_item=stac_items,
+            buffer=satellite_config["buffer_distance"],
+            bands=satellite_config["bands"],
+            resolution=satellite_config["resolution"],
+            dtype=satellite_config["dtype"],
+            normalise=normalise
+        )
+
+        if plot:
+            display_image(image_crop)
+
+        return image_crop
 
 
-def display_image(image: np.array):
+def display_image(image: np.array, RGB_band_order=[2,1,0]):
     """Displays a numpy image in RGB format."""
 
-    rgb_image = image[[2, 1, 0], :, :].transpose(1, 2, 0)
+    rgb_image = image[RGB_band_order, :, :].transpose(1, 2, 0)
     plt.imshow(rgb_image)
     plt.show()
     plt.close()
