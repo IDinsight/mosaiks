@@ -1,6 +1,4 @@
 import geopandas as gpd
-import numpy as np
-import pandas as pd
 import torch.nn as nn
 
 import mosaiks.utils as utl
@@ -19,7 +17,6 @@ def full_pipeline(
     save_folder_path: str,
     save_filename: str,
     return_df: bool = False,
-    selected_context_cols: list[str] = ["Lat", "Lon", "stac_item"],
 ) -> None:  # or DataFrame...
     """
     For a given GeoDataFrame of coordinate points, this function runs the necessary
@@ -35,8 +32,6 @@ def full_pipeline(
     save_folder_path : Path to folder where features will be saved.
     save_filename : Name of file where features will be saved.
     return_df : Whether to return the features as a DataFrame.
-    selected_context_cols : List of context columns to include in final dataframe
-        (optional). If not given, no context columns will be included.
 
     Returns
     --------
@@ -44,6 +39,7 @@ def full_pipeline(
     """
 
     satellite_search_params = featurization_config["satellite_search_params"]
+    context_cols_to_keep = featurization_config["context_cols_to_keep"]
 
     points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
 
@@ -65,7 +61,7 @@ def full_pipeline(
         features=X_features,
         mosaiks_col_names=col_names,
         context_gdf=points_gdf_with_stac,
-        selected_context_cols=selected_context_cols,
+        context_cols_to_keep=context_cols_to_keep,
     )
 
     if save_folder_path is not None:

@@ -81,7 +81,7 @@ def make_result_df(
     features: np.ndarray,
     mosaiks_col_names: list[str],
     context_gdf: gpd.GeoDataFrame,
-    selected_context_cols: list[str] = None,
+    context_cols_to_keep: list[str] = None,
 ) -> pd.DataFrame:
     """
     Takes the features array and a context dataframe and returns a dataframe with the
@@ -93,7 +93,7 @@ def make_result_df(
     mosaiks_col_names : List of column names to label the feature columns as.
     context_gdf : GeoDataFrame of context variables. Must have the same index size as
         the features array.
-    selected_context_cols : List of context columns to include in final dataframe
+    context_cols_to_keep : List of context columns to include in final dataframe
         (optional). If not given, no context columns will be included.
 
     Returns
@@ -104,8 +104,7 @@ def make_result_df(
     features_df = pd.DataFrame(
         data=features, index=context_gdf.index, columns=mosaiks_col_names
     )
-    if selected_context_cols is None:
-        return features_df
-    else:
-        context_gdf = context_gdf[selected_context_cols]
-        return pd.concat([context_gdf, features_df], axis=1)
+    context_cols_to_keep = context_cols_to_keep + ["stac_item"]
+    context_gdf = context_gdf[context_cols_to_keep]
+
+    return pd.concat([context_gdf, features_df], axis=1)

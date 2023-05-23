@@ -413,7 +413,6 @@ def run_unbatched_delayed_pipeline(
     satellite_config: dict,
     col_names: list,
     save_folder_path: str,
-    selected_context_cols: list[str] = None,
 ) -> list[dask.delayed]:
     """
     Given a GeoDataFrame of coordinate points, partitions it, creates a list of each
@@ -428,7 +427,6 @@ def run_unbatched_delayed_pipeline(
     satellite_config : Dictionary of satellite parameters.
     col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
-    selected_context_cols : List of context column names to keep in the output.
 
     Returns
     -------
@@ -453,7 +451,6 @@ def run_unbatched_delayed_pipeline(
             col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str_i}.parquet.gzip",
-            selected_context_cols=selected_context_cols,
         )
         delayed_tasks.append(delayed_task)
 
@@ -469,7 +466,6 @@ def delayed_pipeline(
     col_names: list,
     save_folder_path: str,
     save_filename: str,
-    selected_context_cols: list[str] = None,
 ) -> dask.delayed:
     """
     For a given GeoDataFrame of coordinate points, this function creates the necesary
@@ -484,7 +480,6 @@ def delayed_pipeline(
     col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
     save_filename : Name of file to save features to.
-    selected_context_cols : List of context column names to keep in the output.
 
     Returns:
         Dask.Delayed object
@@ -514,7 +509,7 @@ def delayed_pipeline(
         features=X_features,
         mosaiks_col_names=col_names,
         context_gdf=points_gdf_with_stac,
-        selected_context_cols=selected_context_cols,
+        context_cols_to_keep=featurization_config["context_cols_to_keep"],
     )
 
     delayed_task = dask.delayed(utl.save_dataframe)(
