@@ -9,13 +9,16 @@ import torch
 from pystac.item import Item
 from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["create_data_loader", "fetch_image_crop", "display_image"]
+from mosaiks.fetch.stacs import fetch_stac_item_from_id
+
+
+__all__ = ["create_data_loader", "get_image_crop_from_stac_id", "fetch_image_crop", "display_image"]
 
 
 def fetch_image_crop(
     lon: float,
     lat: float,
-    stac_item: Item,
+    stac_item: Item, #or list[Items]
     buffer: int,
     bands: List[str],
     resolution: int,
@@ -89,14 +92,6 @@ def _minmax_normalize_image(image: np.array) -> np.array:
 
     img_min, img_max = image.min(), image.max()
     return (image - img_min) / (img_max - img_min)
-
-
-def display_image(image: np.array):
-    """Displays a numpy image in RGB format."""
-
-    rgb_image = image[[2, 1, 0], :, :].transpose(1, 2, 0)
-    plt.imshow(rgb_image)
-    plt.show()
 
 
 def create_data_loader(
@@ -210,3 +205,47 @@ class CustomDataset(Dataset):
             except Exception as e:
                 print(f"Skipping {idx}: {e}")
                 return None
+
+
+# for debugging
+
+
+def get_image_crop_from_stac_id(
+    stac_id: str,
+    lon: float,
+    lat: float,
+    satellite_config: dict, 
+    normalise=True,
+    stac_api_name: str = "planetary-compute",
+    plot: bool=False,
+) -> np.array:
+    """
+    Takes a stac_id, lat, lon, and satellite parameters and returns
+    the cropped image that must have been used to create the feature.
+    """
+    
+    item = fetch_stac_item_from_id(stac_id, stac_api_name)
+    image_crop = fetch_image_crop(
+        lon=lon,
+        lat=lat,
+        stac_item=item,
+        buffer=satellite_config["buffer_distance"],
+        bands=satellite_config["bands"],
+        resolution=satellite_config["resolution"],
+        dtype=satellite_config["dtype"],
+        normalise=normalise
+    )
+    
+    if plot:
+        display_image(image_crop)
+
+    return image_crop
+
+
+def display_image(image: np.array):
+    """Displays a numpy image in RGB format."""
+
+    rgb_image = image[[2, 1, 0], :, :].transpose(1, 2, 0)
+    plt.imshow(rgb_image)
+    plt.show()
+    plt.close()
