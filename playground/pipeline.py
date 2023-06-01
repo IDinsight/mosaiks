@@ -3,6 +3,8 @@ import os
 import sys
 import warnings
 
+from pathlib import Path
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 sys.path += ["../"]
@@ -10,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 import mosaiks.utils as utl
 from mosaiks.checks import check_satellite_name, check_search_dates, check_stac_api_name
-from mosaiks.dask_run import get_local_dask_client, run_queued_futures_pipeline
+from mosaiks.dask import get_local_dask_client, run_queued_futures_pipeline
 from mosaiks.featurize import RCF
 
 if __name__ == "__main__":
@@ -55,20 +57,22 @@ if __name__ == "__main__":
     )
 
     # Set output path
-    mosaiks_folder_path = utl.make_output_folder_path(featurization_config)
+    mosaiks_folder_path = utl.make_output_folder_path(
+        featurization_config
+    )  # Path("DATA_TEST")
     os.makedirs(mosaiks_folder_path, exist_ok=True)
 
     # Run in parallel
-    mosaiks_column_names = [
+    mosaiks_col_names = [
         f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
     ]
     run_queued_futures_pipeline(
-        points_gdf=points_gdf,
+        points_gdf=points_gdf,  # iloc[:10]
         client=client,
         model=model,
         featurization_config=featurization_config,
         satellite_config=satellite_config,
-        column_names=mosaiks_column_names,
+        col_names=mosaiks_col_names,
         save_folder_path=mosaiks_folder_path,
     )
 
@@ -80,15 +84,12 @@ if __name__ == "__main__":
     combined_df = utl.load_and_combine_dataframes(
         folder_path=mosaiks_folder_path, filenames=checkpoint_filenames
     )
-
-    # Add context columns
-    combined_df = combined_df.join(points_gdf[["Lat", "Lon", "shrid"]])
     logging.info(
         f"Dataset size in memory (MB): {combined_df.memory_usage().sum() / 1000000}"
     )
 
     # Save to file
-    combined_filename = "combined_features.parquet.gzip"
+    combined_filename = "new_combined_features.parquet.gzip"
     combined_filepath = mosaiks_folder_path / combined_filename
     logging.info(f"Saving combined file to {str(combined_filepath)}...")
     utl.save_dataframe(df=combined_df, file_path=combined_filepath)

@@ -1,20 +1,14 @@
-import logging
 from typing import List
 
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 import planetary_computer
-import pyproj
 import pystac_client
 import shapely
-import stackstac
-import torch
 from pystac.item import Item
 from pystac.item_collection import ItemCollection
-from torch.utils.data import DataLoader, Dataset
 
-__all__ = ["fetch_image_refs", "create_data_loader"]
+__all__ = ["fetch_image_refs", "fetch_stac_item_from_id"]
 
 
 def fetch_image_refs(
@@ -65,6 +59,8 @@ def fetch_seasonal_stac_items(
     stac_output: str = "least_cloudy",
 ) -> gpd.GeoDataFrame:
     """
+    CAUTION - THIS IS BROKEN, FIX.
+
     Takes a year as input and creates date ranges for the four seasons, runs these
     through fetch_stac_items, and concatenates the results. Can be used where-ever
     `fetch_stac_items` is used.
@@ -252,137 +248,6 @@ def _items_covering_point(
         return items_covering_point["stac_item"].tolist()
 
 
-def create_data_loader(
-    points_gdf_with_stac: gpd.GeoDataFrame, satellite_params: dict, batch_size: int
-) -> DataLoader:
-    """
-    Creates a PyTorch DataLoader from a GeoDataFrame with STAC items.
-
-    Parameters
-    ----------
-    points_gdf_with_stac : A GeoDataFrame with the points we want to fetch imagery for + its STAC ref
-    satellite_params : A dictionary of parameters for the satellite imagery to fetch
-    batch_size : The batch size to use for the DataLoader
-
-    """
-
-    stac_item_list = points_gdf_with_stac.stac_item.tolist()
-    points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
-    dataset = CustomDataset(
-        points_list,
-        stac_item_list,
-        buffer=satellite_params["buffer_distance"],
-        bands=satellite_params["bands"],
-        resolution=satellite_params["resolution"],
-        dtype=satellite_params["dtype"],
-    )
-
-    data_loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        collate_fn=lambda x: x,
-        pin_memory=False,
-    )
-
-    return data_loader
-
-
-class CustomDataset(Dataset):
-    def __init__(
-        self,
-        points: np.array,
-        items: List[Item],
-        buffer: int,
-        bands: List[str],
-        resolution: int,
-        dtype: str = "int16",
-    ) -> None:
-        """
-        Parameters
-        ----------
-        points : Array of points to sample from
-        items : List of STAC items to sample from
-        buffer : Buffer in meters around each point to sample from
-        bands : List of bands to sample
-        resolution : Resolution of the image to sample
-        dtype : Data type of the image to sample. Defaults to "int16".
-            NOTE - np.uint8 results in loss of signal in the features
-            and np.uint16 is not supported by PyTorch.
-        """
-
-        self.points = points
-        self.items = items
-        self.buffer = buffer
-        self.bands = bands
-        self.resolution = resolution
-        self.dtype = dtype
-
-    def __len__(self):
-        """Returns the number of points in the dataset"""
-
-        return self.points.shape[0]
-
-    def __getitem__(self, idx: int) -> torch.Tensor:
-        """
-        Parameters
-        ----------
-        idx :Index of the point to get imagery for
-
-        Returns
-        -------
-        out_image : Image tensor of shape (C, H, W)
-        """
-
-        lon, lat = self.points[idx]
-        stac_item = self.items[idx]
-
-        if stac_item is None:
-            print(f"Skipping {idx}: No STAC item given.")
-            return None
-        else:
-            # calculate crop bounds
-            crs = stac_item.properties["proj:epsg"]
-            proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
-            x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
-            x_min, x_max = x_utm - self.buffer, x_utm + self.buffer
-            y_min, y_max = y_utm - self.buffer, y_utm + self.buffer
-
-            # get image(s) as xarray
-            xarray = stackstac.stack(
-                stac_item,
-                assets=self.bands,
-                resolution=self.resolution,
-                rescale=False,
-                dtype=self.dtype,
-                bounds=[x_min, y_min, x_max, y_max],
-                fill_value=0,
-            )
-
-            # remove the time dimension either by compositing over it or with .squeeze()
-            if isinstance(stac_item, list):
-                image = xarray.median(dim="time")
-            else:
-                image = xarray.squeeze()
-
-            # normalise and return image
-            # Note: need to catch errors for images that are all 0s
-            try:
-                image = image.values
-                torch_image = torch.from_numpy(image).float()
-                torch_image = _minmax_normalize_image(torch_image)
-                return torch_image
-            except Exception as e:
-                print(f"Skipping {idx}:", e)
-                return None
-
-
-def _minmax_normalize_image(image: torch.tensor) -> torch.tensor:
-
-    img_min, img_max = image.min(), image.max()
-    return (image - img_min) / (img_max - img_min)
-
-
 def get_stac_api(api_name: str) -> pystac_client.Client:
     """Get a STAC API client for a given API name."""
 
@@ -399,3 +264,29 @@ def get_stac_api(api_name: str) -> pystac_client.Client:
         raise NotImplementedError(f"STAC api {api_name} is not implemented")
 
     return stac_api
+
+
+# for debugging
+
+
+def fetch_stac_item_from_id(
+    ids: list[str], stac_api_name: str = "planetary-compute"
+) -> list[Item]:
+    """
+    For debugging.
+
+    Fetches STAC items from a list of ids.
+
+    Parameters
+    ----------
+    ids: List of STAC item ids.
+    stac_api_name: Name of STAC API to use. Has to be supported by `get_stac_api`.
+
+    Returns
+    -------
+    List of STAC items.
+    """
+
+    stac_api = get_stac_api(stac_api_name)
+    search_results = stac_api.search(ids=ids)
+    return list(search_results.items())
