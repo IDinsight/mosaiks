@@ -124,12 +124,11 @@ def fetch_stac_items(
 
     stac_api = get_stac_api(stac_api)
 
-    # change to just union of points?
-    bounding_poly = shapely.geometry.mapping(points_gdf.unary_union.convex_hull)
+    points_union = shapely.geometry.mapping(points_gdf.unary_union)
 
     search_results = stac_api.search(
         collections=[satellite_name],
-        intersects=bounding_poly,
+        intersects=points_union,
         datetime=[search_start, search_end],
         query={"eo:cloud_cover": {"lt": 10}},
         limit=500,  # this limit seems arbitrary

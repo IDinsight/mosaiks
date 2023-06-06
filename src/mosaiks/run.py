@@ -42,7 +42,7 @@ def full_pipeline(
 
     try:
         satellite_search_params = featurization_config["satellite_search_params"]
-        context_cols_to_keep = featurization_config["context_cols_to_keep"]
+        context_cols_to_keep = featurization_config["coord_set"]["context_cols_to_keep"]
 
         points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
 

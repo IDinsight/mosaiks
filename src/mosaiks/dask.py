@@ -85,12 +85,14 @@ def get_gateway_cluster_client(worker_cores=4, worker_memory=2, pip_install=Fals
     return cluster, client
 
 
-def get_sorted_partitions_generator(
-    points_gdf: gpd.GeoDataFrame, chunksize: int
+def get_partitions_generator(
+    points_gdf: gpd.GeoDataFrame,
+    chunksize: int,
+    sort_by_hilbert: bool = False,
 ) -> Generator[gpd.GeoDataFrame, None, None]:
     """
-    Given a GeoDataFrame, this function sorts the points by hilbert distance and
-    creates a generator that returns chunksize number of rows per iteration.
+    Given a GeoDataFrame, this function creates a generator that returns chunksize
+    number of rows per iteration.
 
     To be used for submitting Dask Futures.
 
@@ -98,13 +100,16 @@ def get_sorted_partitions_generator(
     -----------
     points_gdf : GeoDataFrame of points to be featurized.
     chunksize : Number of points to be featurized per iteration.
+    sort_by_hilbert : Whether to sort the points by their Hilbert distance.
 
     Returns
     --------
     Generator
     """
 
-    points_gdf = _sort_by_hilbert_distance(points_gdf)
+    if sort_by_hilbert:
+        points_gdf = _sort_by_hilbert_distance(points_gdf)
+
     num_chunks = math.ceil(len(points_gdf) / chunksize)
 
     logging.info(
@@ -161,8 +166,10 @@ def run_queued_futures_pipeline(
     n_concurrent = featurization_config["dask"]["n_concurrent"]
 
     # make generator for spliting up the data into partitions
-    partitions = get_sorted_partitions_generator(
-        points_gdf, featurization_config["dask"]["chunksize"]
+    partitions = get_partitions_generator(
+        points_gdf,
+        featurization_config["dask"]["chunksize"],
+        featurization_config["coord_set"]["sort_points"],
     )
 
     # kickoff "n_concurrent" number of tasks. Each of these will be replaced by a new
@@ -225,12 +232,11 @@ def run_queued_futures_pipeline(
 # ALTERNATIVE - BATCHED DASK DELAYED ###################################################
 
 
-def get_sorted_dask_gdf(
-    points_gdf: gpd.GeoDataFrame, chunksize: int
+def get_dask_gdf(
+    points_gdf: gpd.GeoDataFrame, chunksize: int, sort_by_hilbert: bool = True
 ) -> dask_gpd.GeoDataFrame:
     """
-    Spatially sort and split the gdf up by the given chunksize. To be used to create
-    Dask Delayed jobs.
+    Split the gdf up by the given chunksize. To be used to create Dask Delayed jobs.
 
     Parameters
     ----------
@@ -238,13 +244,16 @@ def get_sorted_dask_gdf(
         Point objects.
     chunksize : The number of points per partition to use creating the Dask
         GeoDataFrame.
+    sort_by_hilbert : Whether to sort the points by their Hilbert distance before
 
     Returns
     -------
     points_dgdf: Dask GeoDataFrame split into partitions of size `chunksize`.
     """
 
-    points_gdf = _sort_by_hilbert_distance(points_gdf)
+    if sort_by_hilbert:
+        points_gdf = _sort_by_hilbert_distance(points_gdf)
+
     points_dgdf = dask_gpd.from_geopandas(
         points_gdf,
         chunksize=chunksize,
@@ -291,8 +300,10 @@ def run_batched_delayed_pipeline(
     n_concurrent = featurization_config["dask"]["n_concurrent"]
 
     # make delayed gdf partitions
-    dask_gdf = get_sorted_dask_gdf(
-        points_gdf, featurization_config["dask"]["chunksize"]
+    dask_gdf = get_dask_gdf(
+        points_gdf,
+        featurization_config["dask"]["chunksize"],
+        featurization_config["coord_set"]["sort_points"],
     )
     partitions = dask_gdf.to_delayed()
 
@@ -433,8 +444,10 @@ def run_unbatched_delayed_pipeline(
     None
     """
 
-    dask_gdf = get_sorted_dask_gdf(
-        points_gdf, featurization_config["dask"]["chunksize"]
+    dask_gdf = get_dask_gdf(
+        points_gdf,
+        featurization_config["dask"]["chunksize"],
+        featurization_config["coord_set"]["sort_points"],
     )
     partitions = dask_gdf.to_delayed()
 
@@ -509,7 +522,7 @@ def delayed_pipeline(
         features=X_features,
         mosaiks_col_names=col_names,
         context_gdf=points_gdf_with_stac,
-        context_cols_to_keep=featurization_config["context_cols_to_keep"],
+        context_cols_to_keep=featurization_config["coord_set"]["context_cols_to_keep"],
     )
 
     delayed_task = dask.delayed(utl.save_dataframe)(

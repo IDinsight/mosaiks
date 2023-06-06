@@ -226,7 +226,7 @@ def make_output_folder_path(featurization_config: dict) -> Path:
         'coord_set_name', 'satellite_search_params', and 'model'.
     """
 
-    coord_set_name = featurization_config["coord_set_name"]
+    coord_set_name = featurization_config["coord_set"]["coord_set_name"]
     satellite = featurization_config["satellite_search_params"]["satellite_name"]
     year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
     n_features = str(featurization_config["model"]["num_features"])

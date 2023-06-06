@@ -2,6 +2,9 @@ import logging
 import os
 import sys
 import warnings
+from pathlib import Path
+
+from pathlib import Path
 
 from pathlib import Path
 
@@ -45,7 +48,7 @@ if __name__ == "__main__":
     )
 
     # Load point coords
-    coord_set_name = featurization_config["coord_set_name"]
+    coord_set_name = featurization_config["coord_set"]["coord_set_name"]
     logging.info(f"Loading {coord_set_name} points...")
     points_gdf = utl.load_df_w_latlons_to_gdf(dataset_name=coord_set_name)
 
