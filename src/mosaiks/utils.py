@@ -157,10 +157,17 @@ def save_dataframe_to_s3(
             print("CSV file saved to S3 successfully.")
         except NoCredentialsError:
             print("No AWS credentials found.")
-    elif file_path.endswith(".parquet") or file_path.endswith(".parquet.gzip"):
-        parquet_buffer = df.to_parquet(**kwargs)
+    elif file_path.endswith(".parquet"):
+        parquet_buffer = df.to_parquet()
         try:
             s3.put_object(Body=parquet_buffer, Bucket=bucket, Key=key)
+            print("Parquet file saved to S3 successfully.")
+        except NoCredentialsError:
+            print("No AWS credentials found.")
+    elif file_path.endswith(".parquet.gzip"):
+        parquet_buffer_gzip = df.to_parquet(compression="gzip")
+        try:
+            s3.put_object(Body=parquet_buffer_gzip, Bucket=bucket, Key=key)
             print("Parquet file saved to S3 successfully.")
         except NoCredentialsError:
             print("No AWS credentials found.")
