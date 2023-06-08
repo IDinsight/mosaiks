@@ -277,6 +277,7 @@ def fetch_image_crop_from_stac_id(
         return image_crop
 
 
+# TODO: move to utils
 def display_image(image: np.array, RGB_band_order=[2, 1, 0]):
     """Displays a numpy image in RGB format.
 
