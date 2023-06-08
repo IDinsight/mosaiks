@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 import geopandas as gpd
@@ -69,6 +70,8 @@ def fetch_seasonal_stac_items(
 
     Months of the seasons taken from [here](https://delhitourism.gov.in/delhitourism/aboutus/seasons_of_delhi.jsp) for now.
     """
+    # Make a copy of the points_gdf so we don't modify the original
+    points_gdf_copy = copy.deepcopy(points_gdf)
     season_dict = {
         "winter": (f"{year-1}-12-01", f"{year}-01-31"),
         "spring": (f"{year}-02-01", f"{year}-03-31"),
@@ -79,7 +82,7 @@ def fetch_seasonal_stac_items(
     for season, dates in season_dict.items():
         search_start, search_end = dates
         season_points_gdf = fetch_stac_items(
-            points_gdf=points_gdf,
+            points_gdf=points_gdf_copy,
             satellite_name=satellite_name,
             search_start=search_start,
             search_end=search_end,
