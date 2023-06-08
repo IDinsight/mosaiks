@@ -8,6 +8,7 @@ config/secrets.yml
 config/secrets.yaml
 **/*.parquet
 **/*.parquet.gzip
+*.vscode
 
 # Temporary files
 *.swp

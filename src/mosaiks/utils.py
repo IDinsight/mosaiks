@@ -2,8 +2,10 @@ import os
 from pathlib import Path
 from typing import List, Tuple
 
+import boto3
 import pandas as pd
 import yaml
+from botocore.exceptions import NoCredentialsError
 
 os.environ["USE_PYGEOS"] = "0"
 
@@ -98,18 +100,22 @@ def load_and_combine_dataframes(folder_path: str, filenames: List[str]) -> pd.Da
 
 
 def save_dataframe(
-    df: pd.DataFrame, file_path: str = None, dataset_name: str = None, **kwargs
+    df: pd.DataFrame,
+    file_path: str = None,
+    dataset_name: str = None,
+    s3_profile: str = None,
+    **kwargs,
 ) -> None:
     """
-    Save pandas dataframe to .csv, .parquet etc file based on extension.
+    Save pandas dataframe to .csv, .parquet, etc. file based on extension.
     Either dataset_name or file_path must be given.
 
     Parameters
     ----------
     df : The dataframe to save.
-    dataset_name : The name of the dataset to load from the data catalog. If given, the
-        load the filepath and kwargs from the data catalog.
     file_path : If given, the path to the file to load.
+    dataset_name : The name of the dataset to load from the data catalog. If given, load the filepath and kwargs from the data catalog.
+    s3_profile: The name of the S3 profile to use for saving the dataframe to S3.
     """
     if dataset_name:
         file_path, kwargs = get_dataset_path_and_kwargs(dataset_name)
@@ -118,12 +124,67 @@ def save_dataframe(
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-    if file_path.endswith(".csv"):
-        return df.to_csv(file_path, **kwargs)
+    if file_path.startswith("s3://"):
+        save_dataframe_to_s3(df, file_path, s3_profile=s3_profile, **kwargs)
+    elif file_path.endswith(".csv"):
+        df.to_csv(file_path, **kwargs)
     elif file_path.endswith(".parquet") or file_path.endswith(".parquet.gzip"):
-        return df.to_parquet(file_path, **kwargs)
+        df.to_parquet(file_path, **kwargs)
     else:
         raise ValueError("File extension not recognized.")
+
+
+def save_dataframe_to_s3(
+    df: pd.DataFrame, file_path: str, s3_profile: str = None, **kwargs
+) -> None:
+    """
+    Save pandas dataframe to S3 bucket.
+
+    Parameters
+    ----------
+    df : The dataframe to save.
+    file_path : The S3 file path to save the dataframe.
+    s3_profile: The name of the S3 profile to use for saving the dataframe to S3.
+    """
+    bucket, key = extract_bucket_and_key(file_path)
+    session = boto3.Session(profile_name=s3_profile) if s3_profile else boto3.Session()
+    s3 = session.client("s3")
+
+    if file_path.endswith(".csv"):
+        csv_buffer = df.to_csv(index=False, **kwargs).encode()
+        try:
+            s3.put_object(Body=csv_buffer, Bucket=bucket, Key=key)
+            print("CSV file saved to S3 successfully.")
+        except NoCredentialsError:
+            print("No AWS credentials found.")
+    elif file_path.endswith(".parquet") or file_path.endswith(".parquet.gzip"):
+        parquet_buffer = df.to_parquet(**kwargs)
+        try:
+            s3.put_object(Body=parquet_buffer, Bucket=bucket, Key=key)
+            print("Parquet file saved to S3 successfully.")
+        except NoCredentialsError:
+            print("No AWS credentials found.")
+    else:
+        raise ValueError("File extension not recognized.")
+
+
+def extract_bucket_and_key(file_path: str) -> tuple:
+    """
+    Extracts bucket and key from S3 file path.
+
+    Parameters
+    ----------
+    file_path : The S3 file path.
+
+    Returns
+    -------
+    tuple : The bucket and key.
+    """
+    file_path = file_path.replace("s3://", "")
+    parts = file_path.split("/")
+    bucket = parts[0]
+    key = "/".join(parts[1:])
+    return bucket, key
 
 
 def save_geodataframe_as_dataframe(
