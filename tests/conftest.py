@@ -47,10 +47,10 @@ def featurization_params():
             "device": "cpu",
         },
         "dask": {
-            "n_concurrent": 8,
+            "n_concurrent": 1,
             "chunksize": 5,
-            "n_workers": 4,
-            "threads_per_worker": 4,
+            "n_workers": 1,
+            "threads_per_worker": 1,
         },
     }
     return params
