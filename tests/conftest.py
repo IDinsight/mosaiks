@@ -26,6 +26,11 @@ def sample_test_null_data():
 def featurization_params():
     """Featurization configuration for testing."""
     params = {
+        "coord_set": {
+            "coord_set_name": "india_grid_05",
+            "sort_points": True,
+            "context_cols_to_keep": ["shrid", "Lat", "Lon"],
+        },
         "satellite_search_params": {
             "satellite_name": "landsat-8-c2-l2",
             "seasonal": False,
@@ -40,6 +45,12 @@ def featurization_params():
             "kernel_size": 3,
             "batch_size": 1,
             "device": "cpu",
+        },
+        "dask": {
+            "n_concurrent": 8,
+            "chunksize": 5,
+            "n_workers": 4,
+            "threads_per_worker": 4,
         },
     }
     return params
