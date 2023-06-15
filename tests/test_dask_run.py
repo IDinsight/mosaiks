@@ -62,7 +62,6 @@ def test_run_queued_futures(
     satellite_config: dict,
 ):
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
-    client = get_local_dask_client(1, 1)
     model = RCF(
         featurization_params["model"]["num_features"],
         featurization_params["model"]["kernel_size"],
@@ -71,8 +70,10 @@ def test_run_queued_futures(
     columns = [
         "feature_%d" % i for i in range(featurization_params["model"]["num_features"])
     ]
-    folder_path = Path("tests/data/test_output/")
+    folder_path = Path("tests/data/test_output_futures/")
     folder_path.mkdir(parents=True, exist_ok=True)
+    client = get_local_dask_client(1, 1)
+
     run_queued_futures_pipeline(
         points_gdf,
         client,
@@ -84,6 +85,8 @@ def test_run_queued_futures(
     )
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
+    client.shutdown()
+    print(num_files)
     assert num_files == 2
 
 
@@ -94,7 +97,7 @@ def test_run_batched_delayed_pipeline(
     satellite_config: dict,
 ):
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
-    client = get_local_dask_client()
+
     model = RCF(
         featurization_params["model"]["num_features"],
         featurization_params["model"]["kernel_size"],
@@ -103,8 +106,10 @@ def test_run_batched_delayed_pipeline(
     columns = [
         "feature_%d" % i for i in range(featurization_params["model"]["num_features"])
     ]
-    folder_path = Path("tests/data/test_output/")
+    folder_path = Path("tests/data/test_output_batch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
+    client = get_local_dask_client(1, 1)
+
     run_batched_delayed_pipeline(
         points_gdf,
         client,
@@ -115,7 +120,9 @@ def test_run_batched_delayed_pipeline(
         folder_path,
     )
     num_files = len(listdir(folder_path))
+    print(num_files)
     rmtree(folder_path)
+    client.shutdown()
 
     assert num_files == 2
 
@@ -127,7 +134,6 @@ def test_run_unbatched_delayed_pipeline(
     satellite_config: dict,
 ):
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
-    client = get_local_dask_client(1, 1)
     model = RCF(
         featurization_params["model"]["num_features"],
         featurization_params["model"]["kernel_size"],
@@ -136,8 +142,10 @@ def test_run_unbatched_delayed_pipeline(
     columns = [
         "feature_%d" % i for i in range(featurization_params["model"]["num_features"])
     ]
-    folder_path = Path("tests/data/test_output/")
+    folder_path = Path("tests/data/test_output_unbatch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
+    client = get_local_dask_client(1, 1)
+
     run_unbatched_delayed_pipeline(
         points_gdf,
         client,
@@ -149,5 +157,6 @@ def test_run_unbatched_delayed_pipeline(
     )
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
+    client.shutdown()
 
     assert num_files == 2
