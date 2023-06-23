@@ -1,4 +1,6 @@
 """Test stac item fetching."""
+import os
+
 import geopandas as gpd
 import numpy as np
 import pytest
@@ -12,6 +14,7 @@ from mosaiks.fetch.stacs import (
     get_stac_api,
 )
 
+os.environ["USE_PYGEOS"] = "0"
 
 # -----Tests for stac item fetching-----
 @pytest.fixture(scope="module")

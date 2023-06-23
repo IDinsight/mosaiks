@@ -1,4 +1,5 @@
 """Test dask code."""
+import os
 from os import listdir
 from pathlib import Path
 from shutil import rmtree
@@ -20,6 +21,7 @@ from mosaiks.dask import (
 )
 from mosaiks.featurize import RCF
 
+os.environ["USE_PYGEOS"] = "0"
 
 # -----Test partitions generator-----
 def test_if_get_partitions_generator_returns_generator(sample_test_data: pd.DataFrame):

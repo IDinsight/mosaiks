@@ -1,8 +1,12 @@
 """Tests for featurization functions."""
+import os
+
 import pytest
 import torch
 
 from mosaiks.featurize import RCF
+
+os.environ["USE_PYGEOS"] = "0"
 
 
 @pytest.fixture(scope="module")
