@@ -124,40 +124,46 @@ def fetch_stac_items(
     points_gdf: A new geopandas.GeoDataFrame with a `stac_item` column containing the
         STAC item that covers each point.
     """
-
+    points_gdf = points_gdf.copy()
     stac_api = get_stac_api(stac_api)
 
-    points_union = shapely.geometry.mapping(points_gdf.unary_union)
+    # Check for NaNs in lat lons
+    nan_mask = points_gdf["Lat"].isna() + points_gdf["Lon"].isna()
+    points_gdf["stac_item"] = None
 
-    search_results = stac_api.search(
-        collections=[satellite_name],
-        intersects=points_union,
-        datetime=[search_start, search_end],
-        query={"eo:cloud_cover": {"lt": 10}},
-        limit=500,  # this limit seems arbitrary
-    )
-    item_collection = search_results.item_collection()
+    if not nan_mask.all():
+        points_gdf_not_nan = points_gdf.loc[~nan_mask].copy()
+        points_union = shapely.geometry.mapping(points_gdf_not_nan.unary_union)
 
-    if len(item_collection) == 0:
-        return points_gdf.assign(stac_item=None)
-    else:
-        # Convert ItemCollection to GeoDataFrame
-        if satellite_name == "landsat-8-c2-l2":
-            # For landsat: trim the shapes to fit proj:bbox
-            stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
-        else:
-            # For Sentinel there is no need - there is no "proj:bbox" parameter
-            # which could cause STACK issues
-            stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
-
-        # add items as an extra column
-        stac_gdf["stac_item"] = item_collection.items
-
-        points_gdf["stac_item"] = _get_overlapping_stac_items(
-            gdf=points_gdf, stac_gdf=stac_gdf, stac_output=stac_output
+        search_results = stac_api.search(
+            collections=[satellite_name],
+            intersects=points_union,
+            datetime=[search_start, search_end],
+            query={"eo:cloud_cover": {"lt": 10}},
+            limit=500,  # this limit seems arbitrary
         )
+        item_collection = search_results.item_collection()
 
-        return points_gdf
+        if len(item_collection) == 0:
+            return points_gdf_not_nan.assign(stac_item=None)
+        else:
+            # Convert ItemCollection to GeoDataFrame
+            if satellite_name == "landsat-8-c2-l2":
+                # For landsat: trim the shapes to fit proj:bbox
+                stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+            else:
+                # For Sentinel there is no need - there is no "proj:bbox" parameter
+                # which could cause STACK issues
+                stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+
+            # add items as an extra column
+            stac_gdf["stac_item"] = item_collection.items
+
+            points_gdf.loc[~nan_mask, "stac_item"] = _get_overlapping_stac_items(
+                gdf=points_gdf_not_nan, stac_gdf=stac_gdf, stac_output=stac_output
+            )
+
+    return points_gdf
 
 
 def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoDataFrame:
