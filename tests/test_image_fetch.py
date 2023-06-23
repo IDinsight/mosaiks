@@ -16,7 +16,7 @@ os.environ["USE_PYGEOS"] = "0"
 @pytest.fixture(scope="module")
 def image_crop(satellite_config: dict):
     """Test image crop."""
-    lat, lon, id = (
+    lon, lat, id = (
         80.99266676800818,
         20.696269834517118,
         "LC08_L2SP_143046_20151208_02_T1",
@@ -36,7 +36,7 @@ def image_crop(satellite_config: dict):
 @pytest.fixture(scope="module")
 def image_crop_from_stac_id(satellite_config: dict):
     """Stac Item fetched from stac ID."""
-    lat, lon, id = (
+    lon, lat, id = (
         80.99266676800818,
         20.696269834517118,
         "LC08_L2SP_143046_20151208_02_T1",
