@@ -8,26 +8,25 @@ import pytest
 
 import mosaiks.utils as utl
 from mosaiks.fetch.images import fetch_image_crop, fetch_image_crop_from_stac_id
-from mosaiks.fetch.stacs import fetch_stac_items, get_stac_api
+from mosaiks.fetch.stacs import fetch_stac_item_from_id, fetch_stac_items
 
 os.environ["USE_PYGEOS"] = "0"
 
 
 @pytest.fixture(scope="module")
-def image_crop(sample_test_data: gpd.GeoDataFrame, satellite_config: dict):
+def image_crop(satellite_config: dict):
     """Test image crop."""
-    points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
-    point_with_stac = fetch_stac_items(
-        points_gdf.iloc[:1],
-        "landsat-8-c2-l2",
-        "2013-04-01",
-        "2014-03-31",
-        "planetary-compute",
+    lat, lon, id = (
+        80.99266676800818,
+        20.696269834517118,
+        "LC08_L2SP_143046_20151208_02_T1",
     )
+    stac_item = fetch_stac_item_from_id(id)[0]
+
     return fetch_image_crop(
-        point_with_stac.iloc[0]["Lon"],
-        point_with_stac.iloc[0]["Lat"],
-        point_with_stac.iloc[0]["stac_item"],
+        lon,
+        lat,
+        stac_item,
         satellite_config["buffer_distance"],
         satellite_config["bands"],
         satellite_config["resolution"],
@@ -35,20 +34,17 @@ def image_crop(sample_test_data: gpd.GeoDataFrame, satellite_config: dict):
 
 
 @pytest.fixture(scope="module")
-def image_crop_from_stac_id(sample_test_data: gpd.GeoDataFrame, satellite_config: dict):
+def image_crop_from_stac_id(satellite_config: dict):
     """Stac Item fetched from stac ID."""
-    stac_api = get_stac_api("planetary-compute")
-    id = stac_api.search(
-        collections=["landsat-8-c2-l2"],
-        intersects=sample_test_data["geometry"][0],
-        datetime=["2015-01-01", "2015-12-31"],
-        query={"eo:cloud_cover": {"lt": 10}},
-        limit=500,
-    ).item_collection_as_dict()["features"][0]["id"]
+    lat, lon, id = (
+        80.99266676800818,
+        20.696269834517118,
+        "LC08_L2SP_143046_20151208_02_T1",
+    )
     return fetch_image_crop_from_stac_id(
         id,
-        sample_test_data["Lon"][0],
-        sample_test_data["Lat"][0],
+        lon,
+        lat,
         satellite_config,
         "planetary-compute",
     )
