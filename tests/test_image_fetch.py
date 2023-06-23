@@ -5,7 +5,6 @@ import os
 import geopandas as gpd
 import numpy as np
 import pytest
-from pystac.item import Item
 
 import mosaiks.utils as utl
 from mosaiks.fetch.images import fetch_image_crop, fetch_image_crop_from_stac_id

@@ -5,11 +5,8 @@ from pathlib import Path
 from shutil import rmtree
 from typing import Generator
 
-import numpy as np
 import pandas as pd
 import pytest
-from dask.delayed import Delayed
-from dask.distributed import Client
 
 from mosaiks import utils as utl
 from mosaiks.dask import (
@@ -88,7 +85,6 @@ def test_run_queued_futures(
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
     client.shutdown()
-    print(num_files)
     assert num_files == 2
 
 
@@ -122,7 +118,6 @@ def test_run_batched_delayed_pipeline(
         folder_path,
     )
     num_files = len(listdir(folder_path))
-    print(num_files)
     rmtree(folder_path)
     client.shutdown()
 
