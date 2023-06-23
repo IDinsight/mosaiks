@@ -4,14 +4,11 @@ import sys
 import warnings
 from pathlib import Path
 
-from pathlib import Path
-
-from pathlib import Path
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 sys.path += ["../"]
 warnings.filterwarnings("ignore")
+os.environ["USE_PYGEOS"] = "0"
 
 import mosaiks.utils as utl
 from mosaiks.checks import check_satellite_name, check_search_dates, check_stac_api_name

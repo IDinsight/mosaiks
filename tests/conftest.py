@@ -1,9 +1,11 @@
+import os
+
 import geopandas as gpd
 import pandas as pd
 import pytest
 from dask.distributed import Client, LocalCluster
 
-import mosaiks.utils as utl
+os.environ["USE_PYGEOS"] = "0"
 
 
 @pytest.fixture(scope="session")
@@ -26,6 +28,11 @@ def sample_test_null_data():
 def featurization_params():
     """Featurization configuration for testing."""
     params = {
+        "coord_set": {
+            "coord_set_name": "test",
+            "sort_points": True,
+            "context_cols_to_keep": ["Lat", "Lon"],
+        },
         "satellite_search_params": {
             "satellite_name": "landsat-8-c2-l2",
             "seasonal": False,
@@ -40,6 +47,12 @@ def featurization_params():
             "kernel_size": 3,
             "batch_size": 1,
             "device": "cpu",
+        },
+        "dask": {
+            "n_concurrent": 1,
+            "chunksize": 5,
+            "n_workers": 1,
+            "threads_per_worker": 1,
         },
     }
     return params
