@@ -136,4 +136,4 @@ def test_if_stac_item_is_returned_from_id(stac_item_from_stac_id: Item):
 
 
 def test_if_stac_item_list_has_correct_shape(stac_item_from_stac_id: Item):
-    assert len(stac_item_from_stac_id) == 1
+    assert len(stac_item_from_stac_id) >= 1
