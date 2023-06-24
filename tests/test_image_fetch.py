@@ -21,7 +21,7 @@ def image_crop(satellite_config: dict):
         20.696269834517118,
         "LC08_L2SP_143046_20151208_02_T1",
     )
-    stac_item = fetch_stac_item_from_id(id)[0]
+    stac_item = fetch_stac_item_from_id([id])[0]
 
     return fetch_image_crop(
         lon,
@@ -50,9 +50,29 @@ def image_crop_from_stac_id(satellite_config: dict):
     )
 
 
+@pytest.fixture(scope="module")
+def image_crop_from_nans(satellite_config: dict):
+    """Test image crop."""
+    lon, lat, id = (np.nan, np.nan, None)
+    stac_item = fetch_stac_item_from_id([id])[0]
+
+    return fetch_image_crop(
+        lon,
+        lat,
+        stac_item,
+        satellite_config["buffer_distance"],
+        satellite_config["bands"],
+        satellite_config["resolution"],
+    )
+
+
 @pytest.mark.parametrize(
     "test_image_crop",
-    [pytest.lazy_fixture("image_crop"), pytest.lazy_fixture("image_crop_from_stac_id")],
+    [
+        pytest.lazy_fixture("image_crop"),
+        pytest.lazy_fixture("image_crop_from_stac_id"),
+        pytest.lazy_fixture("image_crop_from_nans"),
+    ],
 )
 def test_image_crop_shape(test_image_crop: np.ndarray, satellite_config: dict):
     image_size = math.ceil(
@@ -71,3 +91,7 @@ def test_image_crop_shape(test_image_crop: np.ndarray, satellite_config: dict):
 )
 def test_if_image_crop_is_normalised(test_image_crop: np.ndarray):
     assert np.nanmin(test_image_crop) >= 0 and np.nanmax(test_image_crop) <= 1
+
+
+def test_if_image_crop_for_null_ids_is_zero(image_crop_from_nans: np.ndarray):
+    assert np.all(image_crop_from_nans == 0)

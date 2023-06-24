@@ -1,4 +1,5 @@
 import logging
+import math
 from typing import List
 
 import geopandas as gpd
@@ -53,6 +54,13 @@ def fetch_image_crop(
     -------
     image : numpy array of shape (C, H, W)
     """
+    if stac_item is None:
+        size = (
+            len(bands),
+            math.ceil(2 * buffer / resolution) + 1,
+            math.ceil(2 * buffer / resolution + 1),
+        )
+        return np.zeros(size)
 
     # calculate crop bounds
     if isinstance(stac_item, list):

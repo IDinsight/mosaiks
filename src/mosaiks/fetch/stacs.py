@@ -2,6 +2,7 @@ import copy
 from typing import List
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import planetary_computer
 import pystac_client
@@ -287,7 +288,16 @@ def fetch_stac_item_from_id(
     -------
     List of STAC items.
     """
+    nan_mask = np.array([x is None for x in ids])
+    if np.all(nan_mask):
+        search_results = [None] * len(ids)
+    # TODO: this returns only a subset of the inputs
+    elif np.any(nan_mask):
+        ids = np.array(ids)[~nan_mask]
+        stac_api = get_stac_api(stac_api_name)
+        search_results = list(stac_api.search(ids=ids).items())
+    else:
+        stac_api = get_stac_api(stac_api_name)
+        search_results = list(stac_api.search(ids=ids).items())
 
-    stac_api = get_stac_api(stac_api_name)
-    search_results = stac_api.search(ids=ids)
-    return list(search_results.items())
+    return search_results
