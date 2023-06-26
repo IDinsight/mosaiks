@@ -60,7 +60,7 @@ def fetch_image_crop(
             math.ceil(2 * buffer / resolution) + 1,
             math.ceil(2 * buffer / resolution + 1),
         )
-        return np.zeros(size)
+        return np.ones(size) * np.nan
 
     # calculate crop bounds
     if isinstance(stac_item, list):
@@ -197,27 +197,23 @@ class CustomDataset(Dataset):
         lon, lat = self.points[idx]
         stac_item = self.items[idx]
 
-        if stac_item is None:
-            print(f"Skipping {idx}: No STAC item given.")
+        # TODO: need to handle all 0 images
+        try:
+            image = fetch_image_crop(
+                lon=lon,
+                lat=lat,
+                stac_item=stac_item,
+                buffer=self.buffer,
+                bands=self.bands,
+                resolution=self.resolution,
+                dtype=self.dtype,
+                normalise=True,
+            )
+            torch_image = torch.from_numpy(image).float()
+            return torch_image
+        except Exception as e:
+            print(f"Skipping {idx}: {e}")
             return None
-        else:
-            # Note: need to catch errors for images that are all 0s
-            try:
-                image = fetch_image_crop(
-                    lon=lon,
-                    lat=lat,
-                    stac_item=stac_item,
-                    buffer=self.buffer,
-                    bands=self.bands,
-                    resolution=self.resolution,
-                    dtype=self.dtype,
-                    normalise=True,
-                )
-                torch_image = torch.from_numpy(image).float()
-                return torch_image
-            except Exception as e:
-                print(f"Skipping {idx}: {e}")
-                return None
 
 
 # for debugging

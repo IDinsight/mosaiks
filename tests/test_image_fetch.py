@@ -93,5 +93,5 @@ def test_if_image_crop_is_normalised(test_image_crop: np.ndarray):
     assert np.nanmin(test_image_crop) >= 0 and np.nanmax(test_image_crop) <= 1
 
 
-def test_if_image_crop_for_null_ids_is_zero(image_crop_from_nans: np.ndarray):
-    assert np.all(image_crop_from_nans == 0)
+def test_if_image_crop_for_null_ids_are_nans(image_crop_from_nans: np.ndarray):
+    assert ~np.isfinite(image_crop_from_nans).all()

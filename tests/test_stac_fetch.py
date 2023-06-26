@@ -51,7 +51,6 @@ def test_points_with_stac_null(sample_test_null_data: gpd.GeoDataFrame):
 def test_if_stac_items_are_added_to_test_null_df(
     test_points_with_stac_null: gpd.GeoDataFrame,
 ):
-    print(test_points_with_stac_null.columns)
     assert "stac_item" in test_points_with_stac_null.columns
 
 
