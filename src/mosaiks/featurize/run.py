@@ -72,7 +72,6 @@ def featurize(image: torch.Tensor, model: torch.nn.Module, device: str):
     feats: np.ndarray
         An array of shape (1, n_features) containing the extracted features.
     """
-    # TODO: need to handle all 0 images
     image = image.to(device)
     feats = model(image).cpu().unsqueeze(0).numpy()
     return feats
