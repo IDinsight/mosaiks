@@ -72,6 +72,7 @@ def featurize(image: torch.Tensor, model: torch.nn.Module, device: str):
     feats: np.ndarray
         An array of shape (1, n_features) containing the extracted features.
     """
+    # TODO: need to handle all 0 images
     image = image.to(device)
     feats = model(image).cpu().unsqueeze(0).numpy()
     return feats
@@ -112,10 +113,14 @@ def make_result_df(
 
     if isinstance(context_gdf["stac_item"].iloc[0], list):
         context_gdf["stac_id"] = context_gdf["stac_item"].map(
-            lambda item_list: [item.id for item in item_list]
+            lambda item_list: [
+                item.id if item is not None else None for item in item_list
+            ]
         )
     else:
-        context_gdf["stac_id"] = context_gdf["stac_item"].map(lambda item: item.id)
+        context_gdf["stac_id"] = context_gdf["stac_item"].map(
+            lambda item: item.id if item is not None else None
+        )
     context_cols_to_keep = context_cols_to_keep + ["stac_id"]
     context_gdf = context_gdf[context_cols_to_keep]
 
