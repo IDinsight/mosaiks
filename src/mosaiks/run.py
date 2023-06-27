@@ -40,38 +40,38 @@ def full_pipeline(
     None or DataFrame
     """
 
-    try:
-        satellite_search_params = featurization_config["satellite_search_params"]
-        context_cols_to_keep = featurization_config["coord_set"]["context_cols_to_keep"]
+    # try:
+    satellite_search_params = featurization_config["satellite_search_params"]
+    context_cols_to_keep = featurization_config["coord_set"]["context_cols_to_keep"]
 
-        points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
+    points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
 
-        data_loader = create_data_loader(
-            points_gdf_with_stac=points_gdf_with_stac,
-            satellite_params=satellite_config,
-            batch_size=featurization_config["model"]["batch_size"],
-        )
+    data_loader = create_data_loader(
+        points_gdf_with_stac=points_gdf_with_stac,
+        satellite_params=satellite_config,
+        batch_size=featurization_config["model"]["batch_size"],
+    )
 
-        X_features = create_features(
-            dataloader=data_loader,
-            n_features=featurization_config["model"]["num_features"],
-            model=model,
-            device=featurization_config["model"]["device"],
-            min_image_edge=satellite_config["min_image_edge"],
-        )
+    X_features = create_features(
+        dataloader=data_loader,
+        n_features=featurization_config["model"]["num_features"],
+        model=model,
+        device=featurization_config["model"]["device"],
+        min_image_edge=satellite_config["min_image_edge"],
+    )
 
-        df = make_result_df(
-            features=X_features,
-            mosaiks_col_names=col_names,
-            context_gdf=points_gdf_with_stac,
-            context_cols_to_keep=context_cols_to_keep,
-        )
+    df = make_result_df(
+        features=X_features,
+        mosaiks_col_names=col_names,
+        context_gdf=points_gdf_with_stac,
+        context_cols_to_keep=context_cols_to_keep,
+    )
 
-        if save_folder_path is not None:
-            utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
+    if save_folder_path is not None:
+        utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
 
-    except Exception as e:
-        logging.warn(e)
+    # except Exception as e:
+    #     logging.warn(e)
 
     if return_df:
         return df
