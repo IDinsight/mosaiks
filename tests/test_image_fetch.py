@@ -1,16 +1,11 @@
 """Test data loading and image fetching."""
 import math
-import os
 
-import geopandas as gpd
 import numpy as np
 import pytest
 
-import mosaiks.utils as utl
 from mosaiks.fetch.images import fetch_image_crop, fetch_image_crop_from_stac_id
-from mosaiks.fetch.stacs import fetch_stac_item_from_id, fetch_stac_items
-
-os.environ["USE_PYGEOS"] = "0"
+from mosaiks.fetch.stacs import fetch_stac_item_from_id
 
 
 @pytest.fixture(scope="module")
