@@ -69,6 +69,7 @@ def fetch_seasonal_stac_items(
 
     Months of the seasons taken from [here](https://delhitourism.gov.in/delhitourism/aboutus/seasons_of_delhi.jsp) for now.
     """
+
     # Make a copy of the points_gdf so we don't modify the original
     points_gdf_copy = copy.deepcopy(points_gdf)
     season_dict = {
@@ -77,8 +78,10 @@ def fetch_seasonal_stac_items(
         "summer": (f"{year}-04-01", f"{year}-09-30"),
         "autumn": (f"{year}-09-01", f"{year}-11-30"),
     }
+
     seasonal_gdf_list = []
     for season, dates in season_dict.items():
+
         search_start, search_end = dates
         season_points_gdf = fetch_stac_items(
             points_gdf=points_gdf_copy,
@@ -88,10 +91,10 @@ def fetch_seasonal_stac_items(
             stac_api=stac_api,
             stac_output=stac_output,
         )
-
         season_points_gdf["season"] = season
+
         # Save copy of the seasonal gdf to list, since pointer is overwritten in the
-        #  next iteration
+        # next iteration
         seasonal_gdf_list.append(season_points_gdf.copy())
 
     combined_gdf = pd.concat(seasonal_gdf_list, axis="index")
