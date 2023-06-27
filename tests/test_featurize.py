@@ -32,7 +32,13 @@ def test_random_conv_features_are_created(model):
     assert out1.dim() == 1 and out1.shape[0] == 666
 
 
-def test_random_conv_features_are_created_with_nans(model):
+def test_random_conv_features_are_created_given_nan_image(model):
     x2 = torch.ones(3, 10, 10) * torch.nan
     out2 = model(x2)
     assert out2.dim() == 1 and out2.shape[0] == 666
+
+
+def test_conv_features_are_nan_given_nan_image(model):
+    x2 = torch.ones(3, 10, 10) * torch.nan
+    out2 = model(x2)
+    assert torch.isnan(out2).all().item()
