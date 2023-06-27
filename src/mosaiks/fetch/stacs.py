@@ -2,6 +2,7 @@ import copy
 from typing import List
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import planetary_computer
 import pystac_client
@@ -60,8 +61,6 @@ def fetch_seasonal_stac_items(
     stac_output: str = "least_cloudy",
 ) -> gpd.GeoDataFrame:
     """
-    CAUTION - THIS IS BROKEN, FIX.
-
     Takes a year as input and creates date ranges for the four seasons, runs these
     through fetch_stac_items, and concatenates the results. Can be used where-ever
     `fetch_stac_items` is used.
@@ -70,6 +69,7 @@ def fetch_seasonal_stac_items(
 
     Months of the seasons taken from [here](https://delhitourism.gov.in/delhitourism/aboutus/seasons_of_delhi.jsp) for now.
     """
+
     # Make a copy of the points_gdf so we don't modify the original
     points_gdf_copy = copy.deepcopy(points_gdf)
     season_dict = {
@@ -78,8 +78,10 @@ def fetch_seasonal_stac_items(
         "summer": (f"{year}-04-01", f"{year}-09-30"),
         "autumn": (f"{year}-09-01", f"{year}-11-30"),
     }
+
     seasonal_gdf_list = []
     for season, dates in season_dict.items():
+
         search_start, search_end = dates
         season_points_gdf = fetch_stac_items(
             points_gdf=points_gdf_copy,
@@ -89,9 +91,11 @@ def fetch_seasonal_stac_items(
             stac_api=stac_api,
             stac_output=stac_output,
         )
-
         season_points_gdf["season"] = season
-        seasonal_gdf_list.append(season_points_gdf)
+
+        # Save copy of the seasonal gdf to list, since pointer is overwritten in the
+        # next iteration
+        seasonal_gdf_list.append(season_points_gdf.copy())
 
     combined_gdf = pd.concat(seasonal_gdf_list, axis="index")
     combined_gdf.index.name = "point_id"
@@ -124,40 +128,47 @@ def fetch_stac_items(
     points_gdf: A new geopandas.GeoDataFrame with a `stac_item` column containing the
         STAC item that covers each point.
     """
-
+    points_gdf = points_gdf.copy()
     stac_api = get_stac_api(stac_api)
 
-    points_union = shapely.geometry.mapping(points_gdf.unary_union)
+    # Check for NaNs in lat lons
+    nan_mask = points_gdf["Lat"].isna() + points_gdf["Lon"].isna()
+    points_gdf["stac_item"] = None
 
-    search_results = stac_api.search(
-        collections=[satellite_name],
-        intersects=points_union,
-        datetime=[search_start, search_end],
-        query={"eo:cloud_cover": {"lt": 10}},
-        limit=500,  # this limit seems arbitrary
-    )
-    item_collection = search_results.item_collection()
+    if not nan_mask.all():
+        points_gdf_not_nan = points_gdf.loc[~nan_mask].copy()
+        points_union = shapely.geometry.mapping(points_gdf_not_nan.unary_union)
 
-    if len(item_collection) == 0:
-        return points_gdf.assign(stac_item=None)
-    else:
-        # Convert ItemCollection to GeoDataFrame
-        if satellite_name == "landsat-8-c2-l2":
-            # For landsat: trim the shapes to fit proj:bbox
-            stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
-        else:
-            # For Sentinel there is no need - there is no "proj:bbox" parameter
-            # which could cause STACK issues
-            stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
-
-        # add items as an extra column
-        stac_gdf["stac_item"] = item_collection.items
-
-        points_gdf["stac_item"] = _get_overlapping_stac_items(
-            gdf=points_gdf, stac_gdf=stac_gdf, stac_output=stac_output
+        search_results = stac_api.search(
+            collections=[satellite_name],
+            intersects=points_union,
+            datetime=[search_start, search_end],
+            query={"eo:cloud_cover": {"lt": 10}},
+            limit=500,  # this limit seems arbitrary
         )
+        item_collection = search_results.item_collection()
 
-        return points_gdf
+        if len(item_collection) == 0:
+            return points_gdf
+
+        else:
+            # Convert ItemCollection to GeoDataFrame
+            if satellite_name == "landsat-8-c2-l2":
+                # For landsat: trim the shapes to fit proj:bbox
+                stac_gdf = _get_trimmed_stac_shapes_gdf(item_collection)
+            else:
+                # For Sentinel there is no need - there is no "proj:bbox" parameter
+                # which could cause STACK issues
+                stac_gdf = gpd.GeoDataFrame.from_features(item_collection.to_dict())
+
+            # add items as an extra column
+            stac_gdf["stac_item"] = item_collection.items
+
+            points_gdf.loc[~nan_mask, "stac_item"] = _get_overlapping_stac_items(
+                gdf=points_gdf_not_nan, stac_gdf=stac_gdf, stac_output=stac_output
+            )
+
+    return points_gdf
 
 
 def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoDataFrame:
@@ -281,7 +292,16 @@ def fetch_stac_item_from_id(
     -------
     List of STAC items.
     """
-
     stac_api = get_stac_api(stac_api_name)
-    search_results = stac_api.search(ids=ids)
-    return list(search_results.items())
+    nan_mask = np.array([x is None for x in ids])
+    if np.all(nan_mask):
+        return [None] * len(ids)
+    elif np.any(~nan_mask):
+        search_results = [None] * len(ids)
+        for i, id in enumerate(ids):
+            if id is not None:
+                stac_item_list = list(stac_api.search(ids=id).items())
+                if len(stac_item_list) > 0:
+                    search_results[i] = stac_item_list[0]
+
+    return search_results

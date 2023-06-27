@@ -1,11 +1,11 @@
 import os
 
+os.environ["USE_PYGEOS"] = "0"  # must happen before geopandas import
+
 import geopandas as gpd
 import pandas as pd
 import pytest
 from dask.distributed import Client, LocalCluster
-
-os.environ["USE_PYGEOS"] = "0"
 
 
 @pytest.fixture(scope="session")

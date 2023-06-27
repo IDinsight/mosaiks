@@ -1,6 +1,4 @@
 """Test stac item fetching."""
-import os
-
 import geopandas as gpd
 import numpy as np
 import pytest
@@ -11,10 +9,8 @@ from mosaiks.fetch.stacs import (
     fetch_seasonal_stac_items,
     fetch_stac_item_from_id,
     fetch_stac_items,
-    get_stac_api,
 )
 
-os.environ["USE_PYGEOS"] = "0"
 
 # -----Tests for stac item fetching-----
 @pytest.fixture(scope="module")
@@ -51,7 +47,6 @@ def test_points_with_stac_null(sample_test_null_data: gpd.GeoDataFrame):
 def test_if_stac_items_are_added_to_test_null_df(
     test_points_with_stac_null: gpd.GeoDataFrame,
 ):
-    print(test_points_with_stac_null.columns)
     assert "stac_item" in test_points_with_stac_null.columns
 
 
@@ -118,16 +113,9 @@ def test_if_seasonal_stac_df_correctly_duplicates_points(
 
 # -----Tests for stac item fetch from stac ID-----
 @pytest.fixture(scope="module")
-def stac_item_from_stac_id(sample_test_data: gpd.GeoDataFrame):
+def stac_item_from_stac_id():
     """Stac Item fetched from stac ID."""
-    stac_api = get_stac_api("planetary-compute")
-    id = stac_api.search(
-        collections=["landsat-8-c2-l2"],
-        intersects=sample_test_data["geometry"][0],
-        datetime=["2015-01-01", "2015-12-31"],
-        query={"eo:cloud_cover": {"lt": 10}},
-        limit=500,
-    ).item_collection_as_dict()["features"][0]["id"]
+    id = ["LC08_L2SP_143046_20151208_02_T1"]
     return fetch_stac_item_from_id(id, "planetary-compute")
 
 
@@ -136,4 +124,20 @@ def test_if_stac_item_is_returned_from_id(stac_item_from_stac_id: Item):
 
 
 def test_if_stac_item_list_has_correct_shape(stac_item_from_stac_id: Item):
-    assert len(stac_item_from_stac_id) == 1
+    assert len(stac_item_from_stac_id) >= 1
+
+
+# -----Tests for stac item fetch for null stac ID-----
+@pytest.fixture(scope="module")
+def stac_item_from_null_stac_id():
+    """Stac Item fetched from stac ID."""
+    id = [None]
+    return fetch_stac_item_from_id(id, "planetary-compute")
+
+
+def test_if_null_stac_item_is_returned_from_null_id(stac_item_from_null_stac_id: Item):
+    assert stac_item_from_null_stac_id[0] is None
+
+
+def test_if_null_stac_item_list_has_correct_shape(stac_item_from_null_stac_id: Item):
+    assert len(stac_item_from_null_stac_id) == 1

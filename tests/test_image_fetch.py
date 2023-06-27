@@ -1,27 +1,22 @@
 """Test data loading and image fetching."""
 import math
-import os
 
-import geopandas as gpd
 import numpy as np
 import pytest
 
-import mosaiks.utils as utl
 from mosaiks.fetch.images import fetch_image_crop, fetch_image_crop_from_stac_id
-from mosaiks.fetch.stacs import fetch_stac_item_from_id, fetch_stac_items
-
-os.environ["USE_PYGEOS"] = "0"
+from mosaiks.fetch.stacs import fetch_stac_item_from_id
 
 
 @pytest.fixture(scope="module")
 def image_crop(satellite_config: dict):
     """Test image crop."""
-    lat, lon, id = (
+    lon, lat, id = (
         80.99266676800818,
         20.696269834517118,
         "LC08_L2SP_143046_20151208_02_T1",
     )
-    stac_item = fetch_stac_item_from_id(id)[0]
+    stac_item = fetch_stac_item_from_id([id])[0]
 
     return fetch_image_crop(
         lon,
@@ -36,7 +31,7 @@ def image_crop(satellite_config: dict):
 @pytest.fixture(scope="module")
 def image_crop_from_stac_id(satellite_config: dict):
     """Stac Item fetched from stac ID."""
-    lat, lon, id = (
+    lon, lat, id = (
         80.99266676800818,
         20.696269834517118,
         "LC08_L2SP_143046_20151208_02_T1",
@@ -50,9 +45,29 @@ def image_crop_from_stac_id(satellite_config: dict):
     )
 
 
+@pytest.fixture(scope="module")
+def image_crop_from_nans(satellite_config: dict):
+    """Test image crop."""
+    lon, lat, id = (np.nan, np.nan, None)
+    stac_item = fetch_stac_item_from_id([id])[0]
+
+    return fetch_image_crop(
+        lon,
+        lat,
+        stac_item,
+        satellite_config["buffer_distance"],
+        satellite_config["bands"],
+        satellite_config["resolution"],
+    )
+
+
 @pytest.mark.parametrize(
     "test_image_crop",
-    [pytest.lazy_fixture("image_crop"), pytest.lazy_fixture("image_crop_from_stac_id")],
+    [
+        pytest.lazy_fixture("image_crop"),
+        pytest.lazy_fixture("image_crop_from_stac_id"),
+        pytest.lazy_fixture("image_crop_from_nans"),
+    ],
 )
 def test_image_crop_shape(test_image_crop: np.ndarray, satellite_config: dict):
     image_size = math.ceil(
@@ -71,3 +86,7 @@ def test_image_crop_shape(test_image_crop: np.ndarray, satellite_config: dict):
 )
 def test_if_image_crop_is_normalised(test_image_crop: np.ndarray):
     assert np.nanmin(test_image_crop) >= 0 and np.nanmax(test_image_crop) <= 1
+
+
+def test_if_image_crop_for_null_ids_are_nans(image_crop_from_nans: np.ndarray):
+    assert ~np.isfinite(image_crop_from_nans).all()
