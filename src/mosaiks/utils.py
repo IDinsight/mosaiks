@@ -115,7 +115,8 @@ def save_dataframe(
     elif file_path:
         file_path = str(file_path)
 
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    if not file_path.startswith("s3://"):
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     if file_path.endswith(".csv"):
         return df.to_csv(file_path, **kwargs)
