@@ -57,7 +57,7 @@ def fetch_image_crop(
     if stac_item is None:
         size = (
             len(bands),
-            math.ceil(2 * buffer / resolution) + 1,
+            math.ceil(2 * buffer / resolution + 1),
             math.ceil(2 * buffer / resolution + 1),
         )
         return np.ones(size) * np.nan

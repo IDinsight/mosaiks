@@ -149,7 +149,8 @@ def fetch_stac_items(
         item_collection = search_results.item_collection()
 
         if len(item_collection) == 0:
-            return points_gdf_not_nan.assign(stac_item=None)
+            return points_gdf
+
         else:
             # Convert ItemCollection to GeoDataFrame
             if satellite_name == "landsat-8-c2-l2":
@@ -291,16 +292,16 @@ def fetch_stac_item_from_id(
     -------
     List of STAC items.
     """
+    stac_api = get_stac_api(stac_api_name)
     nan_mask = np.array([x is None for x in ids])
     if np.all(nan_mask):
+        return [None] * len(ids)
+    elif np.any(~nan_mask):
         search_results = [None] * len(ids)
-    # TODO: this returns only a subset of the inputs
-    elif np.any(nan_mask):
-        ids = np.array(ids)[~nan_mask]
-        stac_api = get_stac_api(stac_api_name)
-        search_results = list(stac_api.search(ids=ids).items())
-    else:
-        stac_api = get_stac_api(stac_api_name)
-        search_results = list(stac_api.search(ids=ids).items())
+        for i, id in enumerate(ids):
+            if id is not None:
+                stac_item_list = list(stac_api.search(ids=id).items())
+                if len(stac_item_list) > 0:
+                    search_results[i] = stac_item_list[0]
 
     return search_results
