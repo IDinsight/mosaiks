@@ -7,16 +7,17 @@ import dask.delayed
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import numpy as np
+import pandas as pd
+import torch.nn
 import torch.nn as nn
 from dask.distributed import Client, LocalCluster, as_completed, wait
 from dask_gateway import Gateway
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_features_from_image_array, make_result_df
+from mosaiks.featurize import create_features_from_image_array
 
 # for fully-delayd pipeline
 from mosaiks.fetch import create_data_loader, fetch_image_refs
-from mosaiks.run import get_features_without_parallelization
 
 __all__ = [
     "get_dask_client",
@@ -26,10 +27,11 @@ __all__ = [
     "run_batched_delayed_pipeline",
     "run_unbatched_delayed_pipeline",
     "delayed_pipeline",
+    "get_features_without_parallelization",
 ]
 
 
-def get_dask_client(client_type: str = "local", **client_kwargs) -> Client:
+def get_dask_client(client_type: str = "local", **client_kwargs) -> tuple:
     """
     Get dask client.
 
@@ -45,7 +47,7 @@ def get_dask_client(client_type: str = "local", **client_kwargs) -> Client:
     Dask cluster and client
     """
     if client_type == "local":
-        return get_local_dask_client(**client_kwargs)
+        return 0, get_local_dask_client(**client_kwargs)
     elif client_type == "gateway":
         return get_gateway_cluster_client(**client_kwargs)
     else:
@@ -563,7 +565,7 @@ def delayed_pipeline(
         min_image_edge=satellite_config["min_image_edge"],
     )
 
-    df = dask.delayed(make_result_df)(
+    df = dask.delayed(utl.make_result_df)(
         features=X_features,
         mosaiks_col_names=col_names,
         context_gdf=points_gdf_with_stac,
@@ -575,3 +577,71 @@ def delayed_pipeline(
     )
 
     return delayed_task
+
+
+# TODO: Not the best name for this function
+def get_features_without_parallelization(
+    points_gdf: gpd.GeoDataFrame,
+    model: torch.nn.Module,
+    featurization_config: dict,
+    satellite_config: dict,
+    col_names: list,
+    save_folder_path: str = None,
+    save_filename: str = "",
+    return_df: bool = True,
+) -> pd.DataFrame:  # or None
+    """
+    For a given DataFrame of coordinate points, this function runs the necessary
+    functions and optionally saves resulting mosaiks features to file. No Dask is necessary.
+
+    Parameters
+    -----------
+    points_gdf : GeoDataFrame of points to be featurized.
+    model: PyTorch model to be used for featurization.
+    featurization_config : Dictionary of featurization parameters.
+    satellite_config : Dictionary of satellite parameters.
+    col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
+    save_folder_path : Path to folder where features will be saved. Default is None.
+    save_filename : Name of file where features will be saved. Default is "".
+    return_df : Whether to return the features as a DataFrame. Default is True.
+
+    Returns
+    --------
+    None or DataFrame
+    """
+
+    try:
+        satellite_search_params = featurization_config["satellite_search_params"]
+        context_cols_to_keep = featurization_config["coord_set"]["context_cols_to_keep"]
+
+        points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
+
+        data_loader = create_data_loader(
+            points_gdf_with_stac=points_gdf_with_stac,
+            satellite_params=satellite_config,
+            batch_size=featurization_config["model"]["batch_size"],
+        )
+
+        X_features = create_features_from_image_array(
+            dataloader=data_loader,
+            n_features=featurization_config["model"]["num_features"],
+            model=model,
+            device=featurization_config["model"]["device"],
+            min_image_edge=satellite_config["min_image_edge"],
+        )
+
+        df = utl.make_result_df(
+            features=X_features,
+            mosaiks_col_names=col_names,
+            context_gdf=points_gdf_with_stac,
+            context_cols_to_keep=context_cols_to_keep,
+        )
+
+        if save_folder_path is not None:
+            utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
+
+    except Exception as e:
+        logging.warn(e)
+
+    if return_df:
+        return df
