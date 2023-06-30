@@ -223,7 +223,7 @@ def make_output_folder_path(featurization_config: dict) -> Path:
     Parameters
     ----------
     featurization_config : The featurization configuration dictionary. Must contain the keys
-        'satellite_search_params' and 'model'.
+    'satellite_search_params', and 'model'.
     """
 
     # coord_set_name = featurization_config["coord_set"]["coord_set_name"]
