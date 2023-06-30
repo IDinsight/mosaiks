@@ -223,10 +223,10 @@ def make_output_folder_path(featurization_config: dict) -> Path:
     Parameters
     ----------
     featurization_config : The featurization configuration dictionary. Must contain the keys
-        'coord_set_name', 'satellite_search_params', and 'model'.
+        'satellite_search_params' and 'model'.
     """
 
-    coord_set_name = featurization_config["coord_set"]["coord_set_name"]
+    # coord_set_name = featurization_config["coord_set"]["coord_set_name"]
     satellite = featurization_config["satellite_search_params"]["satellite_name"]
     year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
     n_features = str(featurization_config["model"]["num_features"])
@@ -237,7 +237,7 @@ def make_output_folder_path(featurization_config: dict) -> Path:
         / "00_raw/mosaiks"
         / satellite
         / str(year)
-        / coord_set_name
+        # / coord_set_name
         / str(n_features)
     )
 
@@ -254,14 +254,35 @@ def get_mosaiks_package_link(branch="main") -> str:
 
 def make_result_df(
     features: np.ndarray,
+    index: pd.RangeIndex,
     mosaiks_col_names: list[str],
+) -> pd.DataFrame:
+    """
+    Takes the features array and returns a dataframe with mosaiks features in the
+    columns, and a specified index.
+
+    Parameters
+    -----------
+    features : Array of features.
+    index: Indices for feature dataframe.
+    mosaiks_col_names : List of column names to label the feature columns as.
+
+    Returns
+    --------
+    DataFrame
+    """
+    return pd.DataFrame(data=features, index=index, columns=mosaiks_col_names)
+
+
+def combine_results_df_with_context_df(
+    features_df: pd.DataFrame,
     context_gdf: gpd.GeoDataFrame,
     context_cols_to_keep: list[str] = None,
 ) -> pd.DataFrame:
     """
     Takes the features array and a context dataframe and returns a dataframe with the
-    features, the stac_id of the images used to create each row, and chosen context columns.
-    The output dataframe will have the same index as the context dataframe.
+    features, the stac_id of the images used to create each row, and chosen context
+    columns.
 
     Note: context_gdf must have a "stac_item" column which contains pystac.item.Item
     objects since the "stac_id" is always saved.
@@ -269,7 +290,6 @@ def make_result_df(
     Parameters
     -----------
     features : Array of features.
-    mosaiks_col_names : List of column names to label the feature columns as.
     context_gdf : GeoDataFrame of context variables. Must have the same index size as
         the features array. Must also have a "stac_item" column which contains
         pystac.item.Item objects since the "stac_id" is always saved.
@@ -280,11 +300,6 @@ def make_result_df(
     --------
     DataFrame
     """
-
-    features_df = pd.DataFrame(
-        data=features, index=context_gdf.index, columns=mosaiks_col_names
-    )
-
     if isinstance(context_gdf["stac_item"].iloc[0], list):
         context_gdf["stac_id"] = context_gdf["stac_item"].map(
             lambda item_list: [

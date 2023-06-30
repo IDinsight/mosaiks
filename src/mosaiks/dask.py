@@ -54,7 +54,9 @@ def get_dask_client(client_type: str = "local", **client_kwargs) -> tuple:
         raise NotImplementedError
 
 
-def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Client:
+def get_local_dask_client(
+    n_workers: int = 4, threads_per_worker: int = 4, **kwargs
+) -> Client:
     """
     Get a local dask client.
 
@@ -80,7 +82,7 @@ def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Cl
 
 
 def get_gateway_cluster_client(
-    worker_cores: int = 4, worker_memory: int = 2, pip_install: bool = False
+    worker_cores: int = 4, worker_memory: int = 2, pip_install: bool = False, **kwargs
 ) -> tuple:
     """
     Get gateway cluster.
@@ -213,7 +215,7 @@ def run_queued_futures_pipeline(
     partitions = get_partitions_generator(
         points_gdf,
         featurization_config["dask"]["chunksize"],
-        featurization_config["coord_set"]["sort_points"],
+        featurization_config["fetch"]["sort_points"],
     )
 
     # kickoff "n_concurrent" number of tasks. Each of these will be replaced by a new
@@ -349,7 +351,7 @@ def run_batched_delayed_pipeline(
     dask_gdf = get_dask_gdf(
         points_gdf,
         featurization_config["dask"]["chunksize"],
-        featurization_config["coord_set"]["sort_points"],
+        featurization_config["fetch"]["sort_points"],
     )
     partitions = dask_gdf.to_delayed()
 
@@ -494,7 +496,7 @@ def run_unbatched_delayed_pipeline(
     dask_gdf = get_dask_gdf(
         points_gdf,
         featurization_config["dask"]["chunksize"],
-        featurization_config["coord_set"]["sort_points"],
+        featurization_config["fetch"]["sort_points"],
     )
     partitions = dask_gdf.to_delayed()
 
@@ -567,9 +569,8 @@ def delayed_pipeline(
 
     df = dask.delayed(utl.make_result_df)(
         features=X_features,
+        index=points_gdf_with_stac.index,
         mosaiks_col_names=col_names,
-        context_gdf=points_gdf_with_stac,
-        context_cols_to_keep=featurization_config["coord_set"]["context_cols_to_keep"],
     )
 
     delayed_task = dask.delayed(utl.save_dataframe)(
@@ -579,7 +580,7 @@ def delayed_pipeline(
     return delayed_task
 
 
-# TODO: Not the best name for this function
+# TODO: Not the best name for this function, and also maybe not the best location?
 def get_features_without_parallelization(
     points_gdf: gpd.GeoDataFrame,
     model: torch.nn.Module,
@@ -612,7 +613,6 @@ def get_features_without_parallelization(
 
     try:
         satellite_search_params = featurization_config["satellite_search_params"]
-        context_cols_to_keep = featurization_config["coord_set"]["context_cols_to_keep"]
 
         points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
 
@@ -632,9 +632,8 @@ def get_features_without_parallelization(
 
         df = utl.make_result_df(
             features=X_features,
+            index=points_gdf_with_stac.index,
             mosaiks_col_names=col_names,
-            context_gdf=points_gdf_with_stac,
-            context_cols_to_keep=context_cols_to_keep,
         )
 
         if save_folder_path is not None:

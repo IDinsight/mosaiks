@@ -1,8 +1,5 @@
-coord_set :
-  coord_set_name : india_grid_05
+fetch:
   sort_points : True
-  context_cols_to_keep : ["shrid", "Lat", "Lon"]
-
 satellite_search_params :
   satellite_name : landsat-8-c2-l2 #sentinel-2-l2a
   seasonal: False
@@ -19,6 +16,7 @@ model :
   device: cpu #cuda
 
 dask :
+    client_type: "local"
     n_concurrent : 8
     chunksize : 500
     n_workers: 4

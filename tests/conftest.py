@@ -28,11 +28,7 @@ def sample_test_null_data():
 def featurization_params():
     """Featurization configuration for testing."""
     params = {
-        "coord_set": {
-            "coord_set_name": "test",
-            "sort_points": True,
-            "context_cols_to_keep": ["Lat", "Lon"],
-        },
+        "fetch": {"sort_points": True},
         "satellite_search_params": {
             "satellite_name": "landsat-8-c2-l2",
             "seasonal": False,
@@ -49,6 +45,7 @@ def featurization_params():
             "device": "cpu",
         },
         "dask": {
+            "client_type": "local",
             "n_concurrent": 1,
             "chunksize": 5,
             "n_workers": 1,
