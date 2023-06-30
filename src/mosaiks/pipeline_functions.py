@@ -14,23 +14,25 @@ from mosaiks.featurize import RCF
 
 def get_features(
     points_df: pd.DataFrame,
-    featurization_config: dict,
-    satellite_config: dict,
+    featurization_config: dict = None,
+    satellite_config: dict = None,
     featurize_with_parallelization: bool = True,
-    dask_cluster_config: dict = None,
     col_names: list = None,
 ) -> pd.DataFrame:  # or None
     """
-    For a given DataFrame of coordinate points, this function runs the necessary functions, optionally with Dask parallel processing, and optionally save results to file.
+    For a given DataFrame of coordinate points, this function runs the necessary
+    functions, optionally with Dask parallel processing, and optionally save results to
+        file.
 
     Parameters:
     -----------
     points_df : DataFrame of points to be featurized.
     featurization_config : Dictionary of featurization parameters.
     satellite_config : Dictionary of satellite parameters.
-    featurize_with_parallelization: If True, use dask parallel processing to featurize. Default is True.
-    dask_cluster_config : Dictionary of dask cluster parameters. Default is None.
-    col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
+    featurize_with_parallelization: If True, use dask parallel processing to featurize.
+        Default is True.
+    col_names : List of column names to be used for saving the features. Default is
+        None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
     save_folder_path : Path to folder where features will be saved. Default is None.
     save_filename : Name of file where features will be saved. Default is "".
     return_df : Whether to return the features as a DataFrame. Default is True.
@@ -40,6 +42,15 @@ def get_features(
     None or DataFrame
 
     """
+    # Load config files
+    if featurization_config is None:
+        featurization_config = utl.load_yaml_config("featurisation_config.yaml")
+    if satellite_config is None:
+        satellite_config = utl.load_yaml_config("satellite_config.yaml")
+        satellite_config = satellite_config[
+            featurization_config["satellite_search_params"]["satellite_name"]
+        ]
+
     # Convert points to gdf
     points_gdf = utl.df_w_latlons_to_gdf(points_df)
 
@@ -57,8 +68,10 @@ def get_features(
 
     # If using parallelization, run the featurization without Dask
     if featurize_with_parallelization:
-        # Make folder for temporary checkpoints
+        # Load dask config
+        dask_cluster_config = featurization_config["dask"]
 
+        # Make folder for temporary checkpoints
         save_folder_path_temp = utl.make_output_folder_path(featurization_config)
         os.makedirs(save_folder_path_temp, exist_ok=True)
 
