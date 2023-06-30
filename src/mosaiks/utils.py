@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -249,3 +250,52 @@ def get_mosaiks_package_link(branch="main") -> str:
     secrets = load_yaml_config("secrets.yaml")
     GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
     return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks@{branch}"
+
+
+def make_result_df(
+    features: np.ndarray,
+    mosaiks_col_names: list[str],
+    context_gdf: gpd.GeoDataFrame,
+    context_cols_to_keep: list[str] = None,
+) -> pd.DataFrame:
+    """
+    Takes the features array and a context dataframe and returns a dataframe with the
+    features, the stac_id of the images used to create each row, and chosen context columns.
+    The output dataframe will have the same index as the context dataframe.
+
+    Note: context_gdf must have a "stac_item" column which contains pystac.item.Item
+    objects since the "stac_id" is always saved.
+
+    Parameters
+    -----------
+    features : Array of features.
+    mosaiks_col_names : List of column names to label the feature columns as.
+    context_gdf : GeoDataFrame of context variables. Must have the same index size as
+        the features array. Must also have a "stac_item" column which contains
+        pystac.item.Item objects since the "stac_id" is always saved.
+    context_cols_to_keep : List of context columns to include in final dataframe
+        (optional). If not given, only "stac_id" will be included.
+
+    Returns
+    --------
+    DataFrame
+    """
+
+    features_df = pd.DataFrame(
+        data=features, index=context_gdf.index, columns=mosaiks_col_names
+    )
+
+    if isinstance(context_gdf["stac_item"].iloc[0], list):
+        context_gdf["stac_id"] = context_gdf["stac_item"].map(
+            lambda item_list: [
+                item.id if item is not None else None for item in item_list
+            ]
+        )
+    else:
+        context_gdf["stac_id"] = context_gdf["stac_item"].map(
+            lambda item: item.id if item is not None else None
+        )
+    context_cols_to_keep = context_cols_to_keep + ["stac_id"]
+    context_gdf = context_gdf[context_cols_to_keep]
+
+    return pd.concat([context_gdf, features_df], axis=1)

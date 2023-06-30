@@ -12,13 +12,14 @@ from dask.distributed import Client, LocalCluster, as_completed, wait
 from dask_gateway import Gateway
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_features, make_result_df
+from mosaiks.featurize import create_features_from_image_array, make_result_df
 
 # for fully-delayd pipeline
 from mosaiks.fetch import create_data_loader, fetch_image_refs
-from mosaiks.run import full_pipeline
+from mosaiks.run import get_features_without_parallelization
 
 __all__ = [
+    "get_dask_client",
     "get_local_dask_client",
     "get_gateway_cluster_client",
     "run_queued_futures_pipeline",
@@ -26,6 +27,29 @@ __all__ = [
     "run_unbatched_delayed_pipeline",
     "delayed_pipeline",
 ]
+
+
+def get_dask_client(client_type: str = "local", **client_kwargs) -> Client:
+    """
+    Get dask client.
+
+    Parameters:
+    -----------
+    client_type: "local" or "gateway". "local" spins up a local Dask cluster; "gateway"
+        spins up a cluster on a remote computing platform. Default is "local".
+    client_kwargs: Keyword arguments to create client. See `get_local_dask_client` and
+        `get_gateway_dask_client` for details.
+
+    Returns:
+    --------
+    Dask cluster and client
+    """
+    if client_type == "local":
+        return get_local_dask_client(**client_kwargs)
+    elif client_type == "gateway":
+        return get_gateway_cluster_client(**client_kwargs)
+    else:
+        raise NotImplementedError
 
 
 def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Client:
@@ -53,8 +77,26 @@ def get_local_dask_client(n_workers: int = 4, threads_per_worker: int = 4) -> Cl
     return client
 
 
-def get_gateway_cluster_client(worker_cores=4, worker_memory=2, pip_install=False):
+def get_gateway_cluster_client(
+    worker_cores: int = 4, worker_memory: int = 2, pip_install: bool = False
+) -> tuple:
+    """
+    Get gateway cluster.
 
+    NOTE: This spins up a remote Dask cluster on a remote computing platform and allows
+        us to centrally manage workers deployed across multiple machines
+        (local / remote).
+
+    Parameters
+    -----------
+    worker_cores : Number of cores per worker.
+    worker_memory : Amount of memory per worker in GB.
+    pip_install : Whether to install mosaiks on each worker.
+
+    Returns
+    --------
+    Dask cluster and client.
+    """
     gateway = Gateway()
 
     # shutdown running clusters (if any)
@@ -189,7 +231,7 @@ def run_queued_futures_pipeline(
             break
 
         future = client.submit(
-            full_pipeline,
+            get_features_without_parallelization,
             points_gdf=partition,
             model=model,
             featurization_config=featurization_config,
@@ -197,6 +239,7 @@ def run_queued_futures_pipeline(
             col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
+            return_df=False,
         )
         initial_futures_list.append(future)
 
@@ -210,7 +253,7 @@ def run_queued_futures_pipeline(
         logging.info(f"Adding partition {i}")
 
         new_future = client.submit(
-            full_pipeline,
+            get_features_without_parallelization,
             points_gdf=partition,
             model=model,
             featurization_config=featurization_config,
@@ -218,6 +261,7 @@ def run_queued_futures_pipeline(
             col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
+            return_df=False,
         )
         as_completed_generator.add(new_future)
 
@@ -384,7 +428,7 @@ def run_batch(
         str_id = str(partition_id).zfill(3)  # makes 1 into '001'
 
         # this can be swapped for delayed_pipeline(...)
-        delayed_task = dask.delayed(full_pipeline)(
+        delayed_task = dask.delayed(get_features_without_parallelization)(
             points_gdf=partition,
             model=model,
             featurization_config=featurization_config,
@@ -393,6 +437,7 @@ def run_batch(
             save_folder_path=save_folder_path,
             save_filename=f"df_{str_id}.parquet.gzip",
             dask_key_name=f"features_{str_id}",
+            return_df=False,
         )
         delayed_tasks.append(delayed_task)
 
@@ -510,7 +555,7 @@ def delayed_pipeline(
         batch_size=featurization_config["model"]["batch_size"],
     )
 
-    X_features = dask.delayed(create_features)(
+    X_features = dask.delayed(create_features_from_image_array)(
         dataloader=data_loader,
         n_features=featurization_config["model"]["num_features"],
         model=model,
