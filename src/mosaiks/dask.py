@@ -15,11 +15,10 @@ from dask.distributed import Client, LocalCluster, as_completed, wait
 from dask_gateway import Gateway
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_features_from_image_array, make_result_df
+from mosaiks.featurize import create_features_from_image_array
 
 # for fully-delayd pipeline
 from mosaiks.fetch import create_data_loader, fetch_image_refs
-from mosaiks.run import get_features_without_parallelization
 
 __all__ = [
     "get_dask_client",
@@ -33,7 +32,7 @@ __all__ = [
 ]
 
 
-def get_dask_client(client_type: str = "local", **client_kwargs) -> Client:
+def get_dask_client(client_type: str = "local", **client_kwargs) -> tuple:
     """
     Get dask client.
 
