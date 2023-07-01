@@ -569,7 +569,7 @@ def delayed_pipeline(
 
     df = dask.delayed(utl.make_result_df)(
         features=X_features,
-        index=points_gdf_with_stac.index,
+        context_gdf=points_gdf_with_stac,
         mosaiks_col_names=col_names,
     )
 
@@ -632,7 +632,7 @@ def get_features_without_parallelization(
 
         df = utl.make_result_df(
             features=X_features,
-            index=points_gdf_with_stac.index,
+            context_gdf=points_gdf_with_stac,
             mosaiks_col_names=col_names,
         )
 

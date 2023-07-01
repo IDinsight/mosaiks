@@ -189,21 +189,40 @@ def get_mosaiks_package_link(branch="main") -> str:
 
 def make_result_df(
     features: np.ndarray,
-    index: pd.RangeIndex,
+    context_gdf: gpd.GeoDataFrame,
     mosaiks_col_names: list[str],
 ) -> pd.DataFrame:
     """
     Takes the features array and returns a dataframe with mosaiks features in the
-    columns, and a specified index.
+    columns, plus the stac_id, with the same index as the context GeoDataFrame.
 
     Parameters
     -----------
     features : Array of features.
-    index: Indices for feature dataframe.
+    context_gdf : GeoDataFrame of context variables. Must have the same index size as
+        the features array. Must also have a "stac_item" column which contains
+        pystac.item.Item objects since the "stac_id" is always saved.
     mosaiks_col_names : List of column names to label the feature columns as.
 
     Returns
     --------
     DataFrame
     """
-    return pd.DataFrame(data=features, index=index, columns=mosaiks_col_names)
+    # Make features dataframe
+    features_df = pd.DataFrame(
+        data=features, index=context_gdf.index, columns=mosaiks_col_names
+    )
+
+    # Add stac_id to features dataframe
+    if isinstance(context_gdf["stac_item"].iloc[0], list):
+        features_df["stac_id"] = context_gdf["stac_item"].map(
+            lambda item_list: [
+                item.id if item is not None else None for item in item_list
+            ]
+        )
+    else:
+        features_df["stac_id"] = context_gdf["stac_item"].map(
+            lambda item: item.id if item is not None else None
+        )
+
+    return features_df

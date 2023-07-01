@@ -14,7 +14,7 @@ from mosaiks.featurize import RCF
 
 def get_features(
     points_df: pd.DataFrame,
-    featurization_config: dict = None,
+    featurisation_config: dict = None,
     satellite_config: dict = None,
     featurize_with_parallelization: bool = True,
     col_names: list = None,
@@ -27,8 +27,38 @@ def get_features(
     Parameters:
     -----------
     points_df : DataFrame of points to be featurized.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
+    featurisation_config: dictionary with the following structure:
+        {"fetch": {"sort_points": True or False},
+         "satellite_search_params": {"satellite_name": landsat-8-c2-l2 or sentinel-2-l2a,
+                                     "seasonal": True or False,
+                                     "year": YYYY (only needed if seasonal = True),
+                                     "search_start": "YYYY-MM-DD",
+                                     "search_end": "YYYY-MM-DD",
+                                     "stac_output": least_cloudy or all,
+                                     "stac_api": planetary-compute or earth-search},
+         "model": {"num_features": int,
+                   "kernel_size": int,
+                   "batch_size": int,
+                   "device": cpu or cuda},
+         "dask": {"client_type": local or gateway,
+                  "n_workers": int (needed for local),
+                  "threads_per_worker": int (needed for local),
+                  "chunksize": int (needed for local),
+                  "worker_memory": int (needed for gateway),
+                  "worker_cores": int (needed for gateway),
+                  "pip_install": True or False (needed for gateway)}
+                  }
+        }
+        Default config is config/featurisation_config.yaml.
+    satellite_config: dictionary with the following structure:
+        {satellite_name: {"resolution": int,
+                          "bands": list of strings,
+                          "dtype": string,
+                          "buffer_distance": int,
+                          "min_image_edge": int
+                          }
+        }
+        Default config is config/satellite_config.yaml.
     featurize_with_parallelization: If True, use dask parallel processing to featurize.
         Default is True.
     col_names : List of column names to be used for saving the features. Default is
@@ -43,12 +73,12 @@ def get_features(
 
     """
     # Load config files
-    if featurization_config is None:
-        featurization_config = utl.load_yaml_config("featurisation_config.yaml")
+    if featurisation_config is None:
+        featurisation_config = utl.load_yaml_config("featurisation_config.yaml")
     if satellite_config is None:
         satellite_config = utl.load_yaml_config("satellite_config.yaml")
         satellite_config = satellite_config[
-            featurization_config["satellite_search_params"]["satellite_name"]
+            featurisation_config["satellite_search_params"]["satellite_name"]
         ]
 
     # Convert points to gdf
@@ -56,23 +86,23 @@ def get_features(
 
     if col_names is None:
         col_names = [
-            f"mosaiks_{i}" for i in range(featurization_config["model"]["num_features"])
+            f"mosaiks_{i}" for i in range(featurisation_config["model"]["num_features"])
         ]
 
     # Create model
     model = RCF(
-        num_features=featurization_config["model"]["num_features"],
-        kernel_size=featurization_config["model"]["kernel_size"],
+        num_features=featurisation_config["model"]["num_features"],
+        kernel_size=featurisation_config["model"]["kernel_size"],
         num_input_channels=len(satellite_config["bands"]),
     )
 
     # If using parallelization, run the featurization without Dask
     if featurize_with_parallelization:
         # Load dask config
-        dask_cluster_config = featurization_config["dask"]
+        dask_cluster_config = featurisation_config["dask"]
 
         # Make folder for temporary checkpoints
-        save_folder_path_temp = utl.make_output_folder_path(featurization_config)
+        save_folder_path_temp = utl.make_output_folder_path(featurisation_config)
         os.makedirs(save_folder_path_temp, exist_ok=True)
 
         # Create dask client
@@ -84,7 +114,7 @@ def get_features(
             points_gdf=points_gdf,
             client=client,
             model=model,
-            featurization_config=featurization_config,
+            featurization_config=featurisation_config,
             satellite_config=satellite_config,
             col_names=col_names,
             save_folder_path=save_folder_path_temp,
@@ -108,7 +138,7 @@ def get_features(
         return get_features_without_parallelization(
             points_gdf=points_gdf,
             model=model,
-            featurization_config=featurization_config,
+            featurization_config=featurisation_config,
             satellite_config=satellite_config,
             col_names=col_names,
         )
