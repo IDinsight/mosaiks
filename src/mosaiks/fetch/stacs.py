@@ -37,7 +37,7 @@ def fetch_image_refs(
             points_gdf=points_gdf,
             satellite_name=satellite_search_params["satellite_name"],
             year=satellite_search_params["year"],
-            stac_output=satellite_search_params["stac_output"],
+            mosaic_composite=satellite_search_params["mosaic_composite"],
             stac_api=satellite_search_params["stac_api"],
         )
     else:
@@ -47,7 +47,7 @@ def fetch_image_refs(
             search_start=satellite_search_params["search_start"],
             search_end=satellite_search_params["search_end"],
             stac_api=satellite_search_params["stac_api"],
-            mosaic_composite=satellite_search_params["stac_output"],
+            mosaic_composite=satellite_search_params["mosaic_composite"],
         )
 
     return points_gdf_with_stac
@@ -58,7 +58,7 @@ def fetch_seasonal_stac_items(
     satellite_name: str,
     year: int,
     stac_api: str,
-    stac_output: str = "least_cloudy",
+    mosaic_composite: str = "least_cloudy",
 ) -> gpd.GeoDataFrame:
     """
     Takes a year as input and creates date ranges for the four seasons, runs these
@@ -89,7 +89,7 @@ def fetch_seasonal_stac_items(
             search_start=search_start,
             search_end=search_end,
             stac_api=stac_api,
-            mosaic_composite=stac_output,
+            mosaic_composite=mosaic_composite,
         )
         season_points_gdf["season"] = season
 
@@ -121,7 +121,7 @@ def fetch_stac_items(
     search_start : Date formatted as YYYY-MM-DD
     search_end : Date formatted as YYYY-MM-DD
     stac_api: The stac api that pystac should connect to
-    stac_output : Whether to store "all" images found or just the "least_cloudy"
+    mosaic_composite : Whether to store "all" images found or just the "least_cloudy"
 
     Returns
     -------
@@ -165,7 +165,9 @@ def fetch_stac_items(
             stac_gdf["stac_item"] = item_collection.items
 
             points_gdf.loc[~nan_mask, "stac_item"] = _get_overlapping_stac_items(
-                gdf=points_gdf_not_nan, stac_gdf=stac_gdf, stac_output=mosaic_composite
+                gdf=points_gdf_not_nan,
+                stac_gdf=stac_gdf,
+                mosaic_composite=mosaic_composite,
             )
 
     return points_gdf
@@ -223,14 +225,14 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
 def _get_overlapping_stac_items(
     gdf: gpd.GeoDataFrame,
     stac_gdf: gpd.GeoDataFrame,
-    stac_output: str = "least_cloudy",
+    mosaic_composite: str = "least_cloudy",
 ) -> Item:  # or List[Item]
     """
     Takes in a sorted dataframe of stac items and returns the item(s) that covers each
     row. For use in `fetch_stac_items`.
     """
 
-    if stac_output == "least_cloudy":
+    if mosaic_composite == "least_cloudy":
         stac_gdf = stac_gdf.sort_values(by="eo:cloud_cover")
 
     col_value_list = []
@@ -240,15 +242,15 @@ def _get_overlapping_stac_items(
         if len(items_covering_point) == 0:
             col_value_list.append(None)
         else:
-            if stac_output == "all":
+            if mosaic_composite == "all":
                 all_items = items_covering_point["stac_item"].tolist()
                 col_value_list.append(all_items)
-            elif stac_output == "least_cloudy":
+            elif mosaic_composite == "least_cloudy":
                 least_cloudy_item = items_covering_point.iloc[0]["stac_item"]
                 col_value_list.append(least_cloudy_item)
             else:
                 raise ValueError(
-                    f"stac_output must be 'least_cloudy' or 'all', not {stac_output}"
+                    f"mosaic_composite must be 'least_cloudy' or 'all', not {mosaic_composite}"
                 )
 
     return col_value_list

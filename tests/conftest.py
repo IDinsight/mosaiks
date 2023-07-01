@@ -35,7 +35,7 @@ def featurization_params():
             "year": 2014,
             "search_start": "2013-04-01",
             "search_end": "2014-03-31",
-            "stac_output": "least_cloudy",
+            "mosaic_composite": "least_cloudy",
             "stac_api": "planetary-compute",
         },
         "model": {
