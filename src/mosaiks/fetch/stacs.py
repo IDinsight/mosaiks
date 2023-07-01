@@ -47,7 +47,7 @@ def fetch_image_refs(
             search_start=satellite_search_params["search_start"],
             search_end=satellite_search_params["search_end"],
             stac_api=satellite_search_params["stac_api"],
-            stac_output=satellite_search_params["stac_output"],
+            mosaic_composite=satellite_search_params["stac_output"],
         )
 
     return points_gdf_with_stac
@@ -89,7 +89,7 @@ def fetch_seasonal_stac_items(
             search_start=search_start,
             search_end=search_end,
             stac_api=stac_api,
-            stac_output=stac_output,
+            mosaic_composite=stac_output,
         )
         season_points_gdf["season"] = season
 
@@ -109,7 +109,7 @@ def fetch_stac_items(
     search_start: str,
     search_end: str,
     stac_api: str,
-    stac_output: str = "least_cloudy",
+    mosaic_composite: str = "least_cloudy",
 ) -> gpd.GeoDataFrame:
     """
     Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame.
@@ -165,7 +165,7 @@ def fetch_stac_items(
             stac_gdf["stac_item"] = item_collection.items
 
             points_gdf.loc[~nan_mask, "stac_item"] = _get_overlapping_stac_items(
-                gdf=points_gdf_not_nan, stac_gdf=stac_gdf, stac_output=stac_output
+                gdf=points_gdf_not_nan, stac_gdf=stac_gdf, stac_output=mosaic_composite
             )
 
     return points_gdf

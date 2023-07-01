@@ -34,7 +34,7 @@ def get_features(
                                      "year": YYYY (only needed if seasonal = True),
                                      "search_start": "YYYY-MM-DD",
                                      "search_end": "YYYY-MM-DD",
-                                     "stac_output": least_cloudy or all,
+                                     "mosaic_composite": least_cloudy or all,
                                      "stac_api": planetary-compute or earth-search},
          "model": {"num_features": int,
                    "kernel_size": int,

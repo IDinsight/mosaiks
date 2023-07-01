@@ -41,7 +41,7 @@ def load_data_and_save_created_features(
                                      "year": YYYY (only needed if seasonal = True),
                                      "search_start": "YYYY-MM-DD",
                                      "search_end": "YYYY-MM-DD",
-                                     "stac_output": least_cloudy or all,
+                                     "mosaic_composite": least_cloudy or all,
                                      "stac_api": planetary-compute or earth-search},
          "model": {"num_features": int,
                    "kernel_size": int,
@@ -92,7 +92,10 @@ def load_data_and_save_created_features(
         if satellite_config is not None:
             assert (
                 featurisation_config["satellite_search_params"]["satellite_name"]
-                in satellite_config.keys()
+                in satellite_config.keys(),
+                "satellite_config must contain a dictionary for the satellite name in {}".format(
+                    featurisation_config["satellite_search_params"]["satellite_name"]
+                ),
             )
 
         check_search_dates(
@@ -101,12 +104,6 @@ def load_data_and_save_created_features(
         )
 
         check_stac_api_name(featurisation_config["satellite_search_params"]["stac_api"])
-
-        featurization_config = utl.load_yaml_config("featurisation.yaml")
-        satellite_config = utl.load_yaml_config("satellite_config.yaml")
-        satellite_config = satellite_config[
-            featurization_config["satellite_search_params"]["satellite_name"]
-        ]
 
     # Load data
     input_file_path = get_dataset_path(**dataset["input"])
