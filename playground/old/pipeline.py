@@ -12,8 +12,12 @@ sys.path += ["../"]
 warnings.filterwarnings("ignore")
 
 import mosaiks.utils as utl
-from mosaiks.checks import check_satellite_name, check_search_dates, check_stac_api_name
 from mosaiks.dask import get_local_dask_client, run_queued_futures_pipeline
+from mosaiks.extras.checks import (
+    check_satellite_name,
+    check_search_dates,
+    check_stac_api_name,
+)
 from mosaiks.featurize import RCF
 
 if __name__ == "__main__":
