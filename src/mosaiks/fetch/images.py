@@ -3,7 +3,6 @@ import math
 from typing import List
 
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import numpy as np
 import pyproj
 import stackstac
@@ -197,7 +196,6 @@ class CustomDataset(Dataset):
         lon, lat = self.points[idx]
         stac_item = self.items[idx]
 
-        # TODO: need to handle all 0 images
         try:
             image = fetch_image_crop(
                 lon=lon,
@@ -210,6 +208,11 @@ class CustomDataset(Dataset):
                 normalise=True,
             )
             torch_image = torch.from_numpy(image).float()
+
+            # if all 0s, replace with NaNs
+            if torch.all(torch_image == 0):
+                torch_image = np.ones_like(torch_image) * np.nan
+
             return torch_image
         except Exception as e:
             print(f"Skipping {idx}: {e}")
@@ -279,23 +282,3 @@ def fetch_image_crop_from_stac_id(
             display_image(image_crop)
 
         return image_crop
-
-
-# TODO: move to utils
-def display_image(image: np.array, RGB_band_order=[2, 1, 0]):
-    """Displays a numpy image in RGB format.
-
-    Parameters
-    ----------
-    image : A numpy array of shape (C, H, W)
-    RGB_band_order : The order of the bands to display. Defaults to [2, 1, 0].
-
-    Returns
-    -------
-    None
-    """
-
-    rgb_image = image[RGB_band_order, :, :].transpose(1, 2, 0)
-    plt.imshow(rgb_image)
-    plt.show()
-    plt.close()
