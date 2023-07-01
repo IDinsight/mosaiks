@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import geopandas as gpd
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 import mosaiks.utils as utl
@@ -86,3 +88,22 @@ def save_geodataframe_as_dataframe(
         df["Lon"] = gdf.geometry.x
 
     utl.save_dataframe(df, file_path=file_path, **kwargs)
+
+
+def display_image(image: np.array, RGB_band_order=[2, 1, 0]):
+    """Displays a numpy image in RGB format.
+
+    Parameters
+    ----------
+    image : A numpy array of shape (C, H, W)
+    RGB_band_order : The order of the bands to display. Defaults to [2, 1, 0].
+
+    Returns
+    -------
+    None
+    """
+
+    rgb_image = image[RGB_band_order, :, :].transpose(1, 2, 0)
+    plt.imshow(rgb_image)
+    plt.show()
+    plt.close()
