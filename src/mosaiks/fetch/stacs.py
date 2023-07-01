@@ -32,13 +32,15 @@ def fetch_image_refs(
     points_gdf: A GeoDataFrame with a column named "stac_item" containing STAC
         items.
     """
+    stac_api = get_stac_api(satellite_search_params["stac_api"])
+
     if satellite_search_params["seasonal"]:
         points_gdf_with_stac = fetch_seasonal_stac_items(
             points_gdf=points_gdf,
             satellite_name=satellite_search_params["satellite_name"],
             year=satellite_search_params["year"],
             mosaic_composite=satellite_search_params["mosaic_composite"],
-            stac_api=satellite_search_params["stac_api"],
+            stac_api=stac_api,
         )
     else:
         points_gdf_with_stac = fetch_stac_items(
@@ -46,7 +48,7 @@ def fetch_image_refs(
             satellite_name=satellite_search_params["satellite_name"],
             search_start=satellite_search_params["search_start"],
             search_end=satellite_search_params["search_end"],
-            stac_api=satellite_search_params["stac_api"],
+            stac_api=stac_api,
             mosaic_composite=satellite_search_params["mosaic_composite"],
         )
 
@@ -57,7 +59,7 @@ def fetch_seasonal_stac_items(
     points_gdf: gpd.GeoDataFrame,
     satellite_name: str,
     year: int,
-    stac_api: str,
+    stac_api: pystac_client.Client,
     mosaic_composite: str = "least_cloudy",
 ) -> gpd.GeoDataFrame:
     """
@@ -108,7 +110,7 @@ def fetch_stac_items(
     satellite_name: str,
     search_start: str,
     search_end: str,
-    stac_api: str,
+    stac_api: pystac_client.Client,
     mosaic_composite: str = "least_cloudy",
 ) -> gpd.GeoDataFrame:
     """
@@ -120,7 +122,7 @@ def fetch_stac_items(
     satellite_name : Name of MPC-hosted satellite
     search_start : Date formatted as YYYY-MM-DD
     search_end : Date formatted as YYYY-MM-DD
-    stac_api: The stac api that pystac should connect to
+    stac_api: The pystac_client.Client object to use for searching for image refs. Output of `get_stac_api`
     mosaic_composite : Whether to store "all" images found or just the "least_cloudy"
 
     Returns
@@ -129,7 +131,6 @@ def fetch_stac_items(
         STAC item that covers each point.
     """
     points_gdf = points_gdf.copy()
-    stac_api = get_stac_api(stac_api)
 
     # Check for NaNs in lat lons
     nan_mask = points_gdf["Lat"].isna() + points_gdf["Lon"].isna()
