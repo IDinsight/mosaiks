@@ -77,6 +77,7 @@ def load_data_and_save_created_features(
     os.environ.update(rasterio_config)
 
     # Check params
+<<<<<<< HEAD
     if len(config_dictionary) > 0:
         if "satellite_name" in config_dictionary.keys():
             check_satellite_name(config_dictionary["satellite_name"])
@@ -90,6 +91,27 @@ def load_data_and_save_created_features(
             )
         if "stac_api" in config_dictionary.keys():
             check_stac_api_name(config_dictionary["stac_api"])
+=======
+    if featurisation_config is not None:
+        check_satellite_name(
+            featurisation_config["satellite_search_params"]["satellite_name"]
+        )
+        if satellite_config is not None:
+            assert (
+                featurisation_config["satellite_search_params"]["satellite_name"]
+                in satellite_config.keys(),
+                "satellite_config must contain a dictionary for the satellite name in {}".format(
+                    featurisation_config["satellite_search_params"]["satellite_name"]
+                ),
+            )
+
+        check_search_dates(
+            featurisation_config["satellite_search_params"]["search_start"],
+            featurisation_config["satellite_search_params"]["search_end"],
+        )
+
+        check_stac_api_name(featurisation_config["satellite_search_params"]["stac_api"])
+>>>>>>> 59147f1 (rename stac_output to mosaic_composite)
 
     # Load data
     input_file_path = get_dataset_path(**dataset["input"])
