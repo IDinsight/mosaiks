@@ -9,6 +9,31 @@ import yaml
 os.environ["USE_PYGEOS"] = "0"
 
 
+<<<<<<< HEAD
+=======
+def load_yaml_config(filename: str, config_subfolder: str = None):
+    """Load generic yaml files from config and return dictionary."""
+
+    if config_subfolder:
+        full_path = (
+            Path(__file__).resolve().parents[2] / "config" / config_subfolder / filename
+        )
+    else:
+        full_path = Path(__file__).resolve().parents[2] / "config" / filename
+
+    with open(full_path) as file:
+        yaml_dict = yaml.full_load(file)
+
+    return yaml_dict
+
+
+# def get_data_catalog_params(dataset_name: str) -> dict:
+#     """Load data catalog yaml file and return dictionary."""
+#     data_catalog = load_yaml_config("data_catalog.yaml")
+#     return data_catalog[dataset_name]
+
+
+>>>>>>> fa4c883 (delete references to data catalog)
 def load_dataframe(file_path: str, **kwargs) -> pd.DataFrame:
     """
     Load file with tabular data (csv or parquet) as a pandas DataFrame.
