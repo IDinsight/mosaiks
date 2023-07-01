@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 import geopandas as gpd
 import numpy as np
@@ -26,51 +26,23 @@ def load_yaml_config(filename: str, config_subfolder: str = None):
     return yaml_dict
 
 
-def get_data_catalog_params(dataset_name: str) -> dict:
-    """Load data catalog yaml file and return dictionary."""
-    data_catalog = load_yaml_config("data_catalog.yaml")
-    return data_catalog[dataset_name]
+# def get_data_catalog_params(dataset_name: str) -> dict:
+#     """Load data catalog yaml file and return dictionary."""
+#     data_catalog = load_yaml_config("data_catalog.yaml")
+#     return data_catalog[dataset_name]
 
 
-def create_dataset_path(folder: str, filename: str) -> str:
-    """Create data path from folder and filename."""
-
-    path = Path(__file__).resolve().parents[2] / "data" / folder / filename
-    return str(path)
-
-
-def get_dataset_path_and_kwargs(dataset_name: str) -> Tuple[str, dict]:
-    """Get data path and kwargs from data catalog."""
-
-    data_catalog = get_data_catalog_params(dataset_name)
-    folder = data_catalog.pop("folder")
-    filename = data_catalog.pop("filename")
-    kwargs = data_catalog
-
-    file_path = create_dataset_path(folder, filename)
-
-    return file_path, kwargs
-
-
-def load_dataframe(
-    file_path: str = None, dataset_name: str = None, **kwargs
-) -> pd.DataFrame:
+def load_dataframe(file_path: str, **kwargs) -> pd.DataFrame:
     """
     Load file with tabular data (csv or parquet) as a pandas DataFrame.
-    Either dataset_name or file_path must be given.
 
     Parameters
     ----------
-    dataset_name : The name of the dataset to load from the data catalog. If given, the
-        load the filepath and kwargs from the data catalog.
-    file_path : If given, the path to the file to load.
+    file_path : The path to the file to load.
     **kwargs : Keyword arguments to pass to the pandas read function.
     """
 
-    if dataset_name:
-        file_path, kwargs = get_dataset_path_and_kwargs(dataset_name)
-    elif file_path:
-        file_path = str(file_path)
+    file_path = str(file_path)
 
     if file_path.endswith(".csv"):
         return pd.read_csv(file_path, **kwargs)
@@ -97,24 +69,16 @@ def load_and_combine_dataframes(folder_path: str, filenames: List[str]) -> pd.Da
     return combined_df
 
 
-def save_dataframe(
-    df: pd.DataFrame, file_path: str = None, dataset_name: str = None, **kwargs
-) -> None:
+def save_dataframe(df: pd.DataFrame, file_path: str, **kwargs) -> None:
     """
     Save pandas dataframe to .csv, .parquet etc file based on extension.
-    Either dataset_name or file_path must be given.
 
     Parameters
     ----------
     df : The dataframe to save.
-    dataset_name : The name of the dataset to load from the data catalog. If given, the
-        load the filepath and kwargs from the data catalog.
     file_path : If given, the path to the file to load.
     """
-    if dataset_name:
-        file_path, kwargs = get_dataset_path_and_kwargs(dataset_name)
-    elif file_path:
-        file_path = str(file_path)
+    file_path = str(file_path)
 
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
@@ -126,36 +90,8 @@ def save_dataframe(
         raise ValueError("File extension not recognized.")
 
 
-def save_geodataframe_as_dataframe(
-    gdf: gpd.GeoDataFrame,
-    file_path: str = None,
-    dataset_name: str = None,
-    add_latlon_cols: bool = False,
-    **kwargs,
-) -> None:
-    """
-    Save GeoDataFrame as a DataFrame by dropping geometry column.
-    Either dataset_name or file_path must be given.
-
-    Parameters
-    ----------
-    gdf : The GeoDataFrame to save.
-    dataset_name : The name of the dataset to load from the data catalog. If given, the
-        load the filepath and kwargs from the data catalog.
-    file_path : If given, the path to the file to load.
-    add_latlon_cols : If True, add columns for latitude and longitude.
-    """
-    df = gdf.drop(columns="geometry")
-    if add_latlon_cols:
-        df["Lat"] = gdf.geometry.y
-        df["Lon"] = gdf.geometry.x
-
-    save_dataframe(df, file_path=file_path, dataset_name=dataset_name, **kwargs)
-
-
 def load_df_w_latlons_to_gdf(
-    file_path: str = None,
-    dataset_name: str = None,
+    file_path: str,
     lat_name: str = "Lat",
     lon_name: str = "Lon",
     crs: str = "EPSG:4326",
@@ -163,12 +99,9 @@ def load_df_w_latlons_to_gdf(
 ) -> gpd.GeoDataFrame:
     """
     Load CSV with Lat-Lon columns into a GeoDataFrame.
-    Either dataset_name or file_path must be given.
 
     Parameters
     ----------
-    dataset_name : The name of the dataset to load from the data catalog. If given, the
-        load the filepath and kwargs from the data catalog.
     file_path : If given, the path to the file to load.
     lat_name, lon_name : The names of the columns containing the latitude and longitude
         values.
@@ -176,7 +109,7 @@ def load_df_w_latlons_to_gdf(
     crs : The coordinate reference system of the lat-lon columns.
         Default is 'EPSG:4326'.
     """
-    df = load_dataframe(file_path=file_path, dataset_name=dataset_name, **kwargs)
+    df = load_dataframe(file_path=file_path, **kwargs)
     return df_w_latlons_to_gdf(df, lat_name, lon_name, crs)
 
 
@@ -216,17 +149,19 @@ def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
     return sorted(filtered_filenames)
 
 
-def make_output_folder_path(featurization_config: dict) -> Path:
+def make_output_folder_path(
+    featurization_config: dict, dataset_name: str = "temp"
+) -> Path:
     """
     Get the path to the folder where the mosaiks features should be saved.
 
     Parameters
     ----------
     featurization_config : The featurization configuration dictionary. Must contain the keys
-    'satellite_search_params', and 'model'.
+    'satellite_search_params' and 'model'.
+    dataset_name : The name of the dataset used for featurization. Default is 'temp'.
     """
 
-    # coord_set_name = featurization_config["coord_set"]["coord_set_name"]
     satellite = featurization_config["satellite_search_params"]["satellite_name"]
     year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
     n_features = str(featurization_config["model"]["num_features"])
@@ -237,7 +172,7 @@ def make_output_folder_path(featurization_config: dict) -> Path:
         / "00_raw/mosaiks"
         / satellite
         / str(year)
-        # / coord_set_name
+        / dataset_name
         / str(n_features)
     )
 
@@ -272,45 +207,3 @@ def make_result_df(
     DataFrame
     """
     return pd.DataFrame(data=features, index=index, columns=mosaiks_col_names)
-
-
-def combine_results_df_with_context_df(
-    features_df: pd.DataFrame,
-    context_gdf: gpd.GeoDataFrame,
-    context_cols_to_keep: list[str] = None,
-) -> pd.DataFrame:
-    """
-    Takes the features array and a context dataframe and returns a dataframe with the
-    features, the stac_id of the images used to create each row, and chosen context
-    columns.
-
-    Note: context_gdf must have a "stac_item" column which contains pystac.item.Item
-    objects since the "stac_id" is always saved.
-
-    Parameters
-    -----------
-    features : Array of features.
-    context_gdf : GeoDataFrame of context variables. Must have the same index size as
-        the features array. Must also have a "stac_item" column which contains
-        pystac.item.Item objects since the "stac_id" is always saved.
-    context_cols_to_keep : List of context columns to include in final dataframe
-        (optional). If not given, only "stac_id" will be included.
-
-    Returns
-    --------
-    DataFrame
-    """
-    if isinstance(context_gdf["stac_item"].iloc[0], list):
-        context_gdf["stac_id"] = context_gdf["stac_item"].map(
-            lambda item_list: [
-                item.id if item is not None else None for item in item_list
-            ]
-        )
-    else:
-        context_gdf["stac_id"] = context_gdf["stac_item"].map(
-            lambda item: item.id if item is not None else None
-        )
-    context_cols_to_keep = context_cols_to_keep + ["stac_id"]
-    context_gdf = context_gdf[context_cols_to_keep]
-
-    return pd.concat([context_gdf, features_df], axis=1)
