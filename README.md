@@ -29,3 +29,20 @@ It can currently run on [Microsoft Planetary Computer](https://planetarycomputer
 5. Run the `playground/featurize_pipeline.ipynb` notebook. Within the notebook:
     - Choose the Dask cluster/gateway as desired
     - Make sure to read the correct entry in the data catalog for the point coordinates file
+
+---
+
+## FAQs
+
+- How do I save intermediate data to S3?
+
+To save data to S3, you can use the standard save_dataframe command from the utils file. Example code:
+```python
+save_dataframe(df, "s3://gs-test-then-delete/test_pr.parquet.gzip", compression="gzip")
+```
+One requirement for this is to setup the following AWS environment variables:
+```yaml
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_DEFAULT_REGION
+```
