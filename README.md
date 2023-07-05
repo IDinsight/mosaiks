@@ -73,3 +73,20 @@ For more detailed information on this package and how to use it, please see [thi
 ├── requirements.txt -- package install requirements
 
 ```
+
+---
+
+## FAQs
+
+- How do I save intermediate data to S3?
+
+To save data to S3, you can use the standard save_dataframe command from the utils file. Example code:
+```python
+save_dataframe(df, "s3://gs-test-then-delete/test_pr.parquet.gzip", compression="gzip")
+```
+One requirement for this is to setup the following AWS environment variables:
+```yaml
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_DEFAULT_REGION
+```
