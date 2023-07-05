@@ -16,7 +16,6 @@ __all__ = [
     "create_data_loader",
     "fetch_image_crop_from_stac_id",
     "fetch_image_crop",
-    "display_image",
 ]
 
 
@@ -101,7 +100,6 @@ def fetch_image_crop(
 
 
 def _minmax_normalize_image(image: np.array) -> np.array:
-
     img_min, img_max = image.min(), image.max()
     return (image - img_min) / (img_max - img_min)
 

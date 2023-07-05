@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch.nn
 import torch.nn as nn
+from dask import delayed
 from dask.distributed import Client, LocalCluster, as_completed, wait
 from dask_gateway import Gateway
 
@@ -224,7 +225,6 @@ def run_queued_futures_pipeline(
     logging.info(f"{now} Trying to kick off initial {n_concurrent} partitions...")
     initial_futures_list = []
     for i in range(n_concurrent):
-
         try:
             partition = next(partitions)
         except StopIteration:
@@ -372,7 +372,6 @@ def run_batched_delayed_pipeline(
     failed_ids = []
     checkpoint_indices = list(np.arange(0, n_partitions, n_concurrent)) + [n_partitions]
     for p_start_id, p_end_id in zip(checkpoint_indices[:-1], checkpoint_indices[1:]):
-
         now = datetime.now().strftime("%d-%b %H:%M:%S")
         logging.info(f"{now} Running batch: {p_start_id} to {p_end_id - 1}")
 
@@ -473,7 +472,7 @@ def run_unbatched_delayed_pipeline(
     satellite_config: dict,
     col_names: list,
     save_folder_path: str,
-) -> list[dask.delayed]:
+) -> list[delayed]:
     """
     Given a GeoDataFrame of coordinate points, partitions it, creates a list of each
     partition's respective Dask Delayed tasks, and runs the tasks.
@@ -502,7 +501,6 @@ def run_unbatched_delayed_pipeline(
 
     delayed_tasks = []
     for i, partition in enumerate(partitions):
-
         str_i = str(i).zfill(3)
         # this can be swapped for dask.delayed(full_pipeline)(...)
         delayed_task = delayed_pipeline(
@@ -639,8 +637,8 @@ def get_features_without_parallelization(
         if save_folder_path is not None:
             utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
 
+        if return_df:
+            return df
+
     except Exception as e:
         logging.warn(e)
-
-    if return_df:
-        return df
