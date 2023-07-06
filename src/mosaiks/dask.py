@@ -183,9 +183,25 @@ def run_queued_futures_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
+    satellite_name: str,
+    image_resolution: int,
+    image_dtype: str,
+    image_bands: list[str],
+    buffer_distance: int,
+    min_image_edge: int,
+    sort_points: bool,
+    seasonal: bool,
+    year: int,
+    search_start: str,
+    search_end: str,
+    mosaic_composite: str,
+    stac_api_name: str,
+    num_features: int,
+    batch_size: int,
+    device: str,
     col_names: list,
+    n_concurrent: int,
+    chunksize: int,
     save_folder_path: str,
 ) -> None:
     """
@@ -200,9 +216,25 @@ def run_queued_futures_pipeline(
     points_gdf : GeoDataFrame of points to be featurized.
     client : Dask client.
     model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
+    satellite_name : Name of the satellite to be used for featurization.
+    image_resolution : Resolution of the image to be generated.
+    image_dtype : Data type of the image to be generated.
+    image_bands : List of bands to be used for generating the image.
+    buffer_distance : Buffer distance to be used for generating the image.
+    min_image_edge : Minimum edge length of the image to be generated.
+    sort_points : Whether to sort the points by their Hilbert distance.
+    seasonal : Whether to use seasonal imagery.
+    year : Year of imagery to be used.
+    search_start : Start date of imagery to be used.
+    search_end : End date of imagery to be used.
+    mosaic_composite : Mosaic composite to be used.
+    stac_api_name : Name of the STAC API to be used.
+    num_features : Number of features to be extracted from the model.
+    batch_size : Batch size to be used for featurization.
+    device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features.
+    n_concurrent : Number of concurrent partitions to be submitted to the client.
+    chunksize : Number of points to be featurized per partition.
     save_folder_path : Path to folder where features will be saved.
 
     Returns
@@ -210,13 +242,11 @@ def run_queued_futures_pipeline(
     None
     """
 
-    n_concurrent = featurization_config["dask"]["n_concurrent"]
-
     # make generator for spliting up the data into partitions
     partitions = get_partitions_generator(
         points_gdf,
-        featurization_config["dask"]["chunksize"],
-        featurization_config["fetch"]["sort_points"],
+        chunksize,
+        sort_points,
     )
 
     # kickoff "n_concurrent" number of tasks. Each of these will be replaced by a new
@@ -238,8 +268,21 @@ def run_queued_futures_pipeline(
             get_features_without_parallelization,
             points_gdf=partition,
             model=model,
-            featurization_config=featurization_config,
-            satellite_config=satellite_config,
+            satellite_name=satellite_name,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            image_bands=image_bands,
+            buffer_distance=buffer_distance,
+            min_image_edge=min_image_edge,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            mosaic_composite=mosaic_composite,
+            stac_api_name=stac_api_name,
+            num_features=num_features,
+            batch_size=batch_size,
+            device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
@@ -260,8 +303,21 @@ def run_queued_futures_pipeline(
             get_features_without_parallelization,
             points_gdf=partition,
             model=model,
-            featurization_config=featurization_config,
-            satellite_config=satellite_config,
+            satellite_name=satellite_name,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            image_bands=image_bands,
+            buffer_distance=buffer_distance,
+            min_image_edge=min_image_edge,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            mosaic_composite=mosaic_composite,
+            stac_api_name=stac_api_name,
+            num_features=num_features,
+            batch_size=batch_size,
+            device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
@@ -319,9 +375,25 @@ def run_batched_delayed_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
-    col_names: list,
+    satellite_name: str,
+    image_resolution: int,
+    image_dtype: str,
+    image_bands: list[str],
+    buffer_distance: int,
+    min_image_edge: int,
+    sort_points: bool,
+    seasonal: bool,
+    year: int,
+    search_start: str,
+    search_end: str,
+    mosaic_composite: bool,
+    stac_api_name: str,
+    num_features: int,
+    batch_size: int,
+    device: str,
+    n_concurrent: int,
+    chunksize: int,
+    col_names: list[str],
     save_folder_path: str,
     partition_ids: list[int] = None,
 ) -> list[int]:
@@ -334,8 +406,21 @@ def run_batched_delayed_pipeline(
     points_gdf : GeoDataFrame of points to be featurized.
     client : Dask client.
     model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
+    satellite_name : Name of satellite to be used for featurization.
+    image_resolution : Resolution of satellite images to be used for featurization.
+    image_dtype : Data type of satellite images to be used for featurization.
+    image_bands : List of satellite image bands to be used for featurization.
+    buffer_distance : Buffer distance for fetching satellite images.
+    min_image_edge : Minimum image edge size.
+    seasonal : Whether to use seasonal satellite images for featurization.
+    year : Year to be used for featurization.
+    search_start : Start date for satellite image search.
+    search_end : End date for satellite image search.
+    mosaic_composite : Mosaic composite to be used for featurization.
+    stac_api_name : Name of STAC API to be used for satellite image search.
+    num_features : number of mosaiks features.
+    batch_size : Batch size for featurization.
+    device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features.
     save_folder_path : Path to folder where features will be saved.
     partition_ids : Optional. List of partition indexes to be used for featurization.
@@ -344,14 +429,11 @@ def run_batched_delayed_pipeline(
     --------
     list of failed partition ids
     """
-
-    n_concurrent = featurization_config["dask"]["n_concurrent"]
-
     # make delayed gdf partitions
     dask_gdf = get_dask_gdf(
         points_gdf,
-        featurization_config["dask"]["chunksize"],
-        featurization_config["fetch"]["sort_points"],
+        chunksize,
+        sort_points,
     )
     partitions = dask_gdf.to_delayed()
 
@@ -384,8 +466,21 @@ def run_batched_delayed_pipeline(
             partition_ids=batch_p_ids,
             client=client,
             model=model,
-            featurization_config=featurization_config,
-            satellite_config=satellite_config,
+            satellite_name=satellite_name,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            image_bands=image_bands,
+            buffer_distance=buffer_distance,
+            min_image_edge=min_image_edge,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            mosaic_composite=mosaic_composite,
+            stac_api_name=stac_api_name,
+            num_features=num_features,
+            batch_size=batch_size,
+            device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
         )
@@ -398,8 +493,21 @@ def run_batch(
     partition_ids: list,
     client: Client,
     model: nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
+    satellite_name: str,
+    image_resolution: int,
+    image_dtype: str,
+    image_bands: list[str],
+    buffer_distance: int,
+    min_image_edge: int,
+    seasonal: bool,
+    year: int,
+    search_start: str,
+    search_end: str,
+    mosaic_composite: str,
+    stac_api_name: str,
+    num_features: int,
+    batch_size: int,
+    device: str,
     col_names: list,
     save_folder_path: str,
 ) -> list[int]:
@@ -413,8 +521,21 @@ def run_batch(
         used for naming saved files and reference in case of failure).
     client : Dask client.
     model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
+    satellite_name : Name of satellite to be used for featurization.
+    image_resolution : Resolution of satellite images to be used for featurization.
+    image_dtype : Data type of satellite images to be used for featurization.
+    image_bands : List of satellite image bands to be used for featurization.
+    buffer_distance : Buffer distance for fetching satellite images.
+    min_image_edge : Minimum image edge size.
+    seasonal : Whether to use seasonal satellite images for featurization.
+    year : Year to be used for featurization.
+    search_start : Start date for satellite image search.
+    search_end : End date for satellite image search.
+    mosaic_composite : Mosaic composite to be used for featurization.
+    stac_api_name : Name of STAC API to be used for satellite image search.
+    num_features : number of mosaiks features.
+    batch_size : Batch size for featurization.
+    device : Device to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
 
@@ -434,8 +555,21 @@ def run_batch(
         delayed_task = dask.delayed(get_features_without_parallelization)(
             points_gdf=partition,
             model=model,
-            featurization_config=featurization_config,
-            satellite_config=satellite_config,
+            satellite_name=satellite_name,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            image_bands=image_bands,
+            buffer_distance=buffer_distance,
+            min_image_edge=min_image_edge,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            mosaic_composite=mosaic_composite,
+            stac_api_name=stac_api_name,
+            num_features=num_features,
+            batch_size=batch_size,
+            device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str_id}.parquet.gzip",
@@ -468,8 +602,23 @@ def run_unbatched_delayed_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
+    chunksize: int,
+    sort_points: bool,
+    satellite_name: str,
+    search_start: str,
+    search_end: str,
+    stac_api_name: str,
+    seasonal: bool,
+    year: int,
+    mosaic_composite: str,
+    num_features: int,
+    device: str,
+    min_image_edge: int,
+    batch_size: int,
+    buffer_distance: int,
+    image_bands: list[str],
+    image_resolution: int,
+    image_dtype: str,
     col_names: list,
     save_folder_path: str,
 ) -> list[delayed]:
@@ -482,8 +631,23 @@ def run_unbatched_delayed_pipeline(
     points_gdf : GeoDataFrame of coordinate points.
     client : Dask client.
     model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
+    chunksize : Number of points per partition.
+    sort_points : Whether to sort the points by their Hilbert distance.
+    satellite_name : Name of satellite to be used for featurization.
+    search_start : Start date for satellite image search.
+    search_end : End date for satellite image search.
+    stac_api_name : Name of STAC API to be used for satellite image search.
+    seasonal : Whether to use seasonal satellite images for featurization.
+    year : Year to be used for featurization.
+    mosaic_composite : Mosaic composite to be used for featurization.
+    num_features : number of mosaiks features.
+    device : Device to be used for featurization.
+    min_image_edge : Minimum image edge size.
+    batch_size : Batch size for featurization.
+    buffer_distance : Buffer distance for fetching satellite images.
+    image_bands : List of satellite image bands to be used for featurization.
+    image_resolution : Resolution of satellite images to be used for featurization.
+    image_dtype : Data type of satellite images to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
 
@@ -494,8 +658,8 @@ def run_unbatched_delayed_pipeline(
 
     dask_gdf = get_dask_gdf(
         points_gdf,
-        featurization_config["dask"]["chunksize"],
-        featurization_config["fetch"]["sort_points"],
+        chunksize,
+        sort_points,
     )
     partitions = dask_gdf.to_delayed()
 
@@ -506,8 +670,21 @@ def run_unbatched_delayed_pipeline(
         delayed_task = delayed_pipeline(
             points_gdf=partition,
             model=model,
-            featurization_config=featurization_config,
-            satellite_config=satellite_config,
+            satellite_name=satellite_name,
+            search_start=search_start,
+            search_end=search_end,
+            stac_api_name=stac_api_name,
+            seasonal=seasonal,
+            year=year,
+            mosaic_composite=mosaic_composite,
+            num_features=num_features,
+            device=device,
+            min_image_edge=min_image_edge,
+            batch_size=batch_size,
+            buffer_distance=buffer_distance,
+            image_bands=image_bands,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
             col_names=col_names,
             save_folder_path=save_folder_path,
             save_filename=f"df_{str_i}.parquet.gzip",
@@ -521,8 +698,21 @@ def run_unbatched_delayed_pipeline(
 def delayed_pipeline(
     points_gdf: gpd.GeoDataFrame,
     model: nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
+    satellite_name: str,
+    search_start: str,
+    search_end: str,
+    stac_api_name: str,
+    seasonal: bool,
+    year: int,
+    mosaic_composite: str,
+    num_features: int,
+    device: str,
+    min_image_edge: int,
+    batch_size: int,
+    buffer_distance: int,
+    image_bands: list[str],
+    image_resolution: int,
+    image_dtype: str,
     col_names: list,
     save_folder_path: str,
     save_filename: str,
@@ -535,8 +725,21 @@ def delayed_pipeline(
     ----------
     points_gdf : GeoDataFrame of coordinate points.
     model : PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
+    satellite_name : Name of satellite to be used for featurization.
+    search_start : Start date for satellite image search.
+    search_end : End date for satellite image search.
+    stac_api_name : Name of STAC API to be used for satellite image search.
+    seasonal : Whether to use seasonal satellite images for featurization.
+    year : Year to be used for featurization.
+    mosaic_composite : Mosaic composite to be used for featurization.
+    num_features : number of mosaiks features.
+    device : Device to be used for featurization.
+    min_image_edge : Minimum image edge size.
+    batch_size : Batch size for featurization.
+    buffer_distance : Buffer distance for fetching satellite images.
+    image_bands : List of satellite image bands to be used for featurization.
+    image_resolution : Resolution of satellite images to be used for featurization.
+    image_dtype : Data type of satellite images to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
     save_filename : Name of file to save features to.
@@ -544,25 +747,32 @@ def delayed_pipeline(
     Returns:
         Dask.Delayed object
     """
-
-    satellite_search_params = featurization_config["satellite_search_params"]
-
     points_gdf_with_stac = dask.delayed(fetch_image_refs)(
-        points_gdf, satellite_search_params
+        points_gdf,
+        satellite_name,
+        search_start,
+        search_end,
+        stac_api_name,
+        seasonal,
+        year,
+        mosaic_composite,
     )
 
     data_loader = dask.delayed(create_data_loader)(
         points_gdf_with_stac=points_gdf_with_stac,
-        satellite_params=satellite_config,
-        batch_size=featurization_config["model"]["batch_size"],
+        buffer_distance=buffer_distance,
+        image_bands=image_bands,
+        image_resolution=image_resolution,
+        image_dtype=image_dtype,
+        batch_size=batch_size,
     )
 
     X_features = dask.delayed(create_features_from_image_array)(
         dataloader=data_loader,
-        n_features=featurization_config["model"]["num_features"],
+        n_features=num_features,
         model=model,
-        device=featurization_config["model"]["device"],
-        min_image_edge=satellite_config["min_image_edge"],
+        device=device,
+        min_image_edge=min_image_edge,
     )
 
     df = dask.delayed(utl.make_result_df)(
@@ -582,8 +792,21 @@ def delayed_pipeline(
 def get_features_without_parallelization(
     points_gdf: gpd.GeoDataFrame,
     model: torch.nn.Module,
-    featurization_config: dict,
-    satellite_config: dict,
+    satellite_name: str,
+    image_resolution: int,
+    image_dtype: str,
+    image_bands: list,
+    buffer_distance: int,
+    min_image_edge: int,
+    seasonal: bool,
+    year: int,
+    search_start: str,
+    search_end: str,
+    mosaic_composite: str,
+    stac_api_name: str,
+    num_features: int,
+    batch_size: int,
+    device: str,
     col_names: list,
     save_folder_path: str = None,
     save_filename: str = "",
@@ -597,8 +820,21 @@ def get_features_without_parallelization(
     -----------
     points_gdf : GeoDataFrame of points to be featurized.
     model: PyTorch model to be used for featurization.
-    featurization_config : Dictionary of featurization parameters.
-    satellite_config : Dictionary of satellite parameters.
+    satellite_name : Name of satellite to be used for featurization.
+    image_resolution : Resolution of satellite images to be used for featurization.
+    image_dtype : Data type of satellite images to be used for featurization.
+    image_bands : List of satellite image bands to be used for featurization.
+    buffer_distance : Buffer distance for fetching satellite images.
+    min_image_edge : Minimum image edge size.
+    seasonal : Whether to use seasonal satellite images for featurization.
+    year : Year to be used for featurization.
+    search_start : Start date for satellite image search.
+    search_end : End date for satellite image search.
+    mosaic_composite : Mosaic composite to be used for featurization.
+    stac_api_name : Name of STAC API to be used for satellite image search.
+    num_features : number of mosaiks features.
+    device : Device to be used for featurization.
+    batch_size : Batch size for featurization.
     col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
     save_folder_path : Path to folder where features will be saved. Default is None.
     save_filename : Name of file where features will be saved. Default is "".
@@ -610,22 +846,32 @@ def get_features_without_parallelization(
     """
 
     try:
-        satellite_search_params = featurization_config["satellite_search_params"]
-
-        points_gdf_with_stac = fetch_image_refs(points_gdf, satellite_search_params)
+        points_gdf_with_stac = fetch_image_refs(
+            points_gdf=points_gdf,
+            satellite_name=satellite_name,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            mosaic_composite=mosaic_composite,
+            stac_api_name=stac_api_name,
+        )
 
         data_loader = create_data_loader(
             points_gdf_with_stac=points_gdf_with_stac,
-            satellite_params=satellite_config,
-            batch_size=featurization_config["model"]["batch_size"],
+            image_bands=image_bands,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            buffer_distance=buffer_distance,
+            batch_size=batch_size,
         )
 
         X_features = create_features_from_image_array(
             dataloader=data_loader,
-            n_features=featurization_config["model"]["num_features"],
+            n_features=num_features,
             model=model,
-            device=featurization_config["model"]["device"],
-            min_image_edge=satellite_config["min_image_edge"],
+            device=device,
+            min_image_edge=min_image_edge,
         )
 
         df = utl.make_result_df(

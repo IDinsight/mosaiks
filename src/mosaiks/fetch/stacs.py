@@ -14,7 +14,14 @@ __all__ = ["fetch_image_refs", "fetch_stac_item_from_id"]
 
 
 def fetch_image_refs(
-    points_gdf: gpd.GeoDataFrame, satellite_search_params: dict
+    points_gdf: gpd.GeoDataFrame,
+    satellite_name: str,
+    seasonal: bool,
+    year: int,
+    search_start: str,
+    search_end: str,
+    mosaic_composite: str,
+    stac_api_name: str,
 ) -> gpd.GeoDataFrame:
     """
     Find a STAC item for points in the `points_gdf` GeoDataFrame. Returns a
@@ -24,32 +31,37 @@ def fetch_image_refs(
     ----------
     points_gdf : A GeoDataFrame with a column named "geometry" containing shapely
         Point objects.
-    satellite_search_params : A dictionary containing the parameters for the STAC
-        search.
+    satellite_name : Name of MPC-hosted satellite.
+    seasonal: Whether to fetch seasonal STAC items.
+    year: The year to fetch seasonal STAC items for.
+    search_start : Date formatted as YYYY-MM-DD.
+    search_end : Date formatted as YYYY-MM-DD.
+    mosaic_composite : how to composite multiple images for same GPS location.
+    stac_api_name: The name of the STAC API to use.
 
     Returns
     -------
     points_gdf: A GeoDataFrame with a column named "stac_item" containing STAC
         items.
     """
-    stac_api = get_stac_api(satellite_search_params["stac_api"])
+    stac_api = get_stac_api(stac_api_name=stac_api_name)
 
-    if satellite_search_params["seasonal"]:
+    if seasonal:
         points_gdf_with_stac = fetch_seasonal_stac_items(
             points_gdf=points_gdf,
-            satellite_name=satellite_search_params["satellite_name"],
-            year=satellite_search_params["year"],
-            mosaic_composite=satellite_search_params["mosaic_composite"],
+            satellite_name=satellite_name,
+            year=year,
             stac_api=stac_api,
+            mosaic_composite=mosaic_composite,
         )
     else:
         points_gdf_with_stac = fetch_stac_items(
             points_gdf=points_gdf,
-            satellite_name=satellite_search_params["satellite_name"],
-            search_start=satellite_search_params["search_start"],
-            search_end=satellite_search_params["search_end"],
+            satellite_name=satellite_name,
+            search_start=search_start,
+            search_end=search_end,
             stac_api=stac_api,
-            mosaic_composite=satellite_search_params["mosaic_composite"],
+            mosaic_composite=mosaic_composite,
         )
 
     return points_gdf_with_stac
@@ -60,7 +72,7 @@ def fetch_seasonal_stac_items(
     satellite_name: str,
     year: int,
     stac_api: pystac_client.Client,
-    mosaic_composite: str = "least_cloudy",
+    mosaic_composite: str,
 ) -> gpd.GeoDataFrame:
     """
     Takes a year as input and creates date ranges for the four seasons, runs these
@@ -111,7 +123,7 @@ def fetch_stac_items(
     search_start: str,
     search_end: str,
     stac_api: pystac_client.Client,
-    mosaic_composite: str = "least_cloudy",
+    mosaic_composite: str,
 ) -> gpd.GeoDataFrame:
     """
     Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame.
@@ -226,7 +238,7 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
 def _get_overlapping_stac_items(
     gdf: gpd.GeoDataFrame,
     stac_gdf: gpd.GeoDataFrame,
-    mosaic_composite: str = "least_cloudy",
+    mosaic_composite: str,
 ) -> Item:  # or List[Item]
     """
     Takes in a sorted dataframe of stac items and returns the item(s) that covers each

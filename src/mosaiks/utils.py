@@ -10,28 +10,6 @@ import yaml
 os.environ["USE_PYGEOS"] = "0"
 
 
-def load_yaml_config(filename: str, config_subfolder: str = None):
-    """Load generic yaml files from config and return dictionary."""
-
-    if config_subfolder:
-        full_path = (
-            Path(__file__).resolve().parents[2] / "config" / config_subfolder / filename
-        )
-    else:
-        full_path = Path(__file__).resolve().parents[2] / "config" / filename
-
-    with open(full_path) as file:
-        yaml_dict = yaml.full_load(file)
-
-    return yaml_dict
-
-
-# def get_data_catalog_params(dataset_name: str) -> dict:
-#     """Load data catalog yaml file and return dictionary."""
-#     data_catalog = load_yaml_config("data_catalog.yaml")
-#     return data_catalog[dataset_name]
-
-
 def load_dataframe(file_path: str, **kwargs) -> pd.DataFrame:
     """
     Load file with tabular data (csv or parquet) as a pandas DataFrame.
@@ -150,30 +128,26 @@ def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
 
 
 def make_output_folder_path(
-    featurization_config: dict, dataset_name: str = "temp"
+    satellite_name, year, n_mosaiks_features, dataset_name: str = "temp"
 ) -> Path:
     """
     Get the path to the folder where the mosaiks features should be saved.
 
     Parameters
     ----------
-    featurization_config : The featurization configuration dictionary. Must contain the keys
-    'satellite_search_params' and 'model'.
+    satellite_name : The name of the satellite.
+    year : The year of the satellite data.
+    n_mosaiks_features : The number of features used for mosaiks.
     dataset_name : The name of the dataset used for featurization. Default is 'temp'.
     """
-
-    satellite = featurization_config["satellite_search_params"]["satellite_name"]
-    year = featurization_config["satellite_search_params"]["search_start"].split("-")[0]
-    n_features = str(featurization_config["model"]["num_features"])
-
     data_path = Path(__file__).parents[2].resolve() / "data"
     folder_path = (
         data_path
         / "00_raw/mosaiks"
-        / satellite
+        / satellite_name
         / str(year)
         / dataset_name
-        / str(n_features)
+        / str(n_mosaiks_features)
     )
 
     return folder_path
@@ -182,7 +156,9 @@ def make_output_folder_path(
 def get_mosaiks_package_link(branch="main") -> str:
     """Get the link to the mosaiks package."""
 
-    secrets = load_yaml_config("secrets.yaml")
+    secrets_file = Path(__file__).resolve().parents[2] / "config/secrets.yaml"
+    secrets = yaml.full_load(open(secrets_file))
+
     GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
     return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks@{branch}"
 

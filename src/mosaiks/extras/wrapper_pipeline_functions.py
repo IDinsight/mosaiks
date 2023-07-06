@@ -13,18 +13,16 @@ from .utils import combine_results_df_with_context_df, get_dataset_path
 
 def load_data_and_save_created_features(
     dataset: dict,
-    featurisation_config: dict = None,
-    satellite_config: dict = None,
+    config_dictionary: dict = {},
     rasterio_config: dict = None,
-    featurize_with_parallelization: bool = True,
-    col_names: list = None,
+    parallelize: bool = True,
 ) -> None:
     """
     Load data and save created features.
 
     Parameters
     ----------
-    dataset: dictionary with the following structure:
+    dataset: dictionary with inputs related to the dataset with the following structure:
         {"dataset_name": "dataset_name",
          "context_col_names_to_keep": list of column names to keep in final dataframe,
          "input": {"folder": folder name,
@@ -34,39 +32,36 @@ def load_data_and_save_created_features(
                    "file": file name (csv .or .parquet),
                    "relative_path_is_root_folder": True or False}
         }
-    featurisation_config: dictionary with the following structure:
-        {"fetch": {"sort_points": True or False},
-         "satellite_search_params": {"satellite_name": landsat-8-c2-l2 or sentinel-2-l2a,
-                                     "seasonal": True or False,
-                                     "year": YYYY (only needed if seasonal = True),
-                                     "search_start": "YYYY-MM-DD",
-                                     "search_end": "YYYY-MM-DD",
-                                     "mosaic_composite": least_cloudy or all,
-                                     "stac_api": planetary-compute or earth-search},
-         "model": {"num_features": int,
-                   "kernel_size": int,
-                   "batch_size": int,
-                   "device": cpu or cuda},
-         "dask": {"client_type": local or gateway,
-                  "n_workers": int (needed for local),
-                  "threads_per_worker": int (needed for local),
-                  "chunksize": int (needed for local),
-                  "worker_memory": int (needed for gateway),
-                  "worker_cores": int (needed for gateway),
-                  "pip_install": True or False (needed for gateway)}
-                  }
+    config_dictionary: configuration dictionary for MOSAIKS pipeline with the following structure:
+        {"satellite_name": satellite_name,
+         "image_resolution": resolution of the satellite images in meters,
+         "image_dtype": data type of the satellite images,
+         "image_bands": list of bands to use for the satellite images,
+         "buffer_distance": buffer distance in meters,
+         "min_image_edge": minimum image edge in meters,
+         "sort_points_by_hilbert_distance": whether to sort points by Hilbert distance before fetching images,
+         "seasonal": whether to get seasonal images,
+         "year": year to get seasonal images for in format YYYY,
+         "search_start": start date for image search in format YYYY-MM-DD,
+         "search_end": end date for image search in format YYYY-MM-DD,
+         "mosaic_composite": how to composite multiple images for same GPS location,
+         "stac_api": which STAC API to use,
+         "n_mosaiks_features": number of mosaiks features to generate,
+         "mosaiks_kernel_size": kernel size for mosaiks filters,
+         "mosaiks_batch_size": batch size for mosaiks filters,
+         "model_device": compute device for mosaiks model,
+         "dask_client_type": type of Dask client to use,
+         "dask_n_concurrent_tasks": number of concurrent tasks for Dask client,
+         "dask_chunksize": number of datapoints per data partition in Dask,
+         "dask_n_workers": number of Dask workers to use,
+         "dask_threads_per_worker": number of threads per Dask worker to use,
+         "dask_worker_cores": number of cores per Dask worker to use,
+         "dask_worker_memory": amount of memory per Dask worker to use in GB,
+         "dask_pip_install": whether to install mosaiks in Dask workers,
+         "mosaiks_col_names": list of column names to use for saving the features,
         }
-        Default config is config/featurisation_config.yaml.
-    satellite_config: dictionary with the following structure:
-        {satellite_name: {"resolution": int,
-                          "bands": list of strings,
-                          "dtype": string,
-                          "buffer_distance": int,
-                          "min_image_edge": int
-                          }
-        }
-        Default config is config/satellite_config.yaml.
-    rasterio_config: dictionary with the following structure:
+        For defaults see `get_features` docstrings.
+    rasterio_config: dictionary for Rasterio setup with the following structure:
         {"GDAL_DISABLE_READDIR_ON_OPEN": str,
          "GDAL_MAX_RAW_BLOCK_CACHE_SIZE": str,
          "GDAL_SWATH_SIZE": str,
@@ -74,10 +69,7 @@ def load_data_and_save_created_features(
          VSI_CURL_CACHE_SIZE : str
          }
         Default config is config/rasterio_config.yaml.
-    featurize_with_parallelization: If True, use dask parallel processing to featurize.
-        Default is True.
-    col_names : List of column names to be used for saving the features. Default is
-        None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
+    parallelize: whether to parallelize the featurization process.
     """
     # Setup Rasterio
     if rasterio_config is None:
@@ -85,25 +77,19 @@ def load_data_and_save_created_features(
     os.environ.update(rasterio_config)
 
     # Check params
-    if featurisation_config is not None:
-        check_satellite_name(
-            featurisation_config["satellite_search_params"]["satellite_name"]
-        )
-        if satellite_config is not None:
-            assert (
-                featurisation_config["satellite_search_params"]["satellite_name"]
-                in satellite_config.keys(),
-                "satellite_config must contain a dictionary for the satellite name in {}".format(
-                    featurisation_config["satellite_search_params"]["satellite_name"]
-                ),
+    if len(config_dictionary) > 0:
+        if "satellite_name" in config_dictionary.keys():
+            check_satellite_name(config_dictionary["satellite_name"])
+        if (
+            "search_start" in config_dictionary.keys()
+            and "search_end" in config_dictionary.keys()
+        ):
+            check_search_dates(
+                config_dictionary["search_start"],
+                config_dictionary["search_end"],
             )
-
-        check_search_dates(
-            featurisation_config["satellite_search_params"]["search_start"],
-            featurisation_config["satellite_search_params"]["search_end"],
-        )
-
-        check_stac_api_name(featurisation_config["satellite_search_params"]["stac_api"])
+        if "stac_api" in config_dictionary.keys():
+            check_stac_api_name(config_dictionary["stac_api"])
 
     # Load data
     input_file_path = get_dataset_path(**dataset["input"])
@@ -115,11 +101,10 @@ def load_data_and_save_created_features(
     # Get features
     logging.info("Getting MOSAIKS features...")
     features_df = get_features(
-        points_df,
-        featurisation_config=featurisation_config,
-        satellite_config=satellite_config,
-        featurize_with_parallelization=featurize_with_parallelization,
-        col_names=col_names,
+        latitudes=points_df["Lat"].values,
+        longitudes=points_df["Lon"].values,
+        parallelize=parallelize,
+        **config_dictionary,
     )
 
     combined_df = combine_results_df_with_context_df(

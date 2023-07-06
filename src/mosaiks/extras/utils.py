@@ -4,6 +4,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import yaml
 
 import mosaiks.utils as utl
 
@@ -11,7 +12,24 @@ _all_ = [
     "combine_results_df_with_context_df",
     "get_dataset_path",
     "save_geodataframe_as_dataframe",
+    "load_yaml_config",
 ]
+
+
+def load_yaml_config(filename: str, config_subfolder: str = None):
+    """Load generic yaml files from config and return dictionary."""
+
+    if config_subfolder:
+        full_path = (
+            Path(__file__).resolve().parents[2] / "config" / config_subfolder / filename
+        )
+    else:
+        full_path = Path(__file__).resolve().parents[2] / "config" / filename
+
+    with open(full_path) as file:
+        yaml_dict = yaml.full_load(file)
+
+    return yaml_dict
 
 
 def combine_results_df_with_context_df(
