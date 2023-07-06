@@ -10,6 +10,7 @@ os.environ["USE_PYGEOS"] = "0"
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 def load_yaml_config(filename: str, config_subfolder: str = None):
     """Load generic yaml files from config and return dictionary."""
@@ -34,6 +35,8 @@ def load_yaml_config(filename: str, config_subfolder: str = None):
 
 
 >>>>>>> fa4c883 (delete references to data catalog)
+=======
+>>>>>>> 3ec933c (remove dependencies on config files in source code)
 def load_dataframe(file_path: str, **kwargs) -> pd.DataFrame:
     """
     Load file with tabular data (csv or parquet) as a pandas DataFrame.
