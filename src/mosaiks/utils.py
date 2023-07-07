@@ -3,40 +3,13 @@ from pathlib import Path
 from typing import List
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import yaml
 
 os.environ["USE_PYGEOS"] = "0"
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-def load_yaml_config(filename: str, config_subfolder: str = None):
-    """Load generic yaml files from config and return dictionary."""
-
-    if config_subfolder:
-        full_path = (
-            Path(__file__).resolve().parents[2] / "config" / config_subfolder / filename
-        )
-    else:
-        full_path = Path(__file__).resolve().parents[2] / "config" / filename
-
-    with open(full_path) as file:
-        yaml_dict = yaml.full_load(file)
-
-    return yaml_dict
-
-
-# def get_data_catalog_params(dataset_name: str) -> dict:
-#     """Load data catalog yaml file and return dictionary."""
-#     data_catalog = load_yaml_config("data_catalog.yaml")
-#     return data_catalog[dataset_name]
-
-
->>>>>>> fa4c883 (delete references to data catalog)
-=======
->>>>>>> 3ec933c (remove dependencies on config files in source code)
 def load_dataframe(file_path: str, **kwargs) -> pd.DataFrame:
     """
     Load file with tabular data (csv or parquet) as a pandas DataFrame.
@@ -93,29 +66,6 @@ def save_dataframe(df: pd.DataFrame, file_path: str, **kwargs) -> None:
         return df.to_parquet(file_path, **kwargs)
     else:
         raise ValueError("File extension not recognized.")
-
-
-def load_df_w_latlons_to_gdf(
-    file_path: str,
-    lat_name: str = "Lat",
-    lon_name: str = "Lon",
-    crs: str = "EPSG:4326",
-    **kwargs,
-) -> gpd.GeoDataFrame:
-    """
-    Load CSV with Lat-Lon columns into a GeoDataFrame.
-
-    Parameters
-    ----------
-    file_path : If given, the path to the file to load.
-    lat_name, lon_name : The names of the columns containing the latitude and longitude
-        values.
-        Default is 'Lat' and 'Lon'.
-    crs : The coordinate reference system of the lat-lon columns.
-        Default is 'EPSG:4326'.
-    """
-    df = load_dataframe(file_path=file_path, **kwargs)
-    return df_w_latlons_to_gdf(df, lat_name, lon_name, crs)
 
 
 def df_w_latlons_to_gdf(
