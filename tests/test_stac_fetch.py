@@ -15,21 +15,52 @@ from mosaiks.fetch.stacs import (
 
 # -----Tests for stac item fetching-----
 @pytest.fixture(scope="module")
-def test_points_with_stac(sample_test_data: gpd.GeoDataFrame):
+def test_points_with_stac_with_all_composite(sample_test_data: gpd.GeoDataFrame):
     """Sample test data with stac items."""
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
     stac_api = get_stac_api("planetary-compute")
     return fetch_stac_items(
-        points_gdf, "landsat-8-c2-l2", "2013-04-01", "2014-03-31", stac_api
+        points_gdf, "landsat-8-c2-l2", "2013-04-01", "2014-03-31", stac_api, "all"
     )
 
 
+@pytest.fixture(scope="module")
+def test_points_with_stac_with_least_cloudy_composite(
+    sample_test_data: gpd.GeoDataFrame,
+):
+    """Sample test data with stac items."""
+    points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
+    stac_api = get_stac_api("planetary-compute")
+    return fetch_stac_items(
+        points_gdf,
+        "landsat-8-c2-l2",
+        "2013-04-01",
+        "2014-03-31",
+        stac_api,
+        "least_cloudy",
+    )
+
+
+@pytest.mark.parametrize(
+    "test_points_with_stac",
+    [
+        pytest.lazy_fixture("test_points_with_stac_with_all_composite"),
+        pytest.lazy_fixture("test_points_with_stac_with_least_cloudy_composite"),
+    ],
+)
 def test_if_stac_items_are_added_to_test_df(test_points_with_stac: gpd.GeoDataFrame):
     assert "stac_item" in test_points_with_stac.columns and type(
         test_points_with_stac["stac_item"].tolist()[0] == Item
     )
 
 
+@pytest.mark.parametrize(
+    "test_points_with_stac",
+    [
+        pytest.lazy_fixture("test_points_with_stac_with_all_composite"),
+        pytest.lazy_fixture("test_points_with_stac_with_least_cloudy_composite"),
+    ],
+)
 def test_if_df_with_stac_items_has_correct_shape(
     test_points_with_stac: gpd.GeoDataFrame, sample_test_data: gpd.GeoDataFrame
 ):
@@ -43,7 +74,12 @@ def test_points_with_stac_null(sample_test_null_data: gpd.GeoDataFrame):
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_null_data)
     stac_api = get_stac_api("planetary-compute")
     return fetch_stac_items(
-        points_gdf, "landsat-8-c2-l2", "2013-04-01", "2014-03-31", stac_api
+        points_gdf,
+        "landsat-8-c2-l2",
+        "2013-04-01",
+        "2014-03-31",
+        stac_api,
+        "least_cloudy",
     )
 
 
@@ -71,7 +107,9 @@ def test_points_with_seasonal_stac(sample_test_data: gpd.GeoDataFrame):
     """Sample test data with stac items."""
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
     stac_api = get_stac_api("planetary-compute")
-    return fetch_seasonal_stac_items(points_gdf, "landsat-8-c2-l2", 2013, stac_api)
+    return fetch_seasonal_stac_items(
+        points_gdf, "landsat-8-c2-l2", 2013, stac_api, "least_cloudy"
+    )
 
 
 def test_if_seasonal_stac_items_are_added_to_test_df(

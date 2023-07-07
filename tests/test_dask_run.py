@@ -55,18 +55,15 @@ def test_if_get_partitions_generator_returns_correct_number_of_points_in_partiti
 @pytest.mark.slow
 def test_run_queued_futures(
     sample_test_data: pd.DataFrame,
-    featurization_params: dict,
-    satellite_config: dict,
+    config_dict: dict,
 ):
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
     model = RCF(
-        featurization_params["model"]["num_features"],
-        featurization_params["model"]["kernel_size"],
-        len(satellite_config["bands"]),
+        config_dict["n_mosaiks_features"],
+        config_dict["mosaiks_kernel_size"],
+        len(config_dict["image_bands"]),
     )
-    columns = [
-        "feature_%d" % i for i in range(featurization_params["model"]["num_features"])
-    ]
+    columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_futures/")
     folder_path.mkdir(parents=True, exist_ok=True)
     client = get_local_dask_client(1, 1)
@@ -75,10 +72,26 @@ def test_run_queued_futures(
         points_gdf,
         client,
         model,
-        featurization_params,
-        satellite_config,
-        columns,
-        folder_path,
+        satellite_name=config_dict["satellite_name"],
+        image_resolution=config_dict["image_resolution"],
+        image_dtype=config_dict["image_dtype"],
+        image_bands=config_dict["image_bands"],
+        buffer_distance=config_dict["buffer_distance"],
+        min_image_edge=config_dict["min_image_edge"],
+        sort_points=config_dict["sort_points_by_hilbert_distance"],
+        seasonal=config_dict["seasonal"],
+        year=config_dict["year"],
+        search_start=config_dict["search_start"],
+        search_end=config_dict["search_end"],
+        mosaic_composite=config_dict["mosaic_composite"],
+        stac_api_name=config_dict["stac_api"],
+        num_features=config_dict["n_mosaiks_features"],
+        batch_size=config_dict["mosaiks_batch_size"],
+        device=config_dict["model_device"],
+        col_names=columns,
+        n_concurrent=config_dict["dask_n_concurrent_tasks"],
+        chunksize=config_dict["dask_chunksize"],
+        save_folder_path=folder_path,
     )
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
@@ -89,19 +102,16 @@ def test_run_queued_futures(
 @pytest.mark.slow
 def test_run_batched_delayed_pipeline(
     sample_test_data: pd.DataFrame,
-    featurization_params: dict,
-    satellite_config: dict,
+    config_dict: dict,
 ):
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
 
     model = RCF(
-        featurization_params["model"]["num_features"],
-        featurization_params["model"]["kernel_size"],
-        len(satellite_config["bands"]),
+        config_dict["n_mosaiks_features"],
+        config_dict["mosaiks_kernel_size"],
+        len(config_dict["image_bands"]),
     )
-    columns = [
-        "feature_%d" % i for i in range(featurization_params["model"]["num_features"])
-    ]
+    columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_batch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
     client = get_local_dask_client(1, 1)
@@ -110,10 +120,26 @@ def test_run_batched_delayed_pipeline(
         points_gdf,
         client,
         model,
-        featurization_params,
-        satellite_config,
-        columns,
-        folder_path,
+        satellite_name=config_dict["satellite_name"],
+        image_resolution=config_dict["image_resolution"],
+        image_dtype=config_dict["image_dtype"],
+        image_bands=config_dict["image_bands"],
+        buffer_distance=config_dict["buffer_distance"],
+        min_image_edge=config_dict["min_image_edge"],
+        sort_points=config_dict["sort_points_by_hilbert_distance"],
+        seasonal=config_dict["seasonal"],
+        year=config_dict["year"],
+        search_start=config_dict["search_start"],
+        search_end=config_dict["search_end"],
+        mosaic_composite=config_dict["mosaic_composite"],
+        stac_api_name=config_dict["stac_api"],
+        num_features=config_dict["n_mosaiks_features"],
+        batch_size=config_dict["mosaiks_batch_size"],
+        device=config_dict["model_device"],
+        n_concurrent=config_dict["dask_n_concurrent_tasks"],
+        chunksize=config_dict["dask_chunksize"],
+        col_names=columns,
+        save_folder_path=folder_path,
     )
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
@@ -125,18 +151,15 @@ def test_run_batched_delayed_pipeline(
 @pytest.mark.slow
 def test_run_unbatched_delayed_pipeline(
     sample_test_data: pd.DataFrame,
-    featurization_params: dict,
-    satellite_config: dict,
+    config_dict: dict,
 ):
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
     model = RCF(
-        featurization_params["model"]["num_features"],
-        featurization_params["model"]["kernel_size"],
-        len(satellite_config["bands"]),
+        config_dict["n_mosaiks_features"],
+        config_dict["mosaiks_kernel_size"],
+        len(config_dict["image_bands"]),
     )
-    columns = [
-        "feature_%d" % i for i in range(featurization_params["model"]["num_features"])
-    ]
+    columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_unbatch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
     client = get_local_dask_client(1, 1)
@@ -145,11 +168,27 @@ def test_run_unbatched_delayed_pipeline(
         points_gdf,
         client,
         model,
-        featurization_params,
-        satellite_config,
-        columns,
-        folder_path,
+        config_dict["sort_points_by_hilbert_distance"],
+        config_dict["satellite_name"],
+        config_dict["search_start"],
+        config_dict["search_end"],
+        config_dict["stac_api"],
+        config_dict["seasonal"],
+        config_dict["year"],
+        config_dict["mosaic_composite"],
+        config_dict["n_mosaiks_features"],
+        config_dict["model_device"],
+        config_dict["min_image_edge"],
+        config_dict["mosaiks_batch_size"],
+        config_dict["buffer_distance"],
+        config_dict["image_bands"],
+        config_dict["image_resolution"],
+        config_dict["image_dtype"],
+        col_names=columns,
+        chunksize=config_dict["dask_chunksize"],
+        save_folder_path=folder_path,
     )
+
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
     client.shutdown()
