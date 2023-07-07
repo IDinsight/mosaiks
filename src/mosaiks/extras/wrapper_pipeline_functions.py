@@ -111,6 +111,7 @@ def load_data_and_save_created_features(
         **config_dictionary,
     )
 
+    # Combine features with context
     combined_df = combine_results_df_with_context_df(
         features_df=features_df,
         context_df=points_df,
