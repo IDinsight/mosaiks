@@ -21,10 +21,10 @@ def load_yaml_config(filename: str, config_subfolder: str = None):
 
     if config_subfolder:
         full_path = (
-            Path(__file__).resolve().parents[2] / "config" / config_subfolder / filename
+            Path(__file__).resolve().parents[3] / "config" / config_subfolder / filename
         )
     else:
-        full_path = Path(__file__).resolve().parents[2] / "config" / filename
+        full_path = Path(__file__).resolve().parents[3] / "config" / filename
 
     with open(full_path) as file:
         yaml_dict = yaml.full_load(file)

@@ -8,7 +8,11 @@ import mosaiks.utils as utl
 from mosaiks.pipeline import get_features
 
 from .checks import check_satellite_name, check_search_dates, check_stac_api_name
-from .utils import combine_results_df_with_context_df, get_dataset_path
+from .utils import (
+    combine_results_df_with_context_df,
+    get_dataset_path,
+    load_yaml_config,
+)
 
 
 def load_data_and_save_created_features(
@@ -73,7 +77,7 @@ def load_data_and_save_created_features(
     """
     # Setup Rasterio
     if rasterio_config is None:
-        rasterio_config = utl.load_yaml_config("rasterioc_config.yaml")
+        rasterio_config = load_yaml_config("rasterioc_config.yaml")
     os.environ.update(rasterio_config)
 
     # Check params
