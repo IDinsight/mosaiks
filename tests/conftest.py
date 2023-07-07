@@ -25,51 +25,33 @@ def sample_test_null_data():
 
 
 @pytest.fixture(scope="session")
-def featurization_params():
+def config_dict():
     """Featurization configuration for testing."""
     params = {
-        "coord_set": {
-            "coord_set_name": "test",
-            "sort_points": True,
-            "context_cols_to_keep": ["Lat", "Lon"],
-        },
-        "satellite_search_params": {
-            "satellite_name": "landsat-8-c2-l2",
-            "seasonal": False,
-            "year": 2014,
-            "search_start": "2013-04-01",
-            "search_end": "2014-03-31",
-            "stac_output": "least_cloudy",
-            "stac_api": "planetary-compute",
-        },
-        "model": {
-            "num_features": 4,
-            "kernel_size": 3,
-            "batch_size": 1,
-            "device": "cpu",
-        },
-        "dask": {
-            "n_concurrent": 1,
-            "chunksize": 5,
-            "n_workers": 1,
-            "threads_per_worker": 1,
-        },
-    }
-    return params
-
-
-@pytest.fixture(scope="session")
-def satellite_config():
-    """Satellite configuration for testing."""
-    satellite_config = {
-        "resolution": 53,
-        "dtype": "int16",
-        "bands": ["SR_B2", "SR_B3", "SR_B6", "SR_B7"],
+        "satellite_name": "landsat-8-c2-l2",
+        "image_resolution": 53,
+        "image_dtype": "int16",
+        "image_bands": ["SR_B2", "SR_B3", "SR_B6", "SR_B7"],
         "buffer_distance": 1001,
         "min_image_edge": 23,
+        "sort_points_by_hilbert_distance": True,
+        "seasonal": False,
+        "year": 2014,
+        "search_start": "2013-04-01",
+        "search_end": "2014-03-31",
+        "mosaic_composite": "least_cloudy",
+        "stac_api": "planetary-compute",
+        "n_mosaiks_features": 4,
+        "mosaiks_kernel_size": 3,
+        "mosaiks_batch_size": 1,
+        "model_device": "cpu",
+        "dask_client_type": "local",
+        "dask_n_concurrent_tasks": 1,
+        "dask_chunksize": 5,
+        "dask_n_workers": 1,
+        "dask_threads_per_worker": 1,
     }
-
-    return satellite_config
+    return params
 
 
 @pytest.fixture(scope="session")

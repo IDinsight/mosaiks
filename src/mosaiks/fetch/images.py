@@ -3,7 +3,6 @@ import math
 from typing import List
 
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import numpy as np
 import pyproj
 import stackstac
@@ -17,7 +16,6 @@ __all__ = [
     "create_data_loader",
     "fetch_image_crop_from_stac_id",
     "fetch_image_crop",
-    "display_image",
 ]
 
 
@@ -25,7 +23,7 @@ def fetch_image_crop(
     lon: float,
     lat: float,
     stac_item: Item,  # or list[Items]
-    buffer: int,
+    buffer_distance: int,
     bands: List[str],
     resolution: int,
     dtype: str = "int16",
@@ -33,7 +31,7 @@ def fetch_image_crop(
 ) -> np.array:
     """
     Fetches a crop of satellite imagery referenced by the given STAC item(s),
-    centered around the given point and with the given buffer.
+    centered around the given point and with the given buffer_distance.
 
     If multiple STAC items are given, the median composite of the images is returned.
 
@@ -42,7 +40,7 @@ def fetch_image_crop(
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
     stac_item : STAC Item to fetch imagery for. Can be a list of STAC Items.
-    buffer : Buffer in meters around the centerpoint to fetch imagery for
+    buffer_distance : buffer_distance in meters around the centerpoint to fetch imagery for
     bands : List of bands to fetch
     resolution : Resolution of the image to fetch
     dtype : Data type of the image to fetch. Defaults to "int16".
@@ -57,8 +55,8 @@ def fetch_image_crop(
     if stac_item is None:
         size = (
             len(bands),
-            math.ceil(2 * buffer / resolution + 1),
-            math.ceil(2 * buffer / resolution + 1),
+            math.ceil(2 * buffer_distance / resolution + 1),
+            math.ceil(2 * buffer_distance / resolution + 1),
         )
         return np.ones(size) * np.nan
 
@@ -70,8 +68,8 @@ def fetch_image_crop(
         crs = stac_item.properties["proj:epsg"]
     proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
     x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
-    x_min, x_max = x_utm - buffer, x_utm + buffer
-    y_min, y_max = y_utm - buffer, y_utm + buffer
+    x_min, x_max = x_utm - buffer_distance, x_utm + buffer_distance
+    y_min, y_max = y_utm - buffer_distance, y_utm + buffer_distance
 
     # get image(s) as xarray
     xarray = stackstac.stack(
@@ -102,13 +100,17 @@ def fetch_image_crop(
 
 
 def _minmax_normalize_image(image: np.array) -> np.array:
-
     img_min, img_max = image.min(), image.max()
     return (image - img_min) / (img_max - img_min)
 
 
 def create_data_loader(
-    points_gdf_with_stac: gpd.GeoDataFrame, satellite_params: dict, batch_size: int
+    points_gdf_with_stac: gpd.GeoDataFrame,
+    image_bands: List[str],
+    image_resolution: int,
+    image_dtype: str,
+    buffer_distance: int,
+    batch_size: int,
 ) -> DataLoader:
     """
     Creates a PyTorch DataLoader which returns cropped images based on the given
@@ -118,7 +120,10 @@ def create_data_loader(
     ----------
     points_gdf_with_stac : A GeoDataFrame with the points we want to fetch imagery for
         alongside the STAC item references to pictures for each point
-    satellite_params : A dictionary of parameters for the satellite imagery to fetch
+    image_bands : The bands to use for the image crops
+    image_resolution : The resolution to use for the image crops
+    image_dtype : The data type to use for the image crops
+    buffer_distance : The buffer distance in meters to use for the image crops
     batch_size : The batch size to use for the DataLoader
 
     Returns
@@ -131,10 +136,10 @@ def create_data_loader(
     dataset = CustomDataset(
         points_list,
         stac_item_list,
-        buffer=satellite_params["buffer_distance"],
-        bands=satellite_params["bands"],
-        resolution=satellite_params["resolution"],
-        dtype=satellite_params["dtype"],
+        buffer_distance=buffer_distance,
+        bands=image_bands,
+        resolution=image_resolution,
+        dtype=image_dtype,
     )
 
     data_loader = DataLoader(
@@ -153,7 +158,7 @@ class CustomDataset(Dataset):
         self,
         points: np.array,
         items: List[Item],
-        buffer: int,
+        buffer_distance: int,
         bands: List[str],
         resolution: int,
         dtype: str = "int16",
@@ -163,7 +168,7 @@ class CustomDataset(Dataset):
         ----------
         points : Array of points to sample from
         items : List of STAC items to sample from
-        buffer : Buffer in meters around each point to sample from
+        buffer_distance : Buffer distance in meters around each point to sample from
         bands : List of bands to sample
         resolution : Resolution of the image to sample
         dtype : Data type of the image to sample. Defaults to "int16".
@@ -173,7 +178,7 @@ class CustomDataset(Dataset):
 
         self.points = points
         self.items = items
-        self.buffer = buffer
+        self.buffer = buffer_distance
         self.bands = bands
         self.resolution = resolution
         self.dtype = dtype
@@ -197,19 +202,23 @@ class CustomDataset(Dataset):
         lon, lat = self.points[idx]
         stac_item = self.items[idx]
 
-        # TODO: need to handle all 0 images
         try:
             image = fetch_image_crop(
                 lon=lon,
                 lat=lat,
                 stac_item=stac_item,
-                buffer=self.buffer,
+                buffer_distance=self.buffer,
                 bands=self.bands,
                 resolution=self.resolution,
                 dtype=self.dtype,
                 normalise=True,
             )
             torch_image = torch.from_numpy(image).float()
+
+            # if all 0s, replace with NaNs
+            if torch.all(torch_image == 0):
+                torch_image = np.ones_like(torch_image) * np.nan
+
             return torch_image
         except Exception as e:
             print(f"Skipping {idx}: {e}")
@@ -223,10 +232,12 @@ def fetch_image_crop_from_stac_id(
     stac_id: str,
     lon: float,
     lat: float,
-    satellite_config: dict,
-    normalise=True,
+    buffer_distance: int,
+    bands: List[str],
+    resolution: int,
+    dtype: str = "int16",
+    normalise: bool = True,
     stac_api_name: str = "planetary-compute",
-    plot: bool = False,
 ) -> np.array:
     """
     Note: This function is necessary since STAC Items cannot be directly saved to file
@@ -245,10 +256,12 @@ def fetch_image_crop_from_stac_id(
     stac_id : The STAC ID of the image to fetch
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
-    satellite_config : A dictionary of parameters for the satellite imagery to fetch
+    buffer_distance : Buffer in meters around the centerpoint for fetching imagery
+    bands : The satellite image bands to fetch
+    resolution : The resolution of the image to fetch
+    dtype : The data type of the image to fetch. Defaults to "int16".
     normalise : Whether to normalise the image. Defaults to True.
     stac_api_name : The name of the STAC API to use. Defaults to "planetary-compute".
-    plot : Whether to plot the image. Defaults to False.
 
     Returns
     -------
@@ -268,34 +281,11 @@ def fetch_image_crop_from_stac_id(
             lon=lon,
             lat=lat,
             stac_item=stac_items,
-            buffer=satellite_config["buffer_distance"],
-            bands=satellite_config["bands"],
-            resolution=satellite_config["resolution"],
-            dtype=satellite_config["dtype"],
+            buffer_distance=buffer_distance,
+            bands=bands,
+            resolution=resolution,
+            dtype=dtype,
             normalise=normalise,
         )
 
-        if plot:
-            display_image(image_crop)
-
         return image_crop
-
-
-# TODO: move to utils
-def display_image(image: np.array, RGB_band_order=[2, 1, 0]):
-    """Displays a numpy image in RGB format.
-
-    Parameters
-    ----------
-    image : A numpy array of shape (C, H, W)
-    RGB_band_order : The order of the bands to display. Defaults to [2, 1, 0].
-
-    Returns
-    -------
-    None
-    """
-
-    rgb_image = image[RGB_band_order, :, :].transpose(1, 2, 0)
-    plt.imshow(rgb_image)
-    plt.show()
-    plt.close()

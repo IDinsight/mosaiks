@@ -9,7 +9,7 @@ from mosaiks.fetch.stacs import fetch_stac_item_from_id
 
 
 @pytest.fixture(scope="module")
-def image_crop(satellite_config: dict):
+def image_crop(config_dict: dict):
     """Test image crop."""
     lon, lat, id = (
         80.99266676800818,
@@ -22,14 +22,14 @@ def image_crop(satellite_config: dict):
         lon,
         lat,
         stac_item,
-        satellite_config["buffer_distance"],
-        satellite_config["bands"],
-        satellite_config["resolution"],
+        config_dict["buffer_distance"],
+        config_dict["image_bands"],
+        config_dict["image_resolution"],
     )
 
 
 @pytest.fixture(scope="module")
-def image_crop_from_stac_id(satellite_config: dict):
+def image_crop_from_stac_id(config_dict: dict):
     """Stac Item fetched from stac ID."""
     lon, lat, id = (
         80.99266676800818,
@@ -40,13 +40,17 @@ def image_crop_from_stac_id(satellite_config: dict):
         id,
         lon,
         lat,
-        satellite_config,
+        config_dict["buffer_distance"],
+        config_dict["image_bands"],
+        config_dict["image_resolution"],
+        config_dict["image_dtype"],
+        True,
         "planetary-compute",
     )
 
 
 @pytest.fixture(scope="module")
-def image_crop_from_nans(satellite_config: dict):
+def image_crop_from_nans(config_dict: dict):
     """Test image crop."""
     lon, lat, id = (np.nan, np.nan, None)
     stac_item = fetch_stac_item_from_id([id])[0]
@@ -55,9 +59,9 @@ def image_crop_from_nans(satellite_config: dict):
         lon,
         lat,
         stac_item,
-        satellite_config["buffer_distance"],
-        satellite_config["bands"],
-        satellite_config["resolution"],
+        config_dict["buffer_distance"],
+        config_dict["image_bands"],
+        config_dict["image_resolution"],
     )
 
 
@@ -69,12 +73,12 @@ def image_crop_from_nans(satellite_config: dict):
         pytest.lazy_fixture("image_crop_from_nans"),
     ],
 )
-def test_image_crop_shape(test_image_crop: np.ndarray, satellite_config: dict):
+def test_image_crop_shape(test_image_crop: np.ndarray, config_dict: dict):
     image_size = math.ceil(
-        satellite_config["buffer_distance"] * 2 / satellite_config["resolution"]
+        config_dict["buffer_distance"] * 2 / config_dict["image_resolution"]
     )
     assert test_image_crop.shape == (
-        len(satellite_config["bands"]),
+        len(config_dict["image_bands"]),
         image_size + 1,
         image_size + 1,
     )
