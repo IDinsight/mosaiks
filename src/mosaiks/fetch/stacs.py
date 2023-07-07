@@ -44,7 +44,7 @@ def fetch_image_refs(
     points_gdf: A GeoDataFrame with a column named "stac_item" containing STAC
         items.
     """
-    stac_api = get_stac_api(stac_api_name=stac_api_name)
+    stac_api = get_stac_api(stac_api_name)
 
     if seasonal:
         points_gdf_with_stac = fetch_seasonal_stac_items(

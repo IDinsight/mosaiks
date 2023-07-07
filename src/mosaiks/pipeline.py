@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import List
 
 import pandas as pd
 
@@ -13,15 +14,15 @@ from mosaiks.featurize import RCF
 
 
 def get_features(
-    latitudes: list(float),
-    longitudes: list(float),
+    latitudes: List[float],
+    longitudes: List[float],
     parallelize: bool = True,
     satellite_name: str = "landsat-8-c2-l2",
     image_resolution: int = 30,
     image_dtype: str = "int16",
-    image_bands: list = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"],
-    buffer_distance: int = 1000,
-    min_image_edge: int = 1000,
+    image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"],
+    buffer_distance: int = 1200,
+    min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
     seasonal: bool = False,
     year: int = None,

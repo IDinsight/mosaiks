@@ -602,7 +602,6 @@ def run_unbatched_delayed_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
-    chunksize: int,
     sort_points: bool,
     satellite_name: str,
     search_start: str,
@@ -620,6 +619,7 @@ def run_unbatched_delayed_pipeline(
     image_resolution: int,
     image_dtype: str,
     col_names: list,
+    chunksize: int,
     save_folder_path: str,
 ) -> list[delayed]:
     """
@@ -631,7 +631,6 @@ def run_unbatched_delayed_pipeline(
     points_gdf : GeoDataFrame of coordinate points.
     client : Dask client.
     model : PyTorch model to be used for featurization.
-    chunksize : Number of points per partition.
     sort_points : Whether to sort the points by their Hilbert distance.
     satellite_name : Name of satellite to be used for featurization.
     search_start : Start date for satellite image search.
@@ -649,6 +648,7 @@ def run_unbatched_delayed_pipeline(
     image_resolution : Resolution of satellite images to be used for featurization.
     image_dtype : Data type of satellite images to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
+    chunksize : Number of points per partition.
     save_folder_path : Path to folder where features will be saved.
 
     Returns

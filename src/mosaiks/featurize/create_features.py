@@ -35,7 +35,6 @@ def create_features_from_image_array(
     for images in dataloader:
         for i, image in enumerate(images, start=i + 1):
             if image is not None:
-
                 # in case of single-band image, force-add a band dimension
                 if len(image.shape) == 2:
                     image = image.unsqueeze(0)
@@ -52,7 +51,6 @@ def create_features_from_image_array(
                 # print("warn", flush=True)
                 # warnings.warn("No image found")
                 pass
-
     return features_array
 
 
