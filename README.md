@@ -1,4 +1,4 @@
-# MOSAIKS Satellite Imagery Featurization
+# 📸🛰️ MOSAIKS Satellite Imagery Featurization 🛰️📸
 
 This repository holds the code to perform parallelized encoding of satellite imagery into easy-to-use features using the MOSAIKS algorithm and Dask for parallel processing.
 The package simply requires users to upload a file of GPS coordinates for which they need satellite image features, and optionally set some configurable parameters. The package returns a vector of features corresponding to each coordinate, which users can then use for to train models for (linear) prediction or classification problems.
