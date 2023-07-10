@@ -199,9 +199,13 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
     """
 
     rows_list = []
-    for item in item_collection:
+    crs_for_all_images = None
+    for i, item in enumerate(item_collection):
 
         stac_crs = item.properties["proj:epsg"]
+
+        if i == 0:
+            crs_for_all_images = stac_crs
 
         # get STAC geometry
         stac_geom = shapely.geometry.shape(item.geometry)
@@ -229,7 +233,10 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
             "geometry": [trimmed_geom],
         }
 
-        row = gpd.GeoDataFrame(row_data, crs=4326)
+        row = gpd.GeoDataFrame(row_data).set_crs(
+            crs_for_all_images, allow_override=True
+        )
+
         rows_list.append(row)
 
     return pd.concat(rows_list)
