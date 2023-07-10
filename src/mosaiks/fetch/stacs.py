@@ -266,8 +266,10 @@ def _get_overlapping_stac_items(
                 all_items = items_covering_point["stac_item"].tolist()
                 col_value_list.append(all_items)
             elif mosaic_composite == "least_cloudy":
-                least_cloudy_item = items_covering_point.iloc[0]["stac_item"]
-                col_value_list.append(least_cloudy_item)
+                all_items_sorted_by_cloudiness = items_covering_point[
+                    "stac_item"
+                ].tolist()
+                col_value_list.append(all_items_sorted_by_cloudiness)
             else:
                 raise ValueError(
                     f"mosaic_composite must be 'least_cloudy' or 'all', not {mosaic_composite}"
