@@ -40,7 +40,7 @@ if __name__ == "__main__":
     check_stac_api_name(featurization_config["satellite_search_params"]["stac_api"])
 
     # Setup Dask Cluster and Client
-    client = get_local_dask_client(
+    cluster, client = get_local_dask_client(
         featurization_config["dask"]["n_workers"],
         featurization_config["dask"]["threads_per_worker"],
     )

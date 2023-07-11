@@ -141,7 +141,7 @@ def get_features(
         os.makedirs(save_folder_path_temp, exist_ok=True)
 
         # Create dask client
-        _, client = get_dask_client(
+        cluster, client = get_dask_client(
             client_type=dask_client_type,
             n_workers=dask_n_workers,
             threads_per_worker=dask_threads_per_worker,
