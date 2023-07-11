@@ -68,29 +68,6 @@ def save_dataframe(df: pd.DataFrame, file_path: str, **kwargs) -> None:
         raise ValueError("File extension not recognized.")
 
 
-def load_df_w_latlons_to_gdf(
-    file_path: str,
-    lat_name: str = "Lat",
-    lon_name: str = "Lon",
-    crs: str = "EPSG:4326",
-    **kwargs,
-) -> gpd.GeoDataFrame:
-    """
-    Load CSV with Lat-Lon columns into a GeoDataFrame.
-
-    Parameters
-    ----------
-    file_path : If given, the path to the file to load.
-    lat_name, lon_name : The names of the columns containing the latitude and longitude
-        values.
-        Default is 'Lat' and 'Lon'.
-    crs : The coordinate reference system of the lat-lon columns.
-        Default is 'EPSG:4326'.
-    """
-    df = load_dataframe(file_path=file_path, **kwargs)
-    return df_w_latlons_to_gdf(df, lat_name, lon_name, crs)
-
-
 def df_w_latlons_to_gdf(
     df: pd.DataFrame,
     lat_name: str = "Lat",
