@@ -94,9 +94,10 @@ def fetch_image_crop(
         image = xarray.median(dim="time").values
     elif mosaic_composite == "least_cloudy":
         # for least cloudy, take the first non zero image
-        image = xarray.values
-        idx_nonzero = ~np.all(image == 0.0, axis=(-3, -2, -1))
-        image = image[idx_nonzero][0]
+        for i in range(len(stac_item)):
+            image = xarray[i].values
+            if ~np.all(image == 0.0):
+                break
 
     if normalise:
         image = _minmax_normalize_image(image)
