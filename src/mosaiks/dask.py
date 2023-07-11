@@ -747,15 +747,16 @@ def delayed_pipeline(
     Returns:
         Dask.Delayed object
     """
+
     points_gdf_with_stac = dask.delayed(fetch_image_refs)(
-        points_gdf,
-        satellite_name,
-        search_start,
-        search_end,
-        stac_api_name,
-        seasonal,
-        year,
-        mosaic_composite,
+        points_gdf=points_gdf,
+        satellite_name=satellite_name,
+        seasonal=seasonal,
+        year=year,
+        search_start=search_start,
+        search_end=search_end,
+        mosaic_composite=mosaic_composite,
+        stac_api_name=stac_api_name,
     )
 
     data_loader = dask.delayed(create_data_loader)(
@@ -780,11 +781,9 @@ def delayed_pipeline(
         context_gdf=points_gdf_with_stac,
         mosaiks_col_names=col_names,
     )
-
     delayed_task = dask.delayed(utl.save_dataframe)(
         df=df, file_path=save_folder_path / save_filename
     )
-
     return delayed_task
 
 

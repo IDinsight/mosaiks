@@ -6,6 +6,15 @@ valid_satellite_names = ["sentinel-2-l2a", "landsat-8-c2-l2"]
 valid_stac_api_names = ["planetary-compute", "earth"]
 
 
+def check_latitudes_and_longitudes(latitudes: list, longitudes: list) -> None:
+    """Check that latitudes and longitudes are of equal length."""
+    if len(latitudes) != len(longitudes):
+        raise ValueError(
+            f"Length of latitudes ({len(latitudes)}) must be equal to length of\
+            longitudes ({len(longitudes)})"
+        )
+
+
 def check_satellite_name(satellite_name: str) -> None:
     """Check that satellite name is valid."""
     if satellite_name not in valid_satellite_names:

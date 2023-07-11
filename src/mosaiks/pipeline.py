@@ -1,9 +1,12 @@
 import logging
 import os
+from pathlib import Path
 from typing import List
 
 import pandas as pd
+import yaml
 
+import mosaiks.checks as checks
 import mosaiks.utils as utl
 from mosaiks.dask import (
     get_dask_client,
@@ -11,6 +14,16 @@ from mosaiks.dask import (
     run_batched_delayed_pipeline,
 )
 from mosaiks.featurize import RCF
+
+# Rasterio variables
+# See https://github.com/pangeo-data/cog-best-practices
+RASTERIO_CONFIG = {
+    "GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR",
+    "GDAL_MAX_RAW_BLOCK_CACHE_SIZE": "200000000",
+    "GDAL_SWATH_SIZE": "200000000",
+    "VSI_CURL_CACHE_SIZE": "200000000",
+    "AWS_REQUEST_PAYER": "requester",
+}
 
 
 def get_features(
@@ -43,6 +56,7 @@ def get_features(
     dask_worker_memory: int = 2,
     dask_pip_install: bool = False,
     mosaiks_col_names: list = None,
+    setup_rasterio_env: bool = True,
 ) -> pd.DataFrame:  # or None
     """
     For a given DataFrame of coordinate points, this function runs the necessary
@@ -80,13 +94,26 @@ def get_features(
     dask_worker_memory: amount of memory per Dask worker to use in GB. Defaults to 2.
     dask_pip_install: whether to install mosaiks in Dask workers. Defaults to False.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
+    setup_rasterio_env: whether to set up rasterio environment variables. Defaults to True.
 
     Returns
     --------
     None or DataFrame
 
     """
+    # Set up Rasterio
+    if setup_rasterio_env:
+        os.environ.update(RASTERIO_CONFIG)
+
+    # Check inputs
+    logging.info("Checking inputs...")
+    checks.check_latitudes_and_longitudes(latitudes, longitudes)
+    checks.check_satellite_name(satellite_name)
+    checks.check_stac_api_name(stac_api)
+    checks.check_search_dates(search_start, search_end)
+
     # Make points df
+    logging.info("Formatting data and creating model...")
     points_df = pd.DataFrame({"Lat": latitudes, "Lon": longitudes})
 
     # Convert points to gdf
@@ -103,6 +130,7 @@ def get_features(
     )
 
     # If using parallelization, run the featurization without Dask
+    logging.info("Getting MOSAIKS features...")
     if parallelize:
         # Make folder for temporary checkpoints
         save_folder_path_temp = utl.make_output_folder_path(
