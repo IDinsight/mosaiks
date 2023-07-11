@@ -51,6 +51,9 @@ class RCF(nn.Module):
         )
         # Fills the input Tensor 'conv1.weight' with values drawn from the
         # normal distribution
+        torch.manual_seed(
+            768
+        )  # set random state to initialise filters same way every time
         nn.init.normal_(self.conv1.weight, mean=0.0, std=1.0)
         # Fills the input Tensor 'conv1.bias' with the value 'val = -1'.
         nn.init.constant_(self.conv1.bias, -1.0)
