@@ -9,7 +9,7 @@ import pytest
 
 from mosaiks import utils as utl
 from mosaiks.dask import (
-    get_local_dask_client,
+    get_local_dask_cluster_and_client,
     get_partitions_generator,
     run_batched_delayed_pipeline,
     run_queued_futures_pipeline,
@@ -66,7 +66,7 @@ def test_run_queued_futures(
     columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_futures/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    cluster, client = get_local_dask_client(1, 1)
+    cluster, client = get_local_dask_cluster_and_client(1, 1)
 
     run_queued_futures_pipeline(
         points_gdf,
@@ -114,7 +114,7 @@ def test_run_batched_delayed_pipeline(
     columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_batch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    cluster, client = get_local_dask_client(1, 1)
+    cluster, client = get_local_dask_cluster_and_client(1, 1)
 
     run_batched_delayed_pipeline(
         points_gdf,
@@ -162,7 +162,7 @@ def test_run_unbatched_delayed_pipeline(
     columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_unbatch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    cluster, client = get_local_dask_client(1, 1)
+    cluster, client = get_local_dask_cluster_and_client(1, 1)
 
     run_unbatched_delayed_pipeline(
         points_gdf,

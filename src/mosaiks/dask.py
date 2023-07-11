@@ -21,8 +21,8 @@ from mosaiks.featurize import create_features_from_image_array
 from mosaiks.fetch import create_data_loader, fetch_image_refs
 
 __all__ = [
-    "get_dask_client",
-    "get_local_dask_client",
+    "get_dask_cluster_and_client",
+    "get_local_dask_cluster_and_client",
     "get_gateway_cluster_client",
     "run_queued_futures_pipeline",
     "run_batched_delayed_pipeline",
@@ -32,7 +32,7 @@ __all__ = [
 ]
 
 
-def get_dask_client(client_type: str = "local", **client_kwargs) -> tuple:
+def get_dask_cluster_and_client(client_type: str = "local", **client_kwargs) -> tuple:
     """
     Get dask client.
 
@@ -40,22 +40,22 @@ def get_dask_client(client_type: str = "local", **client_kwargs) -> tuple:
     -----------
     client_type: "local" or "gateway". "local" spins up a local Dask cluster; "gateway"
         spins up a cluster on a remote computing platform. Default is "local".
-    client_kwargs: Keyword arguments to create client. See `get_local_dask_client` and
-        `get_gateway_dask_client` for details.
+    client_kwargs: Keyword arguments to create client. See `get_local_dask_cluster_and_client` and
+        `get_gateway_dask_cluster_and_client` for details.
 
     Returns:
     --------
     Dask cluster and client
     """
     if client_type == "local":
-        return get_local_dask_client(**client_kwargs)
+        return get_local_dask_cluster_and_client(**client_kwargs)
     elif client_type == "gateway":
         return get_gateway_cluster_client(**client_kwargs)
     else:
         raise NotImplementedError
 
 
-def get_local_dask_client(
+def get_local_dask_cluster_and_client(
     n_workers: int = 4, threads_per_worker: int = 4, **kwargs
 ) -> tuple:
     """

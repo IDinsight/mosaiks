@@ -9,7 +9,7 @@ import yaml
 import mosaiks.checks as checks
 import mosaiks.utils as utl
 from mosaiks.dask import (
-    get_dask_client,
+    get_dask_cluster_and_client,
     get_features_without_parallelization,
     run_batched_delayed_pipeline,
 )
@@ -141,7 +141,7 @@ def get_features(
         os.makedirs(save_folder_path_temp, exist_ok=True)
 
         # Create dask client
-        cluster, client = get_dask_client(
+        cluster, client = get_dask_cluster_and_client(
             client_type=dask_client_type,
             n_workers=dask_n_workers,
             threads_per_worker=dask_threads_per_worker,
