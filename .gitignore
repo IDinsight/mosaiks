@@ -9,6 +9,7 @@ config/secrets.yaml
 **/*.parquet
 **/*.parquet.gzip
 **/.vscode/
+test_data.csv
 
 # Temporary files
 *.swp
