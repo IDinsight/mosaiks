@@ -47,7 +47,7 @@ def config_dict():
         "model_device": "cpu",
         "dask_client_type": "local",
         "dask_n_concurrent_tasks": 1,
-        "dask_chunksize": 5,
+        "dask_chunksize": 3,
         "dask_n_workers": 1,
         "dask_threads_per_worker": 1,
     }

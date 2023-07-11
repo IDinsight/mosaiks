@@ -27,6 +27,7 @@ def fetch_image_crop(
     bands: List[str],
     resolution: int,
     dtype: str = "int16",
+    mosaic_composite: str = "least_cloudy",
     normalise: bool = True,
 ) -> np.array:
     """
@@ -40,19 +41,22 @@ def fetch_image_crop(
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
     stac_item : STAC Item to fetch imagery for. Can be a list of STAC Items.
-    buffer_distance : buffer_distance in meters around the centerpoint to fetch imagery for
+    buffer_distance : buffer_distance in meters around the centerpoint to fetch imagery
     bands : List of bands to fetch
     resolution : Resolution of the image to fetch
     dtype : Data type of the image to fetch. Defaults to "int16".
         NOTE - np.uint8 results in loss of signal in the features
         and np.uint16 is not supported by PyTorch.
+    mosaic_composite : The type of composite to make if multiple images are given.
+        If "least_cloudy"", take the least cloudy non-0 image. If "all", take a median
+        composite of all images. Defaults to "least_cloudy"
     normalise : Whether to normalise the image. Defaults to True.
 
     Returns
     -------
     image : numpy array of shape (C, H, W)
     """
-    if stac_item is None:
+    if stac_item is None or all(x is None for x in stac_item):
         size = (
             len(bands),
             math.ceil(2 * buffer_distance / resolution + 1),
@@ -60,12 +64,14 @@ def fetch_image_crop(
         )
         return np.ones(size) * np.nan
 
+    # Stac item must always be a list
+    assert isinstance(stac_item, list)
+
     # calculate crop bounds
-    if isinstance(stac_item, list):
-        # if multiple items, use the projection of the first one
-        crs = stac_item[0].properties["proj:epsg"]
-    else:
-        crs = stac_item.properties["proj:epsg"]
+    # use the projection of the first non-None stac item
+    (idx,) = np.nonzero([x is not None for x in stac_item])
+    crs = stac_item[idx[0]].properties["proj:epsg"]
+
     proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
     x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
     x_min, x_max = x_utm - buffer_distance, x_utm + buffer_distance
@@ -83,15 +89,20 @@ def fetch_image_crop(
     )
 
     # remove the time dimension
-    if isinstance(stac_item, list):
-        # if there are multiple image, make composite over time
-        image = xarray.median(dim="time")
-    else:
-        # if there is only one image, just remove the redundant time dimension
-        image = xarray.squeeze()
-
-    # turn xarray to np.array
-    image = image.values
+    if mosaic_composite == "all":
+        # for a composite over all images, take median pixel over time
+        image = xarray.median(dim="time").values
+    elif mosaic_composite == "least_cloudy":
+        # for least cloudy, take the first non zero image
+        for i in range(len(stac_item)):
+            image = xarray[i].values
+            if ~np.all(image == 0.0) and i < len(stac_item) - 1:
+                break
+            else:
+                image = xarray[0].values
+                logging.warning(
+                    f"All images in the stack are zero for point {lon}, {lat}"
+                )
 
     if normalise:
         image = _minmax_normalize_image(image)
@@ -111,6 +122,7 @@ def create_data_loader(
     image_dtype: str,
     buffer_distance: int,
     batch_size: int,
+    mosaic_composite: str = "least_cloudy",
 ) -> DataLoader:
     """
     Creates a PyTorch DataLoader which returns cropped images based on the given
@@ -125,6 +137,8 @@ def create_data_loader(
     image_dtype : The data type to use for the image crops
     buffer_distance : The buffer distance in meters to use for the image crops
     batch_size : The batch size to use for the DataLoader
+    mosaic_composite : The type of composite to make if multiple images are given.
+        Defaults to "least_cloudy".
 
     Returns
     -------
@@ -140,6 +154,7 @@ def create_data_loader(
         bands=image_bands,
         resolution=image_resolution,
         dtype=image_dtype,
+        mosaic_composite=mosaic_composite,
     )
 
     data_loader = DataLoader(
@@ -162,6 +177,7 @@ class CustomDataset(Dataset):
         bands: List[str],
         resolution: int,
         dtype: str = "int16",
+        mosaic_composite: str = "least_cloudy",
     ) -> None:
         """
         Parameters
@@ -174,6 +190,7 @@ class CustomDataset(Dataset):
         dtype : Data type of the image to sample. Defaults to "int16".
             NOTE - np.uint8 results in loss of signal in the features
             and np.uint16 is not supported by PyTorch.
+        mosaic_composite : The type of composite to make if multiple images are given.
         """
 
         self.points = points
@@ -182,6 +199,7 @@ class CustomDataset(Dataset):
         self.bands = bands
         self.resolution = resolution
         self.dtype = dtype
+        self.mosaic_composite = mosaic_composite
 
     def __len__(self):
         """Returns the number of points in the dataset"""
@@ -211,6 +229,7 @@ class CustomDataset(Dataset):
                 bands=self.bands,
                 resolution=self.resolution,
                 dtype=self.dtype,
+                mosaic_composite=self.mosaic_composite,
                 normalise=True,
             )
             torch_image = torch.from_numpy(image).float()
@@ -236,6 +255,7 @@ def fetch_image_crop_from_stac_id(
     bands: List[str],
     resolution: int,
     dtype: str = "int16",
+    mosaic_composite: str = "least_cloudy",
     normalise: bool = True,
     stac_api_name: str = "planetary-compute",
 ) -> np.array:
@@ -260,6 +280,7 @@ def fetch_image_crop_from_stac_id(
     bands : The satellite image bands to fetch
     resolution : The resolution of the image to fetch
     dtype : The data type of the image to fetch. Defaults to "int16".
+    mosaic_composite : The type of composite to make if multiple images are given.
     normalise : Whether to normalise the image. Defaults to True.
     stac_api_name : The name of the STAC API to use. Defaults to "planetary-compute".
 
@@ -285,6 +306,7 @@ def fetch_image_crop_from_stac_id(
             bands=bands,
             resolution=resolution,
             dtype=dtype,
+            mosaic_composite=mosaic_composite,
             normalise=normalise,
         )
 

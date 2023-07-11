@@ -766,6 +766,7 @@ def delayed_pipeline(
         image_resolution=image_resolution,
         image_dtype=image_dtype,
         batch_size=batch_size,
+        mosaic_composite=mosaic_composite,
     )
 
     X_features = dask.delayed(create_features_from_image_array)(
@@ -863,6 +864,7 @@ def get_features_without_parallelization(
             image_dtype=image_dtype,
             buffer_distance=buffer_distance,
             batch_size=batch_size,
+            mosaic_composite=mosaic_composite,
         )
 
         X_features = create_features_from_image_array(
