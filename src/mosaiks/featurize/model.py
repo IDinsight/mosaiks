@@ -26,6 +26,7 @@ class RCF(nn.Module):
         convolutions from the filters.
     kernel_size: The size of the convolutional kernel.
     num_input_channels: The number of bands in the satellite image.
+    random_seed_for_filters: The random seed to use when generating the filters. Defaults to 768.
 
     """
 
@@ -34,6 +35,7 @@ class RCF(nn.Module):
         num_features: int = 1000,
         kernel_size: int = 3,
         num_input_channels: int = 6,
+        random_seed_for_filters: int = 768,
     ):
         super().__init__()
         # We create `num_features / 2` filters so require `num_features` to be
@@ -52,7 +54,7 @@ class RCF(nn.Module):
         # Fills the input Tensor 'conv1.weight' with values drawn from the
         # normal distribution
         torch.manual_seed(
-            768
+            random_seed_for_filters
         )  # set random state to initialise filters same way every time
         nn.init.normal_(self.conv1.weight, mean=0.0, std=1.0)
         # Fills the input Tensor 'conv1.bias' with the value 'val = -1'.

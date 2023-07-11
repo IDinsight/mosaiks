@@ -8,13 +8,23 @@ from mosaiks.featurize import RCF
 @pytest.fixture(scope="module")
 def model():
     """Fixture for a random convolutional features model."""
-    return RCF(num_features=666, kernel_size=5, num_input_channels=3)
+    return RCF(
+        num_features=666,
+        kernel_size=5,
+        num_input_channels=3,
+        random_seed_for_filters=42,
+    )
 
 
 @pytest.fixture(scope="module")
 def model2():
     """Fixture for a random convolutional features model."""
-    return RCF(num_features=666, kernel_size=5, num_input_channels=3)
+    return RCF(
+        num_features=666,
+        kernel_size=5,
+        num_input_channels=3,
+        random_seed_for_filters=42,
+    )
 
 
 def test_random_model_conv_weights_are_created(model):
