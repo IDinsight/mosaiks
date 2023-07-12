@@ -109,7 +109,8 @@ The high-level flow of our featurisation pipeline is the following:
 6. Lastly, the function returns a dataframe with the features, 'lat' and 'lon' columns, and any other columns if specified by the user
 
 
-## Repository structure (OUTDATED)
+## Repository structure
+
 ```
 .
 ├── playground
