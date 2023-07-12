@@ -46,6 +46,7 @@ def get_features(
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
     mosaiks_batch_size: int = 10,
+    mosaiks_random_seed_for_filters: int = 768,
     model_device: str = "cpu",
     dask_client_type: str = "local",
     dask_n_concurrent_tasks: int = 8,
@@ -84,6 +85,7 @@ def get_features(
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
     mosaiks_kernel_size: kernel size for mosaiks filters. Defaults to 3.
     mosaiks_batch_size: batch size for mosaiks filters. Defaults to 10.
+    mosaiks_random_seed_for_filters: random seed for mosaiks filters. Defaults to 768.
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
     dask_client_type: type of Dask client to use. Options are "local" or "gateway". Defaults to "local".
     dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
@@ -127,6 +129,7 @@ def get_features(
         num_features=n_mosaiks_features,
         kernel_size=mosaiks_kernel_size,
         num_input_channels=len(image_bands),
+        random_seed_for_filters=mosaiks_random_seed_for_filters,
     )
 
     # If using parallelization, run the featurization without Dask
