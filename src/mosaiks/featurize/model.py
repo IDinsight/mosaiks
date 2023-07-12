@@ -7,9 +7,6 @@ import torch.nn.functional as F
 # https://pytorch.org/docs/stable/notes/randomness.html
 torch.backends.cudnn.benchmark = False
 
-# set torch seed to get the same random conv filters every time
-SEED = 41
-torch.manual_seed(SEED)
 
 __all__ = ["RCF"]
 
@@ -26,7 +23,8 @@ class RCF(nn.Module):
         convolutions from the filters.
     kernel_size: The size of the convolutional kernel.
     num_input_channels: The number of bands in the satellite image.
-    random_seed_for_filters: The random seed to use when generating the filters. Defaults to 768.
+    random_seed_for_filters: The random seed to use when generating the filters.
+        Defaults to 768.
 
     """
 
@@ -38,9 +36,8 @@ class RCF(nn.Module):
         random_seed_for_filters: int = 768,
     ):
         super().__init__()
-        # We create `num_features / 2` filters so require `num_features` to be
-        # divisible by 2
         assert num_features % 2 == 0, "Please enter an even number of features."
+
         # Applies a 2D convolution over an input image composed of several input planes.
         self.conv1 = nn.Conv2d(
             num_input_channels,
@@ -51,13 +48,12 @@ class RCF(nn.Module):
             dilation=1,
             bias=True,
         )
-        # Fills the input Tensor 'conv1.weight' with values drawn from the
-        # normal distribution
-        torch.manual_seed(
-            random_seed_for_filters
-        )  # set random state to initialise filters same way every time
+
+        # Set random state to initialise filters same way every time
+        torch.manual_seed(random_seed_for_filters)
+
+        # Fill the input Tensor with random gaussian noise and bias of -1
         nn.init.normal_(self.conv1.weight, mean=0.0, std=1.0)
-        # Fills the input Tensor 'conv1.bias' with the value 'val = -1'.
         nn.init.constant_(self.conv1.bias, -1.0)
 
         # Explicitly freeze convolutional weights and bias
@@ -66,10 +62,15 @@ class RCF(nn.Module):
 
     def forward(self, x: torch.tensor) -> torch.tensor:
         """
-        Parameters:
+        Parameters
         -----------
         x: A tensor of shape (BANDS, X, Y) containing an image patch.
+
+        Returns
+        --------
+        A tensor containing the features.
         """
+
         assert x.shape[1:] > self.conv1.kernel_size, "Image too small for kernel size"
         x1a = F.relu(self.conv1(x))
         x1b = F.relu(-self.conv1(x))
