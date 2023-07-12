@@ -69,40 +69,54 @@ def fetch_image_crop(
 
     # calculate crop bounds
     # use the projection of the first non-None stac item
-    (idx,) = np.nonzero([x is not None for x in stac_items])
-    crs = stac_items[idx[0]].properties["proj:epsg"]
+    stac_items_not_none = [item for item in stac_items if item is not None]
+    crs = stac_items_not_none[0].properties["proj:epsg"]
 
     proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
     x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
     x_min, x_max = x_utm - buffer_distance, x_utm + buffer_distance
     y_min, y_max = y_utm - buffer_distance, y_utm + buffer_distance
 
-    # get image(s) as xarray
-    xarray = stackstac.stack(
-        stac_items,
-        assets=bands,
-        resolution=resolution,
-        rescale=True,
-        dtype=dtype,
-        bounds=[x_min, y_min, x_max, y_max],
-        fill_value=0,
-    )
-
     # remove the time dimension
     if image_composite_method == "all":
         # for a composite over all images, take median pixel over time
+        # get image(s) as xarray
+        xarray = stackstac.stack(
+            stac_items_not_none,
+            assets=bands,
+            resolution=resolution,
+            rescale=True,
+            dtype=dtype,
+            bounds=[x_min, y_min, x_max, y_max],
+            fill_value=0,
+        )
         image = xarray.median(dim="time").values
     elif image_composite_method == "least_cloudy":
         # for least cloudy, take the first non zero image
-        for i in range(len(stac_items)):
-            image = xarray[i].values
-            if ~np.all(image == 0.0) and i < len(stac_items) - 1:
+        for i, item in enumerate(stac_items_not_none):
+            # get image(s) as xarray
+            xarray = stackstac.stack(
+                item,
+                assets=bands,
+                resolution=resolution,
+                rescale=True,
+                dtype=dtype,
+                bounds=[x_min, y_min, x_max, y_max],
+                fill_value=0,
+            )
+            image = xarray.values
+            if len(image.shape) > 3:
+                image = image.squeeze(0)
+            if ~np.all(image == 0.0):
                 break
             else:
-                image = xarray[0].values
-                logging.warning(
-                    f"All images in the stack are zero for point {lon}, {lat}"
-                )
+                if i == len(stac_items_not_none) - 1:
+                    logging.warning(
+                        f"All images in the stack are zero for point {lon}, {lat}"
+                    )
+                    return np.ones_like(image) * np.nan
+                else:
+                    pass
 
     if normalise:
         image = _minmax_normalize_image(image)

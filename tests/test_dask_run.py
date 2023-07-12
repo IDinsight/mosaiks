@@ -69,7 +69,7 @@ def test_run_queued_futures(
     client = get_local_dask_client(1, 1)
 
     run_queued_futures_pipeline(
-        points_gdf.iloc[:6],
+        points_gdf,
         client,
         model,
         satellite_name=config_dict["satellite_name"],
@@ -117,7 +117,7 @@ def test_run_batched_delayed_pipeline(
     client = get_local_dask_client(1, 1)
 
     run_batched_delayed_pipeline(
-        points_gdf.iloc[:6],
+        points_gdf,
         client,
         model,
         satellite_name=config_dict["satellite_name"],
@@ -165,7 +165,7 @@ def test_run_unbatched_delayed_pipeline(
     client = get_local_dask_client(1, 1)
 
     run_unbatched_delayed_pipeline(
-        points_gdf.iloc[:6],
+        points_gdf,
         client,
         model,
         config_dict["sort_points_by_hilbert_distance"],
