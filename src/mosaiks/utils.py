@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import geopandas as gpd
 import numpy as np
@@ -104,9 +104,13 @@ def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
     return sorted(filtered_filenames)
 
 
-# FLAG - what to do with this?
+# TODO - what to do with this?
 def make_output_folder_path(
-    satellite_name, year, n_mosaiks_features, dataset_name: str = "temp"
+    satellite_name: str,
+    year: int,
+    n_mosaiks_features: int,
+    root_folder: Optional[Path] = None,
+    coords_dataset_name: str = "temp",
 ) -> Path:
     """
     Get the path to the folder where the mosaiks features should be saved.
@@ -116,29 +120,32 @@ def make_output_folder_path(
     satellite_name : The name of the satellite.
     year : The year of the satellite data.
     n_mosaiks_features : The number of features used for mosaiks.
-    dataset_name : The name of the dataset used for featurization. Default is 'temp'.
+    coords_dataset_name : The name of the coords dataset used for featurization. Default is 'temp'.
     """
-    data_path = Path(__file__).parents[2].resolve() / "data"
+
+    if root_folder is None:
+        root_folder = Path.cwd() / "data"
+
     folder_path = (
-        data_path
-        / "00_raw/mosaiks"
+        root_folder
+        / "mosaiks_features"
         / satellite_name
         / str(year)
-        / dataset_name
+        / coords_dataset_name
         / str(n_mosaiks_features)
     )
 
     return folder_path
 
 
-# FLAG - what to do with this?
+# TODO - what to do with this?
 def get_mosaiks_package_link(branch="main") -> str:
-    """Get the link to the mosaiks package."""
+    """
+    Make an authenticated link to the mosaiks package. Note that the GITHUB_TOKEN
+    environment variable must be set for this to work.
+    """
 
-    secrets_file = Path(__file__).resolve().parents[2] / "secrets.yaml"
-    secrets = yaml.full_load(open(secrets_file))
-
-    GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
     return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks@{branch}"
 
 
