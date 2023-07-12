@@ -44,7 +44,7 @@ def image_crop_from_stac_id(config_dict: dict):
         config_dict["image_bands"],
         config_dict["image_resolution"],
         config_dict["image_dtype"],
-        config_dict["mosaic_composite"],
+        config_dict["image_composite_method"],
         True,
         "planetary-compute",
     )

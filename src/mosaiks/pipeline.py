@@ -41,7 +41,7 @@ def get_features(
     year: int = None,
     search_start: str = "2013-01-01",
     search_end: str = "2013-12-31",
-    mosaic_composite: str = "least_cloudy",
+    image_composite_method: str = "least_cloudy",
     stac_api: str = "planetary-compute",
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
@@ -79,7 +79,7 @@ def get_features(
     year: year to get seasonal images for in format YYYY. Only needed if seasonal = True. Defaults to None.
     search_start: start date for image search in format YYYY-MM-DD. Defaults to "2013-01-01".
     search_end: end date for image search in format YYYY-MM-DD. Defaults to "2013-12-31".
-    mosaic_composite: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
+    image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
     stac_api: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
     mosaiks_kernel_size: kernel size for mosaiks filters. Defaults to 3.
@@ -169,7 +169,7 @@ def get_features(
             year=year,
             search_start=search_start,
             search_end=search_end,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             stac_api_name=stac_api,
             num_features=n_mosaiks_features,
             batch_size=mosaiks_batch_size,
@@ -208,7 +208,7 @@ def get_features(
             year=year,
             search_start=search_start,
             search_end=search_end,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             stac_api_name=stac_api,
             num_features=n_mosaiks_features,
             batch_size=mosaiks_batch_size,

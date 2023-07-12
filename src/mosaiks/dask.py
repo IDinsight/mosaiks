@@ -194,7 +194,7 @@ def run_queued_futures_pipeline(
     year: int,
     search_start: str,
     search_end: str,
-    mosaic_composite: str,
+    image_composite_method: str,
     stac_api_name: str,
     num_features: int,
     batch_size: int,
@@ -227,7 +227,7 @@ def run_queued_futures_pipeline(
     year : Year of imagery to be used.
     search_start : Start date of imagery to be used.
     search_end : End date of imagery to be used.
-    mosaic_composite : Mosaic composite to be used.
+    image_composite_method : Mosaic composite to be used.
     stac_api_name : Name of the STAC API to be used.
     num_features : Number of features to be extracted from the model.
     batch_size : Batch size to be used for featurization.
@@ -278,7 +278,7 @@ def run_queued_futures_pipeline(
             year=year,
             search_start=search_start,
             search_end=search_end,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
             batch_size=batch_size,
@@ -313,7 +313,7 @@ def run_queued_futures_pipeline(
             year=year,
             search_start=search_start,
             search_end=search_end,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
             batch_size=batch_size,
@@ -386,7 +386,7 @@ def run_batched_delayed_pipeline(
     year: int,
     search_start: str,
     search_end: str,
-    mosaic_composite: bool,
+    image_composite_method: bool,
     stac_api_name: str,
     num_features: int,
     batch_size: int,
@@ -416,7 +416,7 @@ def run_batched_delayed_pipeline(
     year : Year to be used for featurization.
     search_start : Start date for satellite image search.
     search_end : End date for satellite image search.
-    mosaic_composite : Mosaic composite to be used for featurization.
+    image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
     batch_size : Batch size for featurization.
@@ -476,7 +476,7 @@ def run_batched_delayed_pipeline(
             year=year,
             search_start=search_start,
             search_end=search_end,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
             batch_size=batch_size,
@@ -503,7 +503,7 @@ def run_batch(
     year: int,
     search_start: str,
     search_end: str,
-    mosaic_composite: str,
+    image_composite_method: str,
     stac_api_name: str,
     num_features: int,
     batch_size: int,
@@ -531,7 +531,7 @@ def run_batch(
     year : Year to be used for featurization.
     search_start : Start date for satellite image search.
     search_end : End date for satellite image search.
-    mosaic_composite : Mosaic composite to be used for featurization.
+    image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
     batch_size : Batch size for featurization.
@@ -565,7 +565,7 @@ def run_batch(
             year=year,
             search_start=search_start,
             search_end=search_end,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
             batch_size=batch_size,
@@ -609,7 +609,7 @@ def run_unbatched_delayed_pipeline(
     stac_api_name: str,
     seasonal: bool,
     year: int,
-    mosaic_composite: str,
+    image_composite_method: str,
     num_features: int,
     device: str,
     min_image_edge: int,
@@ -638,7 +638,7 @@ def run_unbatched_delayed_pipeline(
     stac_api_name : Name of STAC API to be used for satellite image search.
     seasonal : Whether to use seasonal satellite images for featurization.
     year : Year to be used for featurization.
-    mosaic_composite : Mosaic composite to be used for featurization.
+    image_composite_method : Mosaic composite to be used for featurization.
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     min_image_edge : Minimum image edge size.
@@ -676,7 +676,7 @@ def run_unbatched_delayed_pipeline(
             stac_api_name=stac_api_name,
             seasonal=seasonal,
             year=year,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             num_features=num_features,
             device=device,
             min_image_edge=min_image_edge,
@@ -704,7 +704,7 @@ def delayed_pipeline(
     stac_api_name: str,
     seasonal: bool,
     year: int,
-    mosaic_composite: str,
+    image_composite_method: str,
     num_features: int,
     device: str,
     min_image_edge: int,
@@ -731,7 +731,7 @@ def delayed_pipeline(
     stac_api_name : Name of STAC API to be used for satellite image search.
     seasonal : Whether to use seasonal satellite images for featurization.
     year : Year to be used for featurization.
-    mosaic_composite : Mosaic composite to be used for featurization.
+    image_composite_method : Mosaic composite to be used for featurization.
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     min_image_edge : Minimum image edge size.
@@ -755,7 +755,7 @@ def delayed_pipeline(
         year=year,
         search_start=search_start,
         search_end=search_end,
-        mosaic_composite=mosaic_composite,
+        image_composite_method=image_composite_method,
         stac_api_name=stac_api_name,
     )
 
@@ -766,7 +766,7 @@ def delayed_pipeline(
         image_resolution=image_resolution,
         image_dtype=image_dtype,
         batch_size=batch_size,
-        mosaic_composite=mosaic_composite,
+        image_composite_method=image_composite_method,
     )
 
     X_features = dask.delayed(create_features_from_image_array)(
@@ -802,7 +802,7 @@ def get_features_without_parallelization(
     year: int,
     search_start: str,
     search_end: str,
-    mosaic_composite: str,
+    image_composite_method: str,
     stac_api_name: str,
     num_features: int,
     batch_size: int,
@@ -830,7 +830,7 @@ def get_features_without_parallelization(
     year : Year to be used for featurization.
     search_start : Start date for satellite image search.
     search_end : End date for satellite image search.
-    mosaic_composite : Mosaic composite to be used for featurization.
+    image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
@@ -853,7 +853,7 @@ def get_features_without_parallelization(
             year=year,
             search_start=search_start,
             search_end=search_end,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
         )
 
@@ -864,7 +864,7 @@ def get_features_without_parallelization(
             image_dtype=image_dtype,
             buffer_distance=buffer_distance,
             batch_size=batch_size,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
         )
 
         X_features = create_features_from_image_array(

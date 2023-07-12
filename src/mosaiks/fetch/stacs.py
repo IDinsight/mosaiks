@@ -20,7 +20,7 @@ def fetch_image_refs(
     year: int,
     search_start: str,
     search_end: str,
-    mosaic_composite: str,
+    image_composite_method: str,
     stac_api_name: str,
 ) -> gpd.GeoDataFrame:
     """
@@ -36,7 +36,7 @@ def fetch_image_refs(
     year: The year to fetch seasonal STAC items for.
     search_start : Date formatted as YYYY-MM-DD.
     search_end : Date formatted as YYYY-MM-DD.
-    mosaic_composite : how to composite multiple images for same GPS location.
+    image_composite_method : how to composite multiple images for same GPS location.
     stac_api_name: The name of the STAC API to use.
 
     Returns
@@ -52,7 +52,7 @@ def fetch_image_refs(
             satellite_name=satellite_name,
             year=year,
             stac_api=stac_api,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
         )
     else:
         points_gdf_with_stac = fetch_stac_items(
@@ -61,7 +61,7 @@ def fetch_image_refs(
             search_start=search_start,
             search_end=search_end,
             stac_api=stac_api,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
         )
 
     return points_gdf_with_stac
@@ -72,7 +72,7 @@ def fetch_seasonal_stac_items(
     satellite_name: str,
     year: int,
     stac_api: pystac_client.Client,
-    mosaic_composite: str,
+    image_composite_method: str,
 ) -> gpd.GeoDataFrame:
     """
     Takes a year as input and creates date ranges for the four seasons, runs these
@@ -103,7 +103,7 @@ def fetch_seasonal_stac_items(
             search_start=search_start,
             search_end=search_end,
             stac_api=stac_api,
-            mosaic_composite=mosaic_composite,
+            image_composite_method=image_composite_method,
         )
         season_points_gdf["season"] = season
 
@@ -123,7 +123,7 @@ def fetch_stac_items(
     search_start: str,
     search_end: str,
     stac_api: pystac_client.Client,
-    mosaic_composite: str,
+    image_composite_method: str,
 ) -> gpd.GeoDataFrame:
     """
     Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame.
@@ -135,7 +135,7 @@ def fetch_stac_items(
     search_start : Date formatted as YYYY-MM-DD
     search_end : Date formatted as YYYY-MM-DD
     stac_api: The pystac_client.Client object to use for searching for image refs. Output of `get_stac_api`
-    mosaic_composite : Whether to store "all" images found or just the "least_cloudy"
+    image_composite_method : Whether to store "all" images found or just the "least_cloudy"
 
     Returns
     -------
@@ -180,7 +180,7 @@ def fetch_stac_items(
             points_gdf.loc[~nan_mask, "stac_item"] = _get_overlapping_stac_items(
                 gdf=points_gdf_not_nan,
                 stac_gdf=stac_gdf,
-                mosaic_composite=mosaic_composite,
+                image_composite_method=image_composite_method,
             )
 
     return points_gdf
@@ -244,14 +244,14 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
 def _get_overlapping_stac_items(
     gdf: gpd.GeoDataFrame,
     stac_gdf: gpd.GeoDataFrame,
-    mosaic_composite: str,
+    image_composite_method: str,
 ) -> List[Item]:
     """
     Takes in a sorted dataframe of stac items and returns the item(s) that covers each
     row. For use in `fetch_stac_items`.
     """
 
-    if mosaic_composite == "least_cloudy":
+    if image_composite_method == "least_cloudy":
         stac_gdf = stac_gdf.sort_values(by="eo:cloud_cover")
 
     col_value_list = []
@@ -261,12 +261,12 @@ def _get_overlapping_stac_items(
         if len(items_covering_point) == 0:
             col_value_list.append(None)
         else:
-            if mosaic_composite in ["all", "least_cloudy"]:
+            if image_composite_method in ["all", "least_cloudy"]:
                 all_items = items_covering_point["stac_item"].tolist()
                 col_value_list.append(all_items)
             else:
                 raise ValueError(
-                    f"mosaic_composite must be 'least_cloudy' or 'all', not {mosaic_composite}"
+                    f"image_composite_method must be 'least_cloudy' or 'all', not {image_composite_method}"
                 )
 
     return col_value_list

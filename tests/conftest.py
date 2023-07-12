@@ -39,7 +39,7 @@ def config_dict():
         "year": 2014,
         "search_start": "2013-04-01",
         "search_end": "2014-03-31",
-        "mosaic_composite": "least_cloudy",
+        "image_composite_method": "least_cloudy",
         "stac_api": "planetary-compute",
         "n_mosaiks_features": 4,
         "mosaiks_kernel_size": 3,
