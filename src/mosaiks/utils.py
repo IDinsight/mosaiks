@@ -104,6 +104,7 @@ def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
     return sorted(filtered_filenames)
 
 
+# FLAG - what to do with this?
 def make_output_folder_path(
     satellite_name, year, n_mosaiks_features, dataset_name: str = "temp"
 ) -> Path:
@@ -130,10 +131,11 @@ def make_output_folder_path(
     return folder_path
 
 
+# FLAG - what to do with this?
 def get_mosaiks_package_link(branch="main") -> str:
     """Get the link to the mosaiks package."""
 
-    secrets_file = Path(__file__).resolve().parents[2] / "config/secrets.yaml"
+    secrets_file = Path(__file__).resolve().parents[2] / "secrets.yaml"
     secrets = yaml.full_load(open(secrets_file))
 
     GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
