@@ -177,7 +177,7 @@ def fetch_stac_items(
             # add items as an extra column
             stac_gdf["stac_item"] = item_collection.items
 
-            points_gdf.loc[~nan_mask, "stac_item"] = _get_overlapping_stac_items(
+            points_gdf.loc[~nan_mask] = _add_overlapping_stac_items(
                 gdf=points_gdf_not_nan,
                 stac_gdf=stac_gdf,
                 image_composite_method=image_composite_method,
@@ -241,35 +241,37 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
     return pd.concat(rows_list)
 
 
-def _get_overlapping_stac_items(
+def _add_overlapping_stac_items(
     gdf: gpd.GeoDataFrame,
     stac_gdf: gpd.GeoDataFrame,
     image_composite_method: str,
 ) -> List[Item]:
     """
-    Takes in a sorted dataframe of stac items and returns the item(s) that covers each
-    row. For use in `fetch_stac_items`.
+    Takes in geodataframe of points and a sorted dataframe of stac items and returns
+    the point geodataframe with an additional column which lists the items that covers
+    each point. For use in `fetch_stac_items`.
     """
+
+    gdf = gdf.copy()
 
     if image_composite_method == "least_cloudy":
         stac_gdf = stac_gdf.sort_values(by="eo:cloud_cover")
 
-    col_value_list = []
     for index, row in gdf.iterrows():
 
         items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
         if len(items_covering_point) == 0:
-            col_value_list.append(None)
+            gdf.at[index, "stac_item"] = None
         else:
             if image_composite_method in ["all", "least_cloudy"]:
                 all_items = items_covering_point["stac_item"].tolist()
-                col_value_list.append(all_items)
+                gdf.at[index, "stac_item"] = all_items
             else:
                 raise ValueError(
                     f"image_composite_method must be 'least_cloudy' or 'all', not {image_composite_method}"
                 )
 
-    return col_value_list
+    return gdf
 
 
 def get_stac_api(api_name: str) -> pystac_client.Client:
