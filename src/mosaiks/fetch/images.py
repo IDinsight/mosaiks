@@ -91,10 +91,11 @@ def fetch_image_crop(
             fill_value=0,
         )
         image = xarray.median(dim="time").values
+
     elif image_composite_method == "least_cloudy":
         # for least cloudy, take the first non zero image
         for i, item in enumerate(stac_items_not_none):
-            # get image(s) as xarray
+            # get image as xarray
             xarray = stackstac.stack(
                 item,
                 assets=bands,
@@ -107,16 +108,19 @@ def fetch_image_crop(
             image = xarray.values
             if len(image.shape) > 3:
                 image = image.squeeze(0)
+
+            # if image is not all zeros, break and use this image
             if ~np.all(image == 0.0):
                 break
             else:
-                if i == len(stac_items_not_none) - 1:
+                # check next image if there are any stac items left
+                if i < len(stac_items_not_none) - 1:
+                    pass
+                else:
                     logging.warning(
                         f"All images in the stack are zero for point {lon}, {lat}"
                     )
                     return np.ones_like(image) * np.nan
-                else:
-                    pass
 
     if normalise:
         image = _minmax_normalize_image(image)
@@ -251,10 +255,10 @@ class CustomDataset(Dataset):
             # if all 0s, replace with NaNs
             if torch.all(torch_image == 0):
                 torch_image = np.ones_like(torch_image) * np.nan
-
             return torch_image
+
         except Exception as e:
-            print(f"Skipping {idx}: {e}")
+            logging.warn(f"Skipping {idx}: {e}")
             return None
 
 
