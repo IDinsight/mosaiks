@@ -1,24 +1,19 @@
-pre-commit==3.3.1
-ipykernel==6.15.3
-
 torch==2.0.1
-numpy==1.23.3
-pandas==1.4.4
-matplotlib==3.7.1
+numpy==1.25.1
+pandas==2.0.3
+matplotlib==3.7.2
 
-pydantic==1.10.10
-python-dotenv==1.0.0
-planetary_computer==0.4.7
-pystac_client==0.5.0
-stackstac==0.4.3
-dask==2022.4.0
-dask_gateway==2023.1.1
-bokeh==2.1.1
+planetary-computer==1.0.0
+pystac-client==0.7.2
+stackstac==0.4.4
+dask==2023.7.0
+dask-gateway==2023.1.1
+bokeh==3.2.0
 
 geopandas==0.13.2
-dask_geopandas==0.2.0
+dask-geopandas==0.3.1
 shapely==2.0.1
-pyproj==3.4.0
+pyproj==3.6.0
 pygeos==0.14
 pyarrow==12.0.1
-s3fs==2023.5.0
+s3fs==2023.6.0

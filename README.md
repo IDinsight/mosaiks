@@ -20,13 +20,13 @@ For more detailed information on this package and how to use it, please see [thi
 ## Pipeline
 
 1. Load dataset containing lat-lon coordinates for which to process images
-2. Read config parameters (e.g. image size to be processed (buffer), year, satellite, number of features to produce, etc.). See `config/*.yaml` files in this repsitory for configurable parameters.
+2. Set parameters (e.g. image size to be processed (buffer), year, satellite, number of features to produce, etc.). See docs for `get_features()` for configurable parameters.
 3. Fetch STAC references to images that overlap each point
 4. Fetch the images
 5. Convert each image into features using the MOSAIKS algorithm
 6. Save features to file to be used for ML modelling (see the [mosaiks_ml](https://github.com/IDinsight/mosaiks_ml) repository for example ML models built using these features)
 
-## How to Run
+## [DEPRECATED] How to Run
 
 0. Clone this repository
 1. Run `make setup-env` to make an environment called "mosaiks" and install the required libraries (or do so manually)
@@ -46,32 +46,27 @@ For more detailed information on this package and how to use it, please see [thi
     - Make sure to read the correct entry in the data catalog for the point coordinates file
 
 ## Repository structure
+
 ```
 .
-├── config
-│   ├── featurisation_config.yaml -- configuration for image fetching function, MOSAIKS model and Dask
-│   ├── rasterioc_config.yaml -- configuration for Rasterio
-│   └── satellite_config.yaml -- configuration for satellite images (satellite name, year, resolution, etc.)
-|
 ├── playground
-│   ├── test_big_pipeline_function.ipynb -- demo code for running pipeline function
-|
+│   └── test_big_pipeline_function.ipynb -- demo code for running pipeline function
+│
 ├── src -- source code
 │   ├── mosaiks
 │   │   ├── pipeline.py -- pipeline code: takes in GPS coordinates and config dictionaries; returns features
-│   │   └── utils.py -- utilities for pipeline code
+│   │   ├── utils.py -- utilities for pipeline code
 │   │   ├── dask.py -- wrapper functions and utilities for Dask parallel processing
 │   │   ├── extras/ -- wrapper functions for pipeline code; includes file I/O operations and checks for configuration files
 │   │   ├── featurize/ -- code for featurisation from images
-│   │   ├── fetch/ -- code for fetching images
-└── tests/ -- unit tests
-├── Makefile -- set up file for installing package code code
+│   └   └── fetch/ -- code for fetching images
+├── tests/ -- unit tests
 ├── project_config.cfg -- repository configuration
 ├── pyproject.toml -- repository install configuration
 ├── pytest.ini -- unit test configuration
 ├── requirements_test.txt -- unit test package install requirements
-├── requirements.txt -- package install requirements
-
+├── requirements_dev.txt -- dev install requirements
+└── requirements.txt -- package install requirements
 ```
 
 ---
