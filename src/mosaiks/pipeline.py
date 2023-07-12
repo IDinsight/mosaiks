@@ -1,10 +1,8 @@
 import logging
 import os
-from pathlib import Path
 from typing import List
 
 import pandas as pd
-import yaml
 
 import mosaiks.checks as checks
 import mosaiks.utils as utl
@@ -14,6 +12,8 @@ from mosaiks.dask import (
     run_batched_delayed_pipeline,
 )
 from mosaiks.featurize import RCF
+
+logging.basicConfig(level=logging.INFO)
 
 # Rasterio variables
 # See https://github.com/pangeo-data/cog-best-practices
@@ -132,16 +132,39 @@ def get_features(
         random_seed_for_filters=mosaiks_random_seed_for_filters,
     )
 
-    # If using parallelization, run the featurization without Dask
     logging.info("Getting MOSAIKS features...")
-    if parallelize:
-        # Make folder for temporary checkpoints
+    if not parallelize:
+        return get_features_without_parallelization(
+            points_gdf=points_gdf,
+            model=model,
+            satellite_name=satellite_name,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            image_bands=image_bands,
+            buffer_distance=buffer_distance,
+            min_image_edge=min_image_edge,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            image_composite_method=image_composite_method,
+            stac_api_name=stac_api,
+            num_features=n_mosaiks_features,
+            batch_size=mosaiks_batch_size,
+            device=model_device,
+            col_names=mosaiks_col_names,
+            save_folder_path=None,  # TODO - pass this up to the get_features() function?
+        )
+    else:  # Run the featurization with Dask
+        # TODO - just make this a temp folder inside cwd without any structure
         save_folder_path_temp = utl.make_output_folder_path(
             satellite_name=satellite_name,
             year=search_start.split("-")[0],
             n_mosaiks_features=n_mosaiks_features,
+            root_folder=None,
+            coords_dataset_name="temp",
         )
-        os.makedirs(save_folder_path_temp, exist_ok=True)
+        save_folder_path_temp.mkdir(parents=True, exist_ok=True)
 
         # Create dask client
         cluster, client = get_dask_cluster_and_client(
@@ -154,7 +177,15 @@ def get_features(
             worker_memory=dask_worker_memory,
             pip_install=dask_pip_install,
         )
-        logging.info("Dask client created.")
+        logging.info(
+            f"Dask client created. Dashboard link: {client.dashboard_link}\n"
+            "Running featurization in parallel with:\n"
+            f"{dask_n_workers} workers\n"
+            f"{dask_threads_per_worker} threads per worker\n"
+            f"{dask_n_concurrent_tasks} concurrent tasks\n"
+            f"{dask_worker_cores} worker cores\n"
+            f"{dask_worker_memory} worker memory"
+        )
 
         # Run in parallel
         run_batched_delayed_pipeline(
@@ -183,6 +214,10 @@ def get_features(
             save_folder_path=save_folder_path_temp,
         )
 
+        # Close dask client
+        client.close()
+        cluster.close()
+
         # Load checkpoint files and combine
         logging.info("Loading and combining checkpoint files...")
         checkpoint_filenames = utl.get_filtered_filenames(
@@ -191,31 +226,4 @@ def get_features(
         combined_df = utl.load_and_combine_dataframes(
             folder_path=save_folder_path_temp, filenames=checkpoint_filenames
         )
-        logging.info(
-            f"Dataset size in memory (MB): {combined_df.memory_usage().sum() / 1000000}"
-        )
-
-        # Return combined df
         return combined_df
-    else:
-        return get_features_without_parallelization(
-            points_gdf=points_gdf,
-            model=model,
-            satellite_name=satellite_name,
-            image_resolution=image_resolution,
-            image_dtype=image_dtype,
-            image_bands=image_bands,
-            buffer_distance=buffer_distance,
-            min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
-            image_composite_method=image_composite_method,
-            stac_api_name=stac_api,
-            num_features=n_mosaiks_features,
-            batch_size=mosaiks_batch_size,
-            device=model_device,
-            col_names=mosaiks_col_names,
-            save_folder_path=None,
-        )

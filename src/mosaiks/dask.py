@@ -82,6 +82,7 @@ def get_local_dask_cluster_and_client(
     return cluster, client
 
 
+# TODO - Update to the simpler Azure cloud setup
 def get_gateway_cluster_client(
     worker_cores: int = 4, worker_memory: int = 2, pip_install: bool = False, **kwargs
 ) -> tuple:
@@ -845,47 +846,47 @@ def get_features_without_parallelization(
     None or DataFrame
     """
 
-    try:
-        points_gdf_with_stac = fetch_image_refs(
-            points_gdf=points_gdf,
-            satellite_name=satellite_name,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
-            image_composite_method=image_composite_method,
-            stac_api_name=stac_api_name,
-        )
+    # try:
+    points_gdf_with_stac = fetch_image_refs(
+        points_gdf=points_gdf,
+        satellite_name=satellite_name,
+        seasonal=seasonal,
+        year=year,
+        search_start=search_start,
+        search_end=search_end,
+        image_composite_method=image_composite_method,
+        stac_api_name=stac_api_name,
+    )
 
-        data_loader = create_data_loader(
-            points_gdf_with_stac=points_gdf_with_stac,
-            image_bands=image_bands,
-            image_resolution=image_resolution,
-            image_dtype=image_dtype,
-            buffer_distance=buffer_distance,
-            batch_size=batch_size,
-            image_composite_method=image_composite_method,
-        )
+    data_loader = create_data_loader(
+        points_gdf_with_stac=points_gdf_with_stac,
+        image_bands=image_bands,
+        image_resolution=image_resolution,
+        image_dtype=image_dtype,
+        buffer_distance=buffer_distance,
+        batch_size=batch_size,
+        image_composite_method=image_composite_method,
+    )
 
-        X_features = create_features_from_image_array(
-            dataloader=data_loader,
-            n_features=num_features,
-            model=model,
-            device=device,
-            min_image_edge=min_image_edge,
-        )
+    X_features = create_features_from_image_array(
+        dataloader=data_loader,
+        n_features=num_features,
+        model=model,
+        device=device,
+        min_image_edge=min_image_edge,
+    )
 
-        df = utl.make_result_df(
-            features=X_features,
-            context_gdf=points_gdf_with_stac,
-            mosaiks_col_names=col_names,
-        )
+    df = utl.make_result_df(
+        features=X_features,
+        context_gdf=points_gdf_with_stac,
+        mosaiks_col_names=col_names,
+    )
 
-        if save_folder_path is not None:
-            utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
+    if save_folder_path is not None:
+        utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
 
-        if return_df:
-            return df
+    if return_df:
+        return df
 
-    except Exception as e:
-        logging.warn(e)
+    # except Exception as e:
+    #     logging.warn(e)
