@@ -846,27 +846,27 @@ def get_features_without_parallelization(
     None or DataFrame
     """
 
-    # try:
-    points_gdf_with_stac = fetch_image_refs(
-        points_gdf=points_gdf,
-        satellite_name=satellite_name,
-        seasonal=seasonal,
-        year=year,
-        search_start=search_start,
-        search_end=search_end,
-        image_composite_method=image_composite_method,
-        stac_api_name=stac_api_name,
-    )
+    try:
+        points_gdf_with_stac = fetch_image_refs(
+            points_gdf=points_gdf,
+            satellite_name=satellite_name,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            image_composite_method=image_composite_method,
+            stac_api_name=stac_api_name,
+        )
 
-    data_loader = create_data_loader(
-        points_gdf_with_stac=points_gdf_with_stac,
-        image_bands=image_bands,
-        image_resolution=image_resolution,
-        image_dtype=image_dtype,
-        buffer_distance=buffer_distance,
-        batch_size=batch_size,
-        image_composite_method=image_composite_method,
-    )
+        data_loader = create_data_loader(
+            points_gdf_with_stac=points_gdf_with_stac,
+            image_bands=image_bands,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            buffer_distance=buffer_distance,
+            batch_size=batch_size,
+            image_composite_method=image_composite_method,
+        )
 
     X_features = create_features_from_image_array(
         dataloader=data_loader,
