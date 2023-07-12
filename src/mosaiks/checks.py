@@ -8,6 +8,7 @@ valid_stac_api_names = ["planetary-compute", "earth"]
 
 def check_latitudes_and_longitudes(latitudes: list, longitudes: list) -> None:
     """Check that latitudes and longitudes are of equal length."""
+    # TODO - add null checks for latitudes and longitudes
     if len(latitudes) != len(longitudes):
         raise ValueError(
             f"Length of latitudes ({len(latitudes)}) must be equal to length of\
