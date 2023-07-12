@@ -233,9 +233,7 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
             "geometry": [trimmed_geom],
         }
 
-        row = gpd.GeoDataFrame(row_data).set_crs(
-            crs_for_all_images, allow_override=True
-        )
+        row = gpd.GeoDataFrame(row_data, crs=4326)
         rows_list.append(row)
 
     return pd.concat(rows_list)

@@ -80,13 +80,13 @@ def fetch_image_crop(
     # remove the time dimension
     if image_composite_method == "all":
         # for a composite over all images, take median pixel over time
-        # get image(s) as xarray
         xarray = stackstac.stack(
             stac_items_not_none,
             assets=bands,
             resolution=resolution,
             rescale=True,
             dtype=dtype,
+            epsg=crs,  # set common projection for all images
             bounds=[x_min, y_min, x_max, y_max],
             fill_value=0,
         )
@@ -95,7 +95,6 @@ def fetch_image_crop(
     elif image_composite_method == "least_cloudy":
         # for least cloudy, take the first non zero image
         for i, item in enumerate(stac_items_not_none):
-            # get image as xarray
             xarray = stackstac.stack(
                 item,
                 assets=bands,
