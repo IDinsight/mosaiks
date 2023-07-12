@@ -112,30 +112,24 @@ The high-level flow of our featurisation pipeline is the following:
 ## Repository structure (OUTDATED)
 ```
 .
-├── config
-│   ├── featurisation_config.yaml -- configuration for image fetching function, MOSAIKS model and Dask
-│   ├── rasterioc_config.yaml -- configuration for Rasterio
-│   └── satellite_config.yaml -- configuration for satellite images (satellite name, year, resolution, etc.)
-|
 ├── playground
-│   ├── test_big_pipeline_function.ipynb -- demo code for running pipeline function
-|
+│   └── test_big_pipeline_function.ipynb -- demo code for running pipeline function
+│
 ├── src -- source code
 │   ├── mosaiks
 │   │   ├── pipeline.py -- pipeline code: takes in GPS coordinates and config dictionaries; returns features
-│   │   └── utils.py -- utilities for pipeline code
+│   │   ├── utils.py -- utilities for pipeline code
 │   │   ├── dask.py -- wrapper functions and utilities for Dask parallel processing
 │   │   ├── extras/ -- wrapper functions for pipeline code; includes file I/O operations and checks for configuration files
 │   │   ├── featurize/ -- code for featurisation from images
-│   │   ├── fetch/ -- code for fetching images
-└── tests/ -- unit tests
-├── Makefile -- set up file for installing package code code
+│   └   └── fetch/ -- code for fetching images
+├── tests/ -- unit tests
 ├── project_config.cfg -- repository configuration
 ├── pyproject.toml -- repository install configuration
 ├── pytest.ini -- unit test configuration
 ├── requirements_test.txt -- unit test package install requirements
-├── requirements.txt -- package install requirements
-
+├── requirements_dev.txt -- dev install requirements
+└── requirements.txt -- package install requirements
 ```
 
 # FAQs
@@ -239,3 +233,13 @@ AWS_DEFAULT_REGION
 ### - Can you share an example of a project where we have used this?
 
 Yes! See the [mosaiks_ml](https://github.com/IDinsight/mosaiks_ml) repository for example ML models built using these features
+
+### - How do I contribute to this repo as a developer?
+
+To contribute to this repo you can make a feature branch and raise a PR (after making sure that the code works and relevant tests pass).
+
+To set up your dev environment, you can go through the following steps:
+1. Clone the mosaiks repository.
+2. Run `pip install -e .` in the repo's root folder to install a live local copy of the repository. This can be used in python as import mosaiks.
+3. pip install the two requirements files "requirements_dev.txt" and "requirements_test.txt".
+4. Start contributing!
