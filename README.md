@@ -33,7 +33,7 @@ Ensure you have all requirements set up:
     ```
 
 ### Step 2: Test run in a Notebook
-The quickest way to test the package is to run it in a notebook. Open up a notebook in the relevant environment (where Step 1 was executed) and go through the following:
+The quickest way to test the package is to run it in a notebook. Open up a notebook in the relevant environment (where Step 1 was executed) and run the following (the code is present in the "README_DEMO.ipynb" notebook):
 
 1. **Import dependencies**
 ```python
