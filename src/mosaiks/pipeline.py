@@ -70,8 +70,8 @@ def get_features(
     parallelize: whether to use Dask parallel processing
     satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a". Defaults to "landsat-8-c2-l2".
     image_resolution: resolution of the satellite images in meters. Defaults to 30.
-    image_dtype: data type of the satellite images. Defaults to "int16".
-    image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"].
+    image_dtype: data type of the satellite images. Defaults to "int16". All options - "int16", "int32", and "float"
+    image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
     buffer_distance: buffer distance in meters. Defaults to 1000.
     min_image_edge: minimum image edge in meters. Defaults to 1000.
     sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before fetching images. Defaults to True.

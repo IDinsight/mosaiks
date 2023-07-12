@@ -35,15 +35,12 @@ Ensure you have all requirements set up:
 ### Step 2: Test run in a Notebook
 The quickest way to test the package is to run it in a notebook. Open up a notebook in the relevant environment (where Step 1 was executed) and go through the following:
 
-1. **Import packages**
+1. **Import dependencies**
 ```python
-import pandas as pd
 import os
 
 # Resolves a conflict in Geopandas. Improves speed. Slower otherwise
 os.environ["USE_PYGEOS"] = "0"
-
-from mosaiks import get_features
 ```
 
 
@@ -53,15 +50,17 @@ import pandas as pd
 import numpy as np
 
 # Create a dataframe with 10 rows of random lats and longs in Uttar Pradesh, India
-df = pd.DataFrame(np.random.rand(10, 2)/10 + [26.5, 80.5], columns=["lat", "lon"])
+df = pd.DataFrame(np.random.rand(10, 2)/10 + [26.5, 80.5], columns=['lat', 'lon'])
 ```
 
 
 3. **Execute a default run of the `get_features` function:**
 ```python
+from mosaiks import get_features
+
 df_featurised = get_features(
-    df["lat"].values,
-    df["lon"].values
+    df['lat'].values,
+    df['lon'].values
 )
 
 df_featurised
@@ -69,7 +68,7 @@ df_featurised
 The above code executes a default run of the get_features function which executes the featurisation in parallel using Dask.
 
 
-4. **Test out a non-dask run**
+4. **Run get_features without dask**
 
 It is possible that you want to implement your own parallelisation without dask. For that, you could do a non-parallelised run of the function across your own paralllelisation logic (through code or cloud):
 ```python
@@ -82,8 +81,9 @@ df_featurised = get_features(
 df_featurised
 ```
 
-5. **Test Utility function to load data and save features**
-In situations where you want to also want to load data, run featurisation, and save features on disk you can use the `load_and_save_features`:
+5. **Run Utility function to load data and save features**
+
+In situations where you want to load data, run featurisation, and save features on disk, quietly, you can use the `load_and_save_features`:
 ```python
 # Create and Save test data
 df = pd.DataFrame(np.random.rand(10, 2)/10 + [26.5, 80.5], columns=["lat", "lon"])
@@ -97,35 +97,19 @@ load_and_save_features(input_file_path="test_data.csv",
                        context_cols_to_keep_from_input=["lat", "lon"])
 ```
 
-## Pipeline
+## Core functionality of the system
 
-1. Load dataset containing lat-lon coordinates for which to process images
-2. Read config parameters (e.g. image size to be processed (buffer), year, satellite, number of features to produce, etc.). See `config/*.yaml` files in this repsitory for configurable parameters.
-3. Fetch STAC references to images that overlap each point
-4. Fetch the images
-5. Convert each image into features using the MOSAIKS algorithm
-6. Save features to file to be used for ML modelling (see the [mosaiks_ml](https://github.com/IDinsight/mosaiks_ml) repository for example ML models built using these features)
+The high-level flow of our featurisation pipeline is the following:
 
-## How to Run
+1. The User feeds 'lat' and 'lon' lists for points they want to featurise
+    - The user also adds relevant parameters to the function (refer to FAQs)
+3. For each GPS coordinate, the function fetches [STAC](https://stacspec.org/en) references to satellite images
+4. Once found, the function fetches the images
+5. Function converts each image into features using the MOSAIKS algorithm
+6. Lastly, the function returns a dataframe with the features, 'lat' and 'lon' columns, and any other columns if specified by the user
 
-0. Clone this repository
-1. Run `make setup-env` to make an environment called "mosaiks" and install the required libraries (or do so manually)
 
-2. Run `pip install -e .` to install a live local copy of the repository. This can be used in python as `import mosaiks`.
-
-3. Data request authentication
-    - If running on the Microsoft Planetary Computer virtual machine, all data requests are automatically authenticated.
-    - If running elsewhere, make sure that the `planetary-computer` python package is installed and run the command `planetarycomputer configure` in the console, entering the API key when prompted. See [here](https://planetarycomputer.microsoft.com/docs/concepts/sas/#:~:text=data%20catalog.-,planetary%2Dcomputer%20Python%20package,-The%20planetary%2Dcomputer) for more information.
-
-4. Update configuration files in `config/`, or make your own config dictionaries.
-
-5. Place a `csv` file containing the latitude and longitude coordinates of the points in a specific folder or load a file with latitude and longitude coordinates.
-
-6. Run the wrapper pipeline function, or the pipeline function (see details below). Within the notebook:
-    - Choose the Dask cluster/gateway as desired
-    - Make sure to read the correct entry in the data catalog for the point coordinates file
-
-## Repository structure
+## Repository structure (OUTDATED)
 ```
 .
 ├── config
@@ -156,6 +140,88 @@ load_and_save_features(input_file_path="test_data.csv",
 
 # FAQs
 
+### - How do I get access to the Planetary Computer API key?
+Update
+
+### - Can you tell me about all the parameters that I can use in the `get_features` and `load_and_save_features`?
+
+Here are all the parameters and defaults that `get_features` uses (`load_and_save_features` also accepts these):
+
+```python
+def get_features(
+    latitudes: List[float],
+    longitudes: List[float],
+    parallelize: bool = True,
+    satellite_name: str = "landsat-8-c2-l2", # or "sentinel-2-l2a"
+    image_resolution: int = 30,
+    image_dtype: str = "int16", # or "int32" or "float"
+    image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, read the satellite docs
+    buffer_distance: int = 1200,
+    min_image_edge: int = 30,
+    sort_points_by_hilbert_distance: bool = True,
+    seasonal: bool = False,
+    year: int = None,
+    search_start: str = "2013-01-01",
+    search_end: str = "2013-12-31",
+    mosaic_composite: str = "least_cloudy", # or all
+    stac_api: str = "planetary-compute", # or "earth-search"
+    n_mosaiks_features: int = 4000,
+    mosaiks_kernel_size: int = 3,
+    mosaiks_batch_size: int = 10,
+    model_device: str = "cpu", # or "cuda"
+    dask_client_type: str = "local", # or gateway
+    dask_n_concurrent_tasks: int = 8,
+    dask_chunksize: int = 500,
+    dask_n_workers: int = 4,
+    dask_threads_per_worker: int = 4,
+    dask_worker_cores: int = 4,
+    dask_worker_memory: int = 2,
+    dask_pip_install: bool = False,
+    mosaiks_col_names: list = None,
+    setup_rasterio_env: bool = True,
+) -> pd.DataFrame
+```
+
+You can also feed all of these parameters through a .yml file, read the file, and then input the parameters as **kwargs. Here is an example .yml file for the parameters that can be re-used:
+
+```yml
+parallelize: true
+satellite_name: "landsat-8-c2-l2"  # or "sentinel-2-l2a"
+image_resolution: 30
+image_dtype: "int16"  # or "int32" or "float"
+image_bands:
+  - "SR_B2"
+  - "SR_B3"
+  - "SR_B4"
+  - "SR_B5"
+  - "SR_B6"
+  - "SR_B7"
+buffer_distance: 1200
+min_image_edge: 30
+sort_points_by_hilbert_distance: true
+seasonal: false
+year: null
+search_start: "2013-01-01"
+search_end: "2013-12-31"
+mosaic_composite: "least_cloudy"  # or "all"
+stac_api: "planetary-compute"  # or "earth-search"
+n_mosaiks_features: 4000
+mosaiks_kernel_size: 3
+mosaiks_batch_size: 10
+model_device: "cpu"  # or "cuda"
+dask_client_type: "local"  # or "gateway"
+dask_n_concurrent_tasks: 8
+dask_chunksize: 500
+dask_n_workers: 4
+dask_threads_per_worker: 4
+dask_worker_cores: 4
+dask_worker_memory: 2
+dask_pip_install: false
+mosaiks_col_names: null
+setup_rasterio_env: true
+
+```
+
 ### - How do I save intermediate data to S3?
 
 To save data to S3, you can use the standard save_dataframe command from the utils file. Example code:
@@ -169,6 +235,7 @@ AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION
 ```
 
-### - How do I get access to Planetary Computer API key?
 
+### - Can you share an example of a project where we have used this?
 
+Yes! See the [mosaiks_ml](https://github.com/IDinsight/mosaiks_ml) repository for example ML models built using these features
