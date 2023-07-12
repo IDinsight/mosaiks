@@ -16,12 +16,12 @@ def image_crop(config_dict: dict):
         20.696269834517118,
         "LC08_L2SP_143046_20151208_02_T1",
     )
-    stac_item = fetch_stac_item_from_id([id])
+    stac_items = fetch_stac_item_from_id([id])
 
     return fetch_image_crop(
         lon,
         lat,
-        stac_item,
+        stac_items,
         config_dict["buffer_distance"],
         config_dict["image_bands"],
         config_dict["image_resolution"],
@@ -54,12 +54,12 @@ def image_crop_from_stac_id(config_dict: dict):
 def image_crop_from_nans(config_dict: dict):
     """Test image crop."""
     lon, lat, id = (np.nan, np.nan, None)
-    stac_item = fetch_stac_item_from_id([id])
+    stac_items = fetch_stac_item_from_id([id])
 
     return fetch_image_crop(
         lon,
         lat,
-        stac_item,
+        stac_items,
         config_dict["buffer_distance"],
         config_dict["image_bands"],
         config_dict["image_resolution"],

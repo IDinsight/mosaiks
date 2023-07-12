@@ -245,7 +245,7 @@ def _get_overlapping_stac_items(
     gdf: gpd.GeoDataFrame,
     stac_gdf: gpd.GeoDataFrame,
     mosaic_composite: str,
-) -> Item:  # or List[Item]
+) -> List[Item]:
     """
     Takes in a sorted dataframe of stac items and returns the item(s) that covers each
     row. For use in `fetch_stac_items`.

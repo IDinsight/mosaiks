@@ -22,7 +22,7 @@ __all__ = [
 def fetch_image_crop(
     lon: float,
     lat: float,
-    stac_item: Item,  # or list[Items]
+    stac_items: list[Item],
     buffer_distance: int,
     bands: List[str],
     resolution: int,
@@ -40,7 +40,7 @@ def fetch_image_crop(
     ----------
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
-    stac_item : STAC Item to fetch imagery for. Can be a list of STAC Items.
+    stac_items : list of STAC Items to fetch imagery for.
     buffer_distance : buffer_distance in meters around the centerpoint to fetch imagery
     bands : List of bands to fetch
     resolution : Resolution of the image to fetch
@@ -56,7 +56,7 @@ def fetch_image_crop(
     -------
     image : numpy array of shape (C, H, W)
     """
-    if stac_item is None or all(x is None for x in stac_item):
+    if stac_items is None or all(x is None for x in stac_items):
         size = (
             len(bands),
             math.ceil(2 * buffer_distance / resolution + 1),
@@ -65,12 +65,12 @@ def fetch_image_crop(
         return np.ones(size) * np.nan
 
     # Stac item must always be a list
-    assert isinstance(stac_item, list)
+    assert isinstance(stac_items, list)
 
     # calculate crop bounds
     # use the projection of the first non-None stac item
-    (idx,) = np.nonzero([x is not None for x in stac_item])
-    crs = stac_item[idx[0]].properties["proj:epsg"]
+    (idx,) = np.nonzero([x is not None for x in stac_items])
+    crs = stac_items[idx[0]].properties["proj:epsg"]
 
     proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
     x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
@@ -79,7 +79,7 @@ def fetch_image_crop(
 
     # get image(s) as xarray
     xarray = stackstac.stack(
-        stac_item,
+        stac_items,
         assets=bands,
         resolution=resolution,
         rescale=True,
@@ -94,9 +94,9 @@ def fetch_image_crop(
         image = xarray.median(dim="time").values
     elif mosaic_composite == "least_cloudy":
         # for least cloudy, take the first non zero image
-        for i in range(len(stac_item)):
+        for i in range(len(stac_items)):
             image = xarray[i].values
-            if ~np.all(image == 0.0) and i < len(stac_item) - 1:
+            if ~np.all(image == 0.0) and i < len(stac_items) - 1:
                 break
             else:
                 image = xarray[0].values
@@ -218,13 +218,13 @@ class CustomDataset(Dataset):
         """
 
         lon, lat = self.points[idx]
-        stac_item = self.items[idx]
+        stac_items = self.items[idx]
 
         try:
             image = fetch_image_crop(
                 lon=lon,
                 lat=lat,
-                stac_item=stac_item,
+                stac_items=stac_items,
                 buffer_distance=self.buffer,
                 bands=self.bands,
                 resolution=self.resolution,
@@ -301,7 +301,7 @@ def fetch_image_crop_from_stac_id(
         image_crop = fetch_image_crop(
             lon=lon,
             lat=lat,
-            stac_item=stac_items,
+            stac_items=stac_items,
             buffer_distance=buffer_distance,
             bands=bands,
             resolution=resolution,
