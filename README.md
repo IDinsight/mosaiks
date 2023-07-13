@@ -157,7 +157,7 @@ def get_features(
     satellite_name: str = "landsat-8-c2-l2", # or "sentinel-2-l2a"
     image_resolution: int = 30,
     image_dtype: str = "int16", # or "int32" or "float"
-    image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, read the satellite docs for [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/).
+    image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, see FAQs below
     buffer_distance: int = 1200,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
@@ -241,6 +241,10 @@ AWS_DEFAULT_REGION
 ### - Can you share an example of a project where we have used this?
 
 Yes! See the [mosaiks_ml](https://github.com/IDinsight/mosaiks_ml) repository for example ML models built using these features
+
+### Where can I learn more about the satellite images?
+
+You can explore Microsoft Planetary Computer's [data catalog]([here](https://planetarycomputer.microsoft.com/explore)). It includes information about the satellites and links for further reading. You can also find information on the best image bands to use for images from the [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/) satellites.
 
 ### - How do I contribute to this repo as a developer?
 
