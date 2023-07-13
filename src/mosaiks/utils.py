@@ -58,7 +58,8 @@ def save_dataframe(df: pd.DataFrame, file_path: str, **kwargs) -> None:
     """
     file_path = str(file_path)
 
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    if os.path.dirname(file_path) != "":
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     if file_path.endswith(".csv"):
         return df.to_csv(file_path, **kwargs)

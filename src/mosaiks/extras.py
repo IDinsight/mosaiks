@@ -1,12 +1,17 @@
 import pandas as pd
+
 import mosaiks.utils as utl
 from mosaiks.pipeline import get_features
 
 
-def load_and_save_features(input_file_path: str,
-                           path_to_save_data: str,
-                           context_cols_to_keep_from_input: list = None,
-                           **kwargs) -> None:
+def load_and_save_features(
+    input_file_path: str,
+    path_to_save_data: str,
+    lat_col: str,
+    lon_col: str,
+    context_cols_to_keep_from_input: list = None,
+    **kwargs,
+) -> None:
     """
     Load and save features
 
@@ -14,6 +19,8 @@ def load_and_save_features(input_file_path: str,
     ----------
     input_file_path : Path to lat-lons data file, in either .csv or .parquet format.
     path_to_save_data : Path to save data, in either .csv or .parquet format.
+    lat_col : Name of latitude column in input data
+    lon_col : Name of longitude column in input data
     context_cols_to_keep_from_input : List of context columns to add to final dataframe from input data
     kwargs: config parameters for `get_features`. See `get_features` docstring for more details and default values.
     """
@@ -21,7 +28,7 @@ def load_and_save_features(input_file_path: str,
     points_df = utl.load_dataframe(input_file_path)
 
     # Get features
-    features_df = get_features(points_df["Lat"], points_df["Lon"], **kwargs)
+    features_df = get_features(points_df[lat_col], points_df[lon_col], **kwargs)
 
     # Add context columns
     if context_cols_to_keep_from_input:
