@@ -133,7 +133,7 @@ If you are running mosaiks locally or on a non-MPC server, then you need an acce
 
 1. If you do not have an MPC account, go [here](https://planetarycomputer.microsoft.com/explore). You should see a “Request Access” button in the top right corner.
 
-It opens up a form which you should fill in. NB: Use your personal email ID, rather than an instituional one. If you already have a Microsoft account, use the email ID (non-institutional) associated with it: otherwise, you also have the additional step of creating a Microsoft account for the email ID you want to use for the MPC Hub.
+It opens up a form which you should fill in. NB: Use your personal email ID, rather than an institutional one. If you already have a Microsoft account, use the email ID (non-institutional) associated with it: otherwise, you also have the additional step of creating a Microsoft account for the email ID you want to use for the MPC Hub.
 
 Once you submit the form, you should receive an email within a week granting you access to the hub.
 
