@@ -44,12 +44,10 @@ def create_features_from_image_array(
                 ):
                     features_array[i] = featurize(image, model, device)
                 else:
-                    # print("warn", flush=True)
-                    # warnings.warn("Image crop too small")
+                    # logging.warn("Image crop too small")
                     pass
             else:
-                # print("warn", flush=True)
-                # warnings.warn("No image found")
+                # logging.warn("No image found")
                 pass
     return features_array
 
