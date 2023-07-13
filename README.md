@@ -1,10 +1,10 @@
-# MOSAIKS Satellite Imagery Featurization
+# MOSAIKS Satellite Imagery Featuri ation
 
 MOSAIKS is a Python package that performs parallelized encoding of satellite imagery into easy-to-use features using the MOSAIKS algorithm and Dask for parallel processing. This package enables users to generate feature vectors based on satellite images by providing a list of latitudes and longitudes and Microsoft's Planetary Computer API key. It supports various satellites, image sizes, time periods, and parallelization options.
 
 We implement the MOSAIKS algorithm based on work by [Rolf et al., 2021](https://www.nature.com/articles/s41467-021-24638-z). The authors of this paper implement MOSAIKS using Google Maps images (mostly 2018), and also provide some pre-computed features based on Planet imagery from 2019 [here](https://www.mosaiks.org/).
 
-This packages extends the functionality of the original MOSAIKS implementation in the following ways:
+This package extends the functionality of the original MOSAIKS implementation in the following ways:
 
 - Flexibility in choice of satellite (tested for Landsat-8 and Sentinel-2)
 - Ability to select the timeframe from which to pull imagery
@@ -13,7 +13,7 @@ This packages extends the functionality of the original MOSAIKS implementation i
 - Parallel processing with Dask to speed up fetching images and creating features.
 - Once installed, the package can be run on any machine (with the API key).
 
-The package has been tested via [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) on Landsat-8 or Sentinel-2 imagery. **Please note this package has only been tested on Python 3.1 and 3.11**. Using other versions of Python are expected to raise errors due to dependency conflicts.
+The package has been tested via [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) on Landsat-8 or Sentinel-2 imagery. **Please note this package has only been tested on Python 3.10 and 3.11**. Using other versions of Python are expected to raise errors due to dependency conflicts.
 
 For more detailed information on this package and how to use it, please see [this blog post](link to technical blog post). For information on preview and potential use cases for this package, please see [this blog post](link to non-technical blog post)
 
@@ -24,16 +24,16 @@ This section highlights a demo to help you get features ASAP.
 
 Ensure you have all requirements set up:
 
-1. Install Python 3.11.
+1. Install Python 3.10 or 3.11.
 2. Install the MOSAIKS package -
 
     ```sh
-    pip install git+https://github.com/IDinsight/mosaiks
+    pip install git+https://github.com/IDinsight/mosaiks@main
     ```
 
 3. Acquire the Planetary Computer API key from [Microsoft Planetary Computer (MPC)](https://planetarycomputer.microsoft.com/). We provide detailed instructions for getting an API key in the FAQs section of this README.
 
-    In your terminal run the following and fill the API key prompt -
+    In your terminal, run the following and fill the API key prompt -
 
     ```sh
     planetarycomputer configure
@@ -256,11 +256,7 @@ AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION
 ```
 
-### - Can you share an example of a project where we have used this?
-
-Yes! See the [mosaiks_ml](https://github.com/IDinsight/mosaiks_ml) repository for example ML models built using these features
-
-### Where can I learn more about the satellite images?
+### - Where can I learn more about the satellite images?
 
 You can explore Microsoft Planetary Computer's [data catalog]([here](https://planetarycomputer.microsoft.com/explore)). It includes information about the satellites and links for further reading. You can also find information on the best image bands to use for images from the [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/) satellites.
 
