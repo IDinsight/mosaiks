@@ -20,13 +20,13 @@ This section highlights a demo to help you get features ASAP.
 
 ### Step 1: Set-up
 
-Ensure you have all requirements set up: 
+Ensure you have all requirements set up:
 1. Install Python 3.10.
 2. Install the MOSAIKS package -
     ```sh
     pip install git+https://github.com/IDinsight/mosaiks.git@main
     ```
-3. Acquire the Planetary Computer API key from [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/)
+3. Acquire the Planetary Computer API key from [Microsoft Planetary Computer (MPC)](https://planetarycomputer.microsoft.com/). We provide detailed instructions for getting an API key in the FAQs section of this README.
     - In your terminal run the following and fill the API key prompt -
     ```
     planetarycomputer configure
@@ -102,7 +102,7 @@ load_and_save_features(input_file_path="test_data.csv",
 The high-level flow of our featurisation pipeline is the following:
 
 1. The User feeds 'lat' and 'lon' lists for points they want to featurise
-    - The user also adds relevant parameters to the function (refer to FAQs)
+    - The user also adds relevant parameters to the function (see FAQs)
 3. For each GPS coordinate, the function fetches [STAC](https://stacspec.org/en) references to satellite images
 4. Once found, the function fetches the images
 5. Function converts each image into features using the MOSAIKS algorithm
@@ -112,16 +112,9 @@ The high-level flow of our featurisation pipeline is the following:
 ## Repository structure
 
 ```
-.
-├── playground
-│   └── test_big_pipeline_function.ipynb -- demo code for running pipeline function
-│
 ├── src -- source code
 │   ├── mosaiks
-│   │   ├── pipeline.py -- pipeline code: takes in GPS coordinates and config dictionaries; returns features
-│   │   ├── utils.py -- utilities for pipeline code
-│   │   ├── dask.py -- wrapper functions and utilities for Dask parallel processing
-│   │   ├── extras/ -- wrapper functions for pipeline code; includes file I/O operations and checks for configuration files
+│   │   ├── pipeline.py -- pipeline code: takes in GPS coordinates and processing
 │   │   ├── featurize/ -- code for featurisation from images
 │   └   └── fetch/ -- code for fetching images
 ├── tests/ -- unit tests
@@ -136,7 +129,21 @@ The high-level flow of our featurisation pipeline is the following:
 # FAQs
 
 ### - How do I get access to the Planetary Computer API key?
-Update
+If you are running mosaiks locally or on a non-MPC server, then you need an access token for the satellite image database.
+
+1. If you do not have an MPC account, go [here](https://planetarycomputer.microsoft.com/explore). You should see a “Request Access” button in the top right corner.
+
+It opens up a form which you should fill in. NB: Use your personal email ID, rather than an instituional one. If you already have a Microsoft account, use the email ID (non-institutional) associated with it: otherwise, you also have the additional step of creating a Microsoft account for the email ID you want to use for the MPC Hub.
+
+Once you submit the form, you should receive an email within a week granting you access to the hub.
+
+2. To get the token, go [here](https://pccompute.westeurope.cloudapp.azure.com/compute/hub/token). Request and copy the new token, and save it.
+
+3. On your local / virtual machine. Run `pip install planetary-compute` and `planetarycomputer configure` from the console, and paste in the API key you generated.
+
+4. You only need to do this once, and should be able to access the database smoothly every time you run the pipeline after this.
+
+5. More information available [here](https://planetarycomputer.microsoft.com/docs/reference/sas/).
 
 ### - Can you tell me about all the parameters that I can use in the `get_features` and `load_and_save_features`?
 
@@ -150,7 +157,7 @@ def get_features(
     satellite_name: str = "landsat-8-c2-l2", # or "sentinel-2-l2a"
     image_resolution: int = 30,
     image_dtype: str = "int16", # or "int32" or "float"
-    image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, read the satellite docs
+    image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, read the satellite docs for [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/).
     buffer_distance: int = 1200,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
@@ -244,3 +251,7 @@ To set up your dev environment, you can go through the following steps:
 2. Run `pip install -e .` in the repo's root folder to install a live local copy of the repository. This can be used in python as import mosaiks.
 3. pip install the two requirements files "requirements_dev.txt" and "requirements_test.txt".
 4. Start contributing!
+
+### - What if something isn't working for me?
+
+We are happy to receive feedback on the package. Please do submit an issue, or if you know how to fix it, make a feature branch and raise a PR!
