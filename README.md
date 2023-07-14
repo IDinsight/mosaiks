@@ -70,7 +70,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         lons,
         datetime="2017", # or ["2013-01-01", "2013-12-31"] or ...
         image_width=1000,
-    )
+        )
 
     df_featurised
     ```
