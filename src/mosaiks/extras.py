@@ -7,8 +7,8 @@ from mosaiks.pipeline import get_features
 def load_and_save_features(
     input_file_path: str,
     path_to_save_data: str,
-    lat_col: str,
-    lon_col: str,
+    lat_col: str = "Lat",
+    lon_col: str = "Lon",
     context_cols_to_keep_from_input: list = None,
     **kwargs,
 ) -> None:
@@ -19,8 +19,8 @@ def load_and_save_features(
     ----------
     input_file_path : Path to lat-lons data file, in either .csv or .parquet format.
     path_to_save_data : Path to save data, in either .csv or .parquet format.
-    lat_col : Name of latitude column in input data
-    lon_col : Name of longitude column in input data
+    lat_col : Name of latitude column in input data, default is "Lat".
+    lon_col : Name of longitude column in input data, default is "Lon".
     context_cols_to_keep_from_input : List of context columns to add to final dataframe from input data
     kwargs: config parameters for `get_features`. See `get_features` docstring for more details and default values.
     """
