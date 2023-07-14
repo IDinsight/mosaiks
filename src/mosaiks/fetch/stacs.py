@@ -14,16 +14,14 @@ __all__ = ["fetch_image_refs", "fetch_stac_item_from_id"]
 
 
 def fetch_image_refs(
-    points_gdf: gpd.GeoDataFrame,
+    points_gdf_with_stac: gpd.GeoDataFrame,
     satellite_name: str,
-    seasonal: bool,
-    year: int,
     datetime: str,
     image_composite_method: str,
     stac_api_name: str,
 ) -> gpd.GeoDataFrame:
     """
-    Find a STAC item for points in the `points_gdf` GeoDataFrame. Returns a
+    Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame. Returns a
     GeoDataFrame with STAC items as a new column.
 
     Parameters
@@ -31,8 +29,6 @@ def fetch_image_refs(
     points_gdf : A GeoDataFrame with a column named "geometry" containing shapely
         Point objects.
     satellite_name : Name of MPC-hosted satellite.
-    seasonal: Whether to fetch seasonal STAC items.
-    year: The year to fetch seasonal STAC items for.
     datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     image_composite_method : how to composite multiple images for same GPS location.
     stac_api_name: The name of the STAC API to use.
@@ -44,106 +40,14 @@ def fetch_image_refs(
     """
     stac_api = get_stac_api(stac_api_name)
 
-    if seasonal:
-        points_gdf_with_stac = fetch_seasonal_stac_items(
-            points_gdf=points_gdf,
-            satellite_name=satellite_name,
-            year=year,
-            stac_api=stac_api,
-            image_composite_method=image_composite_method,
-        )
-    else:
-        points_gdf_with_stac = fetch_stac_items(
-            points_gdf=points_gdf,
-            satellite_name=satellite_name,
-            datetime=datetime,
-            stac_api=stac_api,
-            image_composite_method=image_composite_method,
-        )
-
-    return points_gdf_with_stac
-
-
-def fetch_seasonal_stac_items(
-    points_gdf: gpd.GeoDataFrame,
-    satellite_name: str,
-    year: int,
-    stac_api: pystac_client.Client,
-    image_composite_method: str,
-) -> gpd.GeoDataFrame:
-    """
-    Takes a year as input and creates date ranges for the four seasons, runs these
-    through fetch_stac_items, and concatenates the results. Can be used where-ever
-    `fetch_stac_items` is used.
-
-    Note: Winter is the first month and includes December from the previous year.
-
-    Months of the seasons taken from [here](https://delhitourism.gov.in/delhitourism/aboutus/seasons_of_delhi.jsp) for now.
-    """
-
-    # Make a copy of the points_gdf so we don't modify the original
-    points_gdf_copy = copy.deepcopy(points_gdf)
-    season_dict = {
-        "winter": (f"{year-1}-12-01", f"{year}-01-31"),
-        "spring": (f"{year}-02-01", f"{year}-03-31"),
-        "summer": (f"{year}-04-01", f"{year}-09-30"),
-        "autumn": (f"{year}-09-01", f"{year}-11-30"),
-    }
-
-    seasonal_gdf_list = []
-    for season, dates in season_dict.items():
-
-        search_start, search_end = dates
-        season_points_gdf = fetch_stac_items(
-            points_gdf=points_gdf_copy,
-            satellite_name=satellite_name,
-            datetime=[search_start, search_end],
-            stac_api=stac_api,
-            image_composite_method=image_composite_method,
-        )
-        season_points_gdf["season"] = season
-
-        # Save copy of the seasonal gdf to list, since pointer is overwritten in the
-        # next iteration
-        seasonal_gdf_list.append(season_points_gdf.copy())
-
-    combined_gdf = pd.concat(seasonal_gdf_list, axis="index")
-    combined_gdf.index.name = "point_id"
-
-    return combined_gdf
-
-
-def fetch_stac_items(
-    points_gdf: gpd.GeoDataFrame,
-    satellite_name: str,
-    datetime: str or list[str] or callable,
-    stac_api: pystac_client.Client,
-    image_composite_method: str,
-) -> gpd.GeoDataFrame:
-    """
-    Find the STAC item(s) that overlap each point in the `points_gdf` GeoDataFrame.
-
-    Parameters
-    ----------
-    points_gdf : A GeoDataFrame
-    satellite_name : Name of MPC-hosted satellite
-    datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
-    stac_api: The pystac_client.Client object to use for searching for image refs. Output of `get_stac_api`
-    image_composite_method : Whether to store "all" images found or just the "least_cloudy"
-
-    Returns
-    -------
-    points_gdf: A new geopandas.GeoDataFrame with a `stac_item` column containing the
-        STAC item that covers each point.
-    """
-    points_gdf = points_gdf.copy()
+    points_gdf_with_stac = points_gdf_with_stac.copy()
 
     # Check for NaNs in lat lons
-    nan_mask = points_gdf["Lat"].isna() + points_gdf["Lon"].isna()
-    points_gdf["stac_item"] = None
+    nan_mask = points_gdf_with_stac["Lat"].isna() + points_gdf_with_stac["Lon"].isna()
+    points_gdf_with_stac["stac_item"] = None
 
     if not nan_mask.all():
-        points_gdf_not_nan = points_gdf.loc[~nan_mask].copy()
+        points_gdf_not_nan = points_gdf_with_stac.loc[~nan_mask].copy()
         points_union = shapely.geometry.mapping(points_gdf_not_nan.unary_union)
 
         search_results = stac_api.search(
@@ -156,7 +60,7 @@ def fetch_stac_items(
         item_collection = search_results.item_collection()
 
         if len(item_collection) == 0:
-            return points_gdf
+            return points_gdf_with_stac
 
         else:
             # Convert ItemCollection to GeoDataFrame
@@ -171,13 +75,13 @@ def fetch_stac_items(
             # add items as an extra column
             stac_gdf["stac_item"] = item_collection.items
 
-            points_gdf.loc[~nan_mask] = _add_overlapping_stac_items(
+            points_gdf_with_stac.loc[~nan_mask] = _add_overlapping_stac_items(
                 gdf=points_gdf_not_nan,
                 stac_gdf=stac_gdf,
                 image_composite_method=image_composite_method,
             )
 
-    return points_gdf
+    return points_gdf_with_stac
 
 
 def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoDataFrame:
@@ -237,7 +141,7 @@ def _add_overlapping_stac_items(
     """
     Takes in geodataframe of points and a sorted dataframe of stac items and returns
     the point geodataframe with an additional column which lists the items that covers
-    each point. For use in `fetch_stac_items`.
+    each point. For use in `fetch_image_refs`.
     """
 
     gdf = gdf.copy()
