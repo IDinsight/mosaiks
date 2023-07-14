@@ -180,11 +180,11 @@ def get_features(
         logging.info(
             f"Dask client created. Dashboard link: {client.dashboard_link}\n"
             "Running featurization in parallel with:\n"
+            f"{dask_n_concurrent_tasks} concurrent tasks running on\n"
             f"{dask_n_workers} workers\n"
-            f"{dask_threads_per_worker} threads per worker\n"
-            f"{dask_n_concurrent_tasks} concurrent tasks\n"
             f"{dask_worker_cores} worker cores\n"
-            f"{dask_worker_memory} worker memory"
+            f"{dask_threads_per_worker} threads per worker\n"
+            f"{dask_worker_memory}GB memory per worker."
         )
 
         # Run in parallel
