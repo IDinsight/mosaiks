@@ -153,7 +153,7 @@ def create_data_loader(
     image_bands : The bands to use for the image crops
     image_resolution : The resolution to use for the image crops
     image_dtype : The data type to use for the image crops
-    image_width : The buffer distance in meters to use for the image crops
+    image_width : The width in meters to use as a buffer while cropping images
     batch_size : The batch size to use for the DataLoader
     image_composite_method : The type of composite to make if multiple images are given.
         Defaults to "least_cloudy".
@@ -202,7 +202,7 @@ class CustomDataset(Dataset):
         ----------
         points : Array of points to sample from
         items : List of STAC items to sample from
-        image_width : Buffer distance in meters around each point to sample from
+        image_width : Buffer width in meters around each point to sample from
         bands : List of bands to sample
         resolution : Resolution of the image to sample
         dtype : Data type of the image to sample. Defaults to "int16".
@@ -294,7 +294,7 @@ def fetch_image_crop_from_stac_id(
     stac_id : The STAC ID of the image to fetch
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
-    image_width : Buffer in meters around the centerpoint for fetching imagery
+    image_width : Buffer width in meters around the centerpoint for fetching imagery
     bands : The satellite image bands to fetch
     resolution : The resolution of the image to fetch
     dtype : The data type of the image to fetch. Defaults to "int16".
