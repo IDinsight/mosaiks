@@ -808,8 +808,8 @@ def run_pipeline_with_parallelization(
     )
 
     # Close dask client
-    # client.close()
-    # cluster.close()
+    client.close()
+    cluster.close()
 
     # Load checkpoint files and combine
     logging.info("Loading and combining checkpoint files...")
@@ -824,4 +824,4 @@ def run_pipeline_with_parallelization(
         utl.save_dataframe(df=combined_df, file_path=save_folder_path / save_filename)
 
     if return_df:
-        return combined_df, client
+        return combined_df
