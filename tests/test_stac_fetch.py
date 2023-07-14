@@ -5,12 +5,7 @@ import pytest
 from pystac.item import Item
 
 import mosaiks.utils as utl
-from mosaiks.fetch.stacs import (
-    fetch_seasonal_stac_items,
-    fetch_stac_item_from_id,
-    fetch_stac_items,
-    get_stac_api,
-)
+from mosaiks.fetch.stacs import fetch_image_refs, fetch_stac_item_from_id, get_stac_api
 
 
 # -----Tests for stac item fetching-----
@@ -18,12 +13,11 @@ from mosaiks.fetch.stacs import (
 def test_points_with_stac_with_all_composite(sample_test_data: gpd.GeoDataFrame):
     """Sample test data with stac items."""
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
-    stac_api = get_stac_api("planetary-compute")
-    return fetch_stac_items(
+    return fetch_image_refs(
         points_gdf,
         satellite_name="landsat-8-c2-l2",
         datetime=["2013-04-01", "2014-03-31"],
-        stac_api=stac_api,
+        stac_api_name="planetary-compute",
         image_composite_method="all",
     )
 
@@ -34,12 +28,11 @@ def test_points_with_stac_with_least_cloudy_composite(
 ):
     """Sample test data with stac items."""
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
-    stac_api = get_stac_api("planetary-compute")
-    return fetch_stac_items(
+    return fetch_image_refs(
         points_gdf,
         satellite_name="landsat-8-c2-l2",
         datetime=["2013-04-01", "2014-03-31"],
-        stac_api=stac_api,
+        stac_api_name="planetary-compute",
         image_composite_method="least_cloudy",
     )
 
@@ -75,12 +68,11 @@ def test_if_df_with_stac_items_has_correct_shape(
 def test_points_with_stac_null(sample_test_null_data: gpd.GeoDataFrame):
     """Sample test data with stac items."""
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_null_data)
-    stac_api = get_stac_api("planetary-compute")
-    return fetch_stac_items(
+    return fetch_image_refs(
         points_gdf,
         satellite_name="landsat-8-c2-l2",
         datetime=["2013-04-01", "2014-03-31"],
-        stac_api=stac_api,
+        stac_api_name="planetary-compute",
         image_composite_method="least_cloudy",
     )
 
@@ -101,56 +93,6 @@ def test_if_stac_items_from_test_null_df_are_empty(
     test_points_with_stac_null: gpd.GeoDataFrame,
 ):
     assert test_points_with_stac_null["stac_item"].isnull().all()
-
-
-# -----Tests for stac item fetching with seasonal data-----
-@pytest.fixture(scope="module")
-def test_points_with_seasonal_stac(sample_test_data: gpd.GeoDataFrame):
-    """Sample test data with stac items."""
-    points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
-    stac_api = get_stac_api("planetary-compute")
-    return fetch_seasonal_stac_items(
-        points_gdf, "landsat-8-c2-l2", 2013, stac_api, "least_cloudy"
-    )
-
-
-def test_if_seasonal_stac_items_are_added_to_test_df(
-    test_points_with_seasonal_stac: gpd.GeoDataFrame,
-):
-    assert "stac_item" in test_points_with_seasonal_stac.columns and type(
-        test_points_with_seasonal_stac["stac_item"].tolist()[0] == Item
-    )
-
-
-def test_if_season_information_is_added_to_test_df(
-    test_points_with_seasonal_stac: gpd.GeoDataFrame,
-):
-    assert "season" in test_points_with_seasonal_stac.columns
-
-
-def test_if_season_information_in_test_df_is_correct(
-    test_points_with_seasonal_stac: gpd.GeoDataFrame,
-):
-    assert sorted(np.unique(test_points_with_seasonal_stac["season"].values)) == [
-        "autumn",
-        "spring",
-        "summer",
-        "winter",
-    ]
-
-
-def test_if_df_with_seasonal_stac_items_has_correct_shape(
-    test_points_with_seasonal_stac: gpd.GeoDataFrame, sample_test_data: gpd.GeoDataFrame
-):
-    assert len(test_points_with_seasonal_stac) == 4 * len(sample_test_data)
-
-
-def test_if_seasonal_stac_df_correctly_duplicates_points(
-    test_points_with_seasonal_stac: gpd.GeoDataFrame, sample_test_data: gpd.GeoDataFrame
-):
-    assert np.all(test_points_with_seasonal_stac["Lat"].value_counts() == 4) and len(
-        test_points_with_seasonal_stac["Lat"].value_counts()
-    ) == len(sample_test_data)
 
 
 # -----Tests for stac item fetch from stac ID-----

@@ -66,7 +66,7 @@ def test_run_queued_futures(
     columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_futures/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    cluster, client = get_local_dask_cluster_and_client(1, 1)
+    cluster, client = get_local_dask_cluster_and_client(2, 2)
 
     run_queued_futures_pipeline(
         points_gdf,
@@ -79,8 +79,6 @@ def test_run_queued_futures(
         image_width=config_dict["image_width"],
         min_image_edge=config_dict["min_image_edge"],
         sort_points=config_dict["sort_points_by_hilbert_distance"],
-        seasonal=config_dict["seasonal"],
-        year=config_dict["year"],
         datetime=config_dict["datetime"],
         image_composite_method=config_dict["image_composite_method"],
         stac_api_name=config_dict["stac_api"],
@@ -113,7 +111,7 @@ def test_run_batched_delayed_pipeline(
     columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_batch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    cluster, client = get_local_dask_cluster_and_client(1, 1)
+    cluster, client = get_local_dask_cluster_and_client(2, 2)
 
     run_batched_delayed_pipeline(
         points_gdf,
@@ -126,8 +124,6 @@ def test_run_batched_delayed_pipeline(
         image_width=config_dict["image_width"],
         min_image_edge=config_dict["min_image_edge"],
         sort_points=config_dict["sort_points_by_hilbert_distance"],
-        seasonal=config_dict["seasonal"],
-        year=config_dict["year"],
         datetime=config_dict["datetime"],
         image_composite_method=config_dict["image_composite_method"],
         stac_api_name=config_dict["stac_api"],
@@ -160,27 +156,25 @@ def test_run_unbatched_delayed_pipeline(
     columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_unbatch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    cluster, client = get_local_dask_cluster_and_client(1, 1)
+    cluster, client = get_local_dask_cluster_and_client(2, 2)
 
     run_unbatched_delayed_pipeline(
-        points_gdf,
-        client,
-        model,
-        config_dict["sort_points_by_hilbert_distance"],
-        config_dict["satellite_name"],
-        config_dict["datetime"],
-        config_dict["stac_api"],
-        config_dict["seasonal"],
-        config_dict["year"],
-        config_dict["image_composite_method"],
-        config_dict["n_mosaiks_features"],
-        config_dict["model_device"],
-        config_dict["min_image_edge"],
-        config_dict["mosaiks_batch_size"],
-        config_dict["image_width"],
-        config_dict["image_bands"],
-        config_dict["image_resolution"],
-        config_dict["image_dtype"],
+        points_gdf=points_gdf,
+        client=client,
+        model=model,
+        sort_points=config_dict["sort_points_by_hilbert_distance"],
+        satellite_name=config_dict["satellite_name"],
+        datetime=config_dict["datetime"],
+        stac_api_name=config_dict["stac_api"],
+        image_composite_method=config_dict["image_composite_method"],
+        num_features=config_dict["n_mosaiks_features"],
+        device=config_dict["model_device"],
+        min_image_edge=config_dict["min_image_edge"],
+        batch_size=config_dict["mosaiks_batch_size"],
+        image_width=config_dict["image_width"],
+        image_bands=config_dict["image_bands"],
+        image_resolution=config_dict["image_resolution"],
+        image_dtype=config_dict["image_dtype"],
         col_names=columns,
         chunksize=config_dict["dask_chunksize"],
         save_folder_path=folder_path,
