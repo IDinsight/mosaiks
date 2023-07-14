@@ -1,4 +1,4 @@
-# MOSAIKS Satellite Imagery Featuri ation
+# MOSAIKS Satellite Imagery Featurization
 
 MOSAIKS is a Python package that performs parallelized encoding of satellite imagery into easy-to-use features using the MOSAIKS algorithm and Dask for parallel processing. This package enables users to generate feature vectors based on satellite images by providing a list of latitudes and longitudes and Microsoft's Planetary Computer API key. It supports various satellites, image sizes, time periods, and parallelization options.
 
@@ -182,8 +182,6 @@ def get_features(
     image_width: int = 3000,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
-    seasonal: bool = False,
-    year: int = None,
     mosaic_composite: str = "least_cloudy", # or all
     stac_api: str = "planetary-compute", # or "earth-search"
     n_mosaiks_features: int = 4000,
@@ -206,7 +204,6 @@ def get_features(
 You can also feed all of these parameters through a .yml file, read the file, and then input the parameters as **kwargs. Here is an example .yml file for the parameters that can be re-used:
 
 ```yml
-datetime: "2017"
 parallelize: true
 satellite_name: "landsat-8-c2-l2"  # or "sentinel-2-l2a"
 image_resolution: 30
@@ -221,8 +218,6 @@ image_bands:
 image_width: 3000
 min_image_edge: 30
 sort_points_by_hilbert_distance: true
-seasonal: false
-year: null
 mosaic_composite: "least_cloudy"  # or "all"
 stac_api: "planetary-compute"  # or "earth-search"
 n_mosaiks_features: 4000
