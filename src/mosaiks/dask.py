@@ -12,7 +12,6 @@ import torch.nn
 import torch.nn as nn
 from dask import delayed
 from dask.distributed import Client, LocalCluster, as_completed, wait
-from dask_gateway import Gateway
 
 import mosaiks.utils as utl
 from mosaiks.featurize import create_features_from_image_array
@@ -21,9 +20,7 @@ from mosaiks.featurize import create_features_from_image_array
 from mosaiks.fetch import create_data_loader, fetch_image_refs
 
 __all__ = [
-    "get_dask_cluster_and_client",
     "get_local_dask_cluster_and_client",
-    "get_gateway_cluster_client",
     "run_queued_futures_pipeline",
     "run_batched_delayed_pipeline",
     "run_unbatched_delayed_pipeline",
@@ -32,31 +29,8 @@ __all__ = [
 ]
 
 
-def get_dask_cluster_and_client(client_type: str = "local", **client_kwargs) -> tuple:
-    """
-    Get dask client.
-
-    Parameters:
-    -----------
-    client_type: "local" or "gateway". "local" spins up a local Dask cluster; "gateway"
-        spins up a cluster on a remote computing platform. Default is "local".
-    client_kwargs: Keyword arguments to create client. See `get_local_dask_cluster_and_client` and
-        `get_gateway_dask_cluster_and_client` for details.
-
-    Returns:
-    --------
-    Dask cluster and client
-    """
-    if client_type == "local":
-        return get_local_dask_cluster_and_client(**client_kwargs)
-    elif client_type == "gateway":
-        return get_gateway_cluster_client(**client_kwargs)
-    else:
-        raise NotImplementedError
-
-
 def get_local_dask_cluster_and_client(
-    n_workers: int = 4, threads_per_worker: int = 4, **kwargs
+    n_workers: int = 4, threads_per_worker: int = 4
 ) -> tuple:
     """
     Get a local dask cluster and client.
@@ -73,63 +47,11 @@ def get_local_dask_cluster_and_client(
 
     cluster = LocalCluster(
         n_workers=n_workers,
-        processes=True,
+        processes=True,  # TODO - is this necessary?
         threads_per_worker=threads_per_worker,
         silence_logs=logging.ERROR,
     )
-    logging.info(cluster.dashboard_link)
     client = Client(cluster)
-    return cluster, client
-
-
-# TODO - Update to the simpler Azure cloud setup
-def get_gateway_cluster_client(
-    worker_cores: int = 4, worker_memory: int = 2, pip_install: bool = False, **kwargs
-) -> tuple:
-    """
-    Get gateway cluster and client.
-
-    NOTE: This spins up a remote Dask cluster on a remote computing platform and allows
-        us to centrally manage workers deployed across multiple machines
-        (local / remote).
-
-    Parameters
-    -----------
-    worker_cores : Number of cores per worker.
-    worker_memory : Amount of memory per worker in GB.
-    pip_install : Whether to install mosaiks on each worker.
-
-    Returns
-    --------
-    Dask cluster and client.
-    """
-    gateway = Gateway()
-
-    # shutdown running clusters (if any)
-    for cluster_info in gateway.list_clusters():
-        cluster = gateway.connect(cluster_info.name)
-        cluster.shutdown()
-
-    # spin up new cluster
-    gateway = Gateway()
-    options = gateway.cluster_options()
-    options.worker_cores = worker_cores  # this doesn't seem to work - set with .scale()
-    options.worker_memory = worker_memory  # in GB
-
-    cluster = gateway.new_cluster(options)
-    cluster.scale(worker_cores)
-    client = cluster.get_client()
-
-    # install mosaiks on the workers
-    if pip_install:
-        from dask.distributed import PipInstall
-
-        mosaiks_package_link = utl.get_mosaiks_package_link("dask-improvements")
-        plugin = PipInstall(
-            packages=[mosaiks_package_link], pip_options=["--upgrade"], restart=False
-        )
-        client.register_worker_plugin(plugin)
-
     return cluster, client
 
 

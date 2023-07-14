@@ -7,8 +7,8 @@ import pandas as pd
 import mosaiks.checks as checks
 import mosaiks.utils as utl
 from mosaiks.dask import (
-    get_dask_cluster_and_client,
     get_features_without_parallelization,
+    get_local_dask_cluster_and_client,
     run_batched_delayed_pipeline,
 )
 from mosaiks.featurize import RCF
@@ -29,7 +29,6 @@ RASTERIO_CONFIG = {
 def get_features(
     latitudes: List[float],
     longitudes: List[float],
-    parallelize: bool = True,
     satellite_name: str = "landsat-8-c2-l2",
     image_resolution: int = 30,
     image_dtype: str = "int16",
@@ -45,17 +44,14 @@ def get_features(
     stac_api: str = "planetary-compute",
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
-    mosaiks_batch_size: int = 10,
+    mosaiks_batch_size: int = 10,  # TODO - What is this?
     mosaiks_random_seed_for_filters: int = 768,
     model_device: str = "cpu",
-    dask_client_type: str = "local",
+    parallelize: bool = False,
     dask_n_concurrent_tasks: int = 8,
     dask_chunksize: int = 500,
     dask_n_workers: int = 4,
     dask_threads_per_worker: int = 4,
-    dask_worker_cores: int = 4,
-    dask_worker_memory: int = 2,
-    dask_pip_install: bool = False,
     mosaiks_col_names: list = None,
     setup_rasterio_env: bool = True,
 ) -> pd.DataFrame:  # or None
@@ -68,7 +64,6 @@ def get_features(
     -----------
     latitudes: list of latitudes
     longitudes: list of longitudes
-    parallelize: whether to use Dask parallel processing
     satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a". Defaults to "landsat-8-c2-l2".
     image_resolution: resolution of the satellite images in meters. Defaults to 30.
     image_dtype: data type of the satellite images. Defaults to "int16". All options - "int16", "int32", and "float"
@@ -87,14 +82,11 @@ def get_features(
     mosaiks_batch_size: batch size for mosaiks filters. Defaults to 10.
     mosaiks_random_seed_for_filters: random seed for mosaiks filters. Defaults to 768.
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
-    dask_client_type: type of Dask client to use. Options are "local" or "gateway". Defaults to "local".
+    parallelize: whether to use Dask parallel processing. Defaults to False.
     dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
-    dask_n_workers: number of Dask workers to use. Only needed if dask_client_type = "local". Defaults to 4.
+    dask_n_workers: number of Dask workers to use. Defaults to 4.
     dask_threads_per_worker: number of threads per Dask worker to use. Defaults to 4.
-    dask_worker_cores: number of cores per Dask worker to use. Defaults to 4.
-    dask_worker_memory: amount of memory per Dask worker to use in GB. Defaults to 2.
-    dask_pip_install: whether to install mosaiks in Dask workers. Defaults to False.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
     setup_rasterio_env: whether to set up rasterio environment variables. Defaults to True.
 
@@ -167,27 +159,19 @@ def get_features(
         save_folder_path_temp.mkdir(parents=True, exist_ok=True)
 
         # Create dask client
-        cluster, client = get_dask_cluster_and_client(
-            client_type=dask_client_type,
-            n_workers=dask_n_workers,
-            threads_per_worker=dask_threads_per_worker,
-            n_concurrent=dask_n_concurrent_tasks,
-            chunksize=dask_chunksize,
-            worker_cores=dask_worker_cores,
-            worker_memory=dask_worker_memory,
-            pip_install=dask_pip_install,
+        cluster, client = get_local_dask_cluster_and_client(
+            n_workers=dask_n_workers, threads_per_worker=dask_threads_per_worker
         )
+
         logging.info(
             f"Dask client created. Dashboard link: {client.dashboard_link}\n"
             "Running featurization in parallel with:\n"
             f"{dask_n_concurrent_tasks} concurrent tasks running on\n"
             f"{dask_n_workers} workers\n"
-            f"{dask_worker_cores} worker cores\n"
             f"{dask_threads_per_worker} threads per worker\n"
-            f"{dask_worker_memory}GB memory per worker."
         )
 
-        # Run in parallel
+        # Run in batches in parallel
         run_batched_delayed_pipeline(
             points_gdf=points_gdf,
             client=client,

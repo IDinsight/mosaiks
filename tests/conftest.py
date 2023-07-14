@@ -45,7 +45,6 @@ def config_dict():
         "mosaiks_kernel_size": 3,
         "mosaiks_batch_size": 1,
         "model_device": "cpu",
-        "dask_client_type": "local",
         "dask_n_concurrent_tasks": 1,
         "dask_chunksize": 5,
         "dask_n_workers": 1,
