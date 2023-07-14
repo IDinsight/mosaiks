@@ -76,11 +76,11 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
     df_featurised
     ```
 
-    The above code executes a default run of the get_features function which executes the featurisation in parallel using Dask.
+    The above code executes a default run of the get_features function which executes the featurisation.
 
-4. **Run get_features without dask**
+4. **Run get_features with Dask parallelization**
 
-    It is possible that you want to implement your own parallelisation without dask. For that, you could do a non-parallelised run of the function across your own paralllelisation logic (through code or cloud):
+    To run the code with the built-in Dask parallelization, set `parallelize` to `True` and `chunksize` to a suitable integer given the size of your dataset.
 
     ```python
     df_featurised = get_features(
@@ -89,17 +89,20 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         image_width=1000,
         search_start="2013-01-01",
         search_end="2013-12-31",
-        parallelize=False,
+        parallelize=True,
+        dask_chunksize=500,
     )
 
     df_featurised
     ```
 
+    Check out `get_features`' docs for parameters to control the in-built parallelization scheme.
+
 5. **Run Utility function to load data and save features**
 
     In situations where you want to load data, run featurisation, and save features on disk, quietly, you can use the `load_and_save_features`:
 
-        ```python
+    ```python
     # Save test data to file to load later
     import pandas as pd
 
@@ -198,9 +201,6 @@ def get_features(
     dask_chunksize: int = 500,
     dask_n_workers: int = 4,
     dask_threads_per_worker: int = 4,
-    dask_worker_cores: int = 4,
-    dask_worker_memory: int = 2,
-    dask_pip_install: bool = False,
     mosaiks_col_names: list = None,
     setup_rasterio_env: bool = True,
 ) -> pd.DataFrame
@@ -237,9 +237,6 @@ dask_n_concurrent_tasks: 8
 dask_chunksize: 500
 dask_n_workers: 4
 dask_threads_per_worker: 4
-dask_worker_cores: 4
-dask_worker_memory: 2
-dask_pip_install: false
 mosaiks_col_names: null
 setup_rasterio_env: true
 
