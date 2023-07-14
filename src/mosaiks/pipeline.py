@@ -27,7 +27,6 @@ def run_pipeline(
     image_composite_method: str,
     stac_api_name: str,
     num_features: int,
-    batch_size: int,
     device: str,
     col_names: list,
     save_folder_path: str = None,
@@ -56,7 +55,6 @@ def run_pipeline(
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
-    batch_size : Batch size for featurization.
     col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
     save_folder_path : Path to folder where features will be saved. Default is None.
     save_filename : Name of file where features will be saved. Default is "features.csv".
@@ -84,7 +82,6 @@ def run_pipeline(
         image_resolution=image_resolution,
         image_dtype=image_dtype,
         image_width=image_width,
-        batch_size=batch_size,
         image_composite_method=image_composite_method,
     )
 

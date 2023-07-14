@@ -120,7 +120,6 @@ def run_queued_futures_pipeline(
     image_composite_method: str,
     stac_api_name: str,
     num_features: int,
-    batch_size: int,
     device: str,
     col_names: list,
     n_concurrent: int,
@@ -153,7 +152,6 @@ def run_queued_futures_pipeline(
     image_composite_method : Mosaic composite to be used.
     stac_api_name : Name of the STAC API to be used.
     num_features : Number of features to be extracted from the model.
-    batch_size : Batch size to be used for featurization.
     device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features.
     n_concurrent : Number of concurrent partitions to be submitted to the client.
@@ -204,7 +202,6 @@ def run_queued_futures_pipeline(
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
-            batch_size=batch_size,
             device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
@@ -239,7 +236,6 @@ def run_queued_futures_pipeline(
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
-            batch_size=batch_size,
             device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
@@ -312,7 +308,6 @@ def run_batched_pipeline(
     image_composite_method: bool,
     stac_api_name: str,
     num_features: int,
-    batch_size: int,
     device: str,
     n_concurrent: int,
     chunksize: int,
@@ -342,7 +337,6 @@ def run_batched_pipeline(
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
-    batch_size : Batch size for featurization.
     device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features.
     save_folder_path : Path to folder where features will be saved.
@@ -402,7 +396,6 @@ def run_batched_pipeline(
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
-            batch_size=batch_size,
             device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
@@ -429,7 +422,6 @@ def run_batch(
     image_composite_method: str,
     stac_api_name: str,
     num_features: int,
-    batch_size: int,
     device: str,
     col_names: list,
     save_folder_path: str,
@@ -457,7 +449,6 @@ def run_batch(
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
-    batch_size : Batch size for featurization.
     device : Device to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
     save_folder_path : Path to folder where features will be saved.
@@ -491,7 +482,6 @@ def run_batch(
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
-            batch_size=batch_size,
             device=device,
             col_names=col_names,
             save_folder_path=save_folder_path,
@@ -536,7 +526,6 @@ def run_unbatched_delayed_pipeline(
     num_features: int,
     device: str,
     min_image_edge: int,
-    batch_size: int,
     image_width: int,
     image_bands: list[str],
     image_resolution: int,
@@ -565,7 +554,6 @@ def run_unbatched_delayed_pipeline(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     min_image_edge : Minimum image edge size.
-    batch_size : Batch size for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     image_bands : List of satellite image bands to be used for featurization.
     image_resolution : Resolution of satellite images to be used for featurization.
@@ -603,7 +591,6 @@ def run_unbatched_delayed_pipeline(
             num_features=num_features,
             device=device,
             min_image_edge=min_image_edge,
-            batch_size=batch_size,
             image_width=image_width,
             image_bands=image_bands,
             image_resolution=image_resolution,
@@ -631,7 +618,6 @@ def delayed_pipeline(
     num_features: int,
     device: str,
     min_image_edge: int,
-    batch_size: int,
     image_width: int,
     image_bands: list[str],
     image_resolution: int,
@@ -658,7 +644,6 @@ def delayed_pipeline(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     min_image_edge : Minimum image edge size.
-    batch_size : Batch size for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     image_bands : List of satellite image bands to be used for featurization.
     image_resolution : Resolution of satellite images to be used for featurization.
@@ -688,7 +673,6 @@ def delayed_pipeline(
         image_bands=image_bands,
         image_resolution=image_resolution,
         image_dtype=image_dtype,
-        batch_size=batch_size,
         image_composite_method=image_composite_method,
     )
 
@@ -728,7 +712,6 @@ def run_pipeline_with_parallelization(
     image_composite_method: str,
     stac_api_name: str,
     n_mosaiks_features: int,
-    mosaiks_batch_size: int,  # TODO - What is this?
     model_device: str,
     dask_n_concurrent_tasks: int,
     dask_chunksize: int,
@@ -761,7 +744,6 @@ def run_pipeline_with_parallelization(
     image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
     stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
-    mosaiks_batch_size: batch size for mosaiks filters. Defaults to 10.
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
     dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
@@ -818,7 +800,6 @@ def run_pipeline_with_parallelization(
         image_composite_method=image_composite_method,
         stac_api_name=stac_api_name,
         num_features=n_mosaiks_features,
-        batch_size=mosaiks_batch_size,
         device=model_device,
         n_concurrent=dask_n_concurrent_tasks,
         chunksize=dask_chunksize,

@@ -43,7 +43,6 @@ def get_features(
     stac_api_name: str = "planetary-compute",
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
-    mosaiks_batch_size: int = 10,  # TODO - What is this?
     mosaiks_random_seed_for_filters: int = 768,
     model_device: str = "cpu",
     parallelize: bool = False,
@@ -77,7 +76,6 @@ def get_features(
     stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
     mosaiks_kernel_size: kernel size for mosaiks filters. Defaults to 3.
-    mosaiks_batch_size: batch size for mosaiks filters. Defaults to 10.
     mosaiks_random_seed_for_filters: random seed for mosaiks filters. Defaults to 768.
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
     parallelize: whether to use Dask parallel processing. Defaults to False.
@@ -140,12 +138,11 @@ def get_features(
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=n_mosaiks_features,
-            batch_size=mosaiks_batch_size,
             device=model_device,
             col_names=mosaiks_col_names,
             save_folder_path=None,  # TODO - pass this up to the get_features() function?
         )
-    else:  # Run the featurization with Dask
+    else:
         return run_pipeline_with_parallelization(
             points_gdf=points_gdf,
             model=model,
@@ -163,7 +160,6 @@ def get_features(
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             n_mosaiks_features=n_mosaiks_features,
-            mosaiks_batch_size=mosaiks_batch_size,
             model_device=model_device,
             dask_n_concurrent_tasks=dask_n_concurrent_tasks,
             dask_chunksize=dask_chunksize,

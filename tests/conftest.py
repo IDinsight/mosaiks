@@ -43,7 +43,6 @@ def config_dict():
         "stac_api_name": "planetary-compute",
         "n_mosaiks_features": 4,
         "mosaiks_kernel_size": 3,
-        "mosaiks_batch_size": 1,
         "model_device": "cpu",
         "dask_n_concurrent_tasks": 1,
         "dask_chunksize": 5,

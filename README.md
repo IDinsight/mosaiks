@@ -195,7 +195,6 @@ def get_features(
     stac_api_name: str = "planetary-compute", # or "earth-search"
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
-    mosaiks_batch_size: int = 10,
     model_device: str = "cpu", # or "cuda"
     dask_n_concurrent_tasks: int = 8,
     dask_chunksize: int = 500,
@@ -231,7 +230,6 @@ mosaic_composite: "least_cloudy"  # or "all"
 stac_api_name: "planetary-compute"  # or "earth-search"
 n_mosaiks_features: 4000
 mosaiks_kernel_size: 3
-mosaiks_batch_size: 10
 model_device: "cpu"  # or "cuda"
 dask_n_concurrent_tasks: 8
 dask_chunksize: 500

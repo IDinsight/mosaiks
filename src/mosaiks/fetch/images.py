@@ -140,7 +140,6 @@ def create_data_loader(
     image_resolution: int,
     image_dtype: str,
     image_width: int,
-    batch_size: int,
     image_composite_method: str = "least_cloudy",
 ) -> DataLoader:
     """
@@ -155,7 +154,6 @@ def create_data_loader(
     image_resolution : The resolution to use for the image crops
     image_dtype : The data type to use for the image crops
     image_width : Desired width of the image to be fetched (in meters).
-    batch_size : The batch size to use for the DataLoader
     image_composite_method : The type of composite to make if multiple images are given.
         Defaults to "least_cloudy".
 
@@ -175,14 +173,7 @@ def create_data_loader(
         dtype=image_dtype,
         image_composite_method=image_composite_method,
     )
-
-    data_loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        collate_fn=lambda x: x,
-        pin_memory=False,
-    )
+    data_loader = DataLoader(dataset, batch_size=None)
 
     return data_loader
 
