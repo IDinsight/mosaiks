@@ -68,7 +68,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
     df_featurised = get_features(
         lats,
         lons,
-        buffer_distance=1000,
+        image_width=1000,
         search_start="2013-01-01",
         search_end="2013-12-31",
     )
@@ -86,7 +86,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
     df_featurised = get_features(
         lats,
         lons,
-        buffer_distance=1000,
+        image_width=1000,
         search_start="2013-01-01",
         search_end="2013-12-31",
         parallelize=False,
@@ -114,7 +114,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         lat_col="lat",
         lon_col="lon",
         path_to_save_data="test_features.csv",
-        buffer_distance=1000,
+        image_width=1000,
         search_start="2013-01-01",
         search_end="2013-12-31",
         context_cols_to_keep_from_input=["lat", "lon"],
@@ -181,7 +181,7 @@ def get_features(
     image_resolution: int = 30,
     image_dtype: str = "int16", # or "int32" or "float"
     image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, see FAQs below
-    buffer_distance: int = 1200,
+    image_width: int = 3000,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
     seasonal: bool = False,
@@ -221,7 +221,7 @@ image_bands:
   - "SR_B5"
   - "SR_B6"
   - "SR_B7"
-buffer_distance: 1200
+image_width: 3000
 min_image_edge: 30
 sort_points_by_hilbert_distance: true
 seasonal: false

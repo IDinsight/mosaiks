@@ -22,7 +22,7 @@ def image_crop(config_dict: dict):
         lon,
         lat,
         stac_items,
-        config_dict["buffer_distance"],
+        config_dict["image_width"],
         config_dict["image_bands"],
         config_dict["image_resolution"],
     )
@@ -40,7 +40,7 @@ def image_crop_from_stac_id(config_dict: dict):
         id,
         lon,
         lat,
-        config_dict["buffer_distance"],
+        config_dict["image_width"],
         config_dict["image_bands"],
         config_dict["image_resolution"],
         config_dict["image_dtype"],
@@ -60,7 +60,7 @@ def image_crop_from_nans(config_dict: dict):
         lon,
         lat,
         stac_items,
-        config_dict["buffer_distance"],
+        config_dict["image_width"],
         config_dict["image_bands"],
         config_dict["image_resolution"],
     )
@@ -76,12 +76,12 @@ def image_crop_from_nans(config_dict: dict):
 )
 def test_image_crop_shape(test_image_crop: np.ndarray, config_dict: dict):
     image_size = math.ceil(
-        config_dict["buffer_distance"] * 2 / config_dict["image_resolution"]
+        config_dict["image_width"] / config_dict["image_resolution"] + 1
     )
     assert test_image_crop.shape == (
         len(config_dict["image_bands"]),
-        image_size + 1,
-        image_size + 1,
+        image_size,
+        image_size,
     )
 
 

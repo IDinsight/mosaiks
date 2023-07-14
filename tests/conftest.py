@@ -32,7 +32,7 @@ def config_dict():
         "image_resolution": 53,
         "image_dtype": "int16",
         "image_bands": ["SR_B2", "SR_B3", "SR_B6", "SR_B7"],
-        "buffer_distance": 1001,
+        "image_width": 2000,
         "min_image_edge": 23,
         "sort_points_by_hilbert_distance": True,
         "seasonal": False,
