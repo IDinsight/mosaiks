@@ -187,7 +187,7 @@ def run_queued_futures_pipeline(
     image_resolution: int,
     image_dtype: str,
     image_bands: list[str],
-    buffer_distance: int,
+    image_width: int,
     min_image_edge: int,
     sort_points: bool,
     seasonal: bool,
@@ -220,7 +220,7 @@ def run_queued_futures_pipeline(
     image_resolution : Resolution of the image to be generated.
     image_dtype : Data type of the image to be generated.
     image_bands : List of bands to be used for generating the image.
-    buffer_distance : Buffer distance to be used for generating the image.
+    image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum edge length of the image to be generated.
     sort_points : Whether to sort the points by their Hilbert distance.
     seasonal : Whether to use seasonal imagery.
@@ -272,7 +272,7 @@ def run_queued_futures_pipeline(
             image_resolution=image_resolution,
             image_dtype=image_dtype,
             image_bands=image_bands,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             min_image_edge=min_image_edge,
             seasonal=seasonal,
             year=year,
@@ -307,7 +307,7 @@ def run_queued_futures_pipeline(
             image_resolution=image_resolution,
             image_dtype=image_dtype,
             image_bands=image_bands,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             min_image_edge=min_image_edge,
             seasonal=seasonal,
             year=year,
@@ -379,7 +379,7 @@ def run_batched_delayed_pipeline(
     image_resolution: int,
     image_dtype: str,
     image_bands: list[str],
-    buffer_distance: int,
+    image_width: int,
     min_image_edge: int,
     sort_points: bool,
     seasonal: bool,
@@ -410,7 +410,7 @@ def run_batched_delayed_pipeline(
     image_resolution : Resolution of satellite images to be used for featurization.
     image_dtype : Data type of satellite images to be used for featurization.
     image_bands : List of satellite image bands to be used for featurization.
-    buffer_distance : Buffer distance for fetching satellite images.
+    image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
     seasonal : Whether to use seasonal satellite images for featurization.
     year : Year to be used for featurization.
@@ -470,7 +470,7 @@ def run_batched_delayed_pipeline(
             image_resolution=image_resolution,
             image_dtype=image_dtype,
             image_bands=image_bands,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             min_image_edge=min_image_edge,
             seasonal=seasonal,
             year=year,
@@ -497,7 +497,7 @@ def run_batch(
     image_resolution: int,
     image_dtype: str,
     image_bands: list[str],
-    buffer_distance: int,
+    image_width: int,
     min_image_edge: int,
     seasonal: bool,
     year: int,
@@ -525,7 +525,7 @@ def run_batch(
     image_resolution : Resolution of satellite images to be used for featurization.
     image_dtype : Data type of satellite images to be used for featurization.
     image_bands : List of satellite image bands to be used for featurization.
-    buffer_distance : Buffer distance for fetching satellite images.
+    image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
     seasonal : Whether to use seasonal satellite images for featurization.
     year : Year to be used for featurization.
@@ -559,7 +559,7 @@ def run_batch(
             image_resolution=image_resolution,
             image_dtype=image_dtype,
             image_bands=image_bands,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             min_image_edge=min_image_edge,
             seasonal=seasonal,
             year=year,
@@ -614,7 +614,7 @@ def run_unbatched_delayed_pipeline(
     device: str,
     min_image_edge: int,
     batch_size: int,
-    buffer_distance: int,
+    image_width: int,
     image_bands: list[str],
     image_resolution: int,
     image_dtype: str,
@@ -643,7 +643,7 @@ def run_unbatched_delayed_pipeline(
     device : Device to be used for featurization.
     min_image_edge : Minimum image edge size.
     batch_size : Batch size for featurization.
-    buffer_distance : Buffer distance for fetching satellite images.
+    image_width : Desired width of the image to be fetched (in meters).
     image_bands : List of satellite image bands to be used for featurization.
     image_resolution : Resolution of satellite images to be used for featurization.
     image_dtype : Data type of satellite images to be used for featurization.
@@ -681,7 +681,7 @@ def run_unbatched_delayed_pipeline(
             device=device,
             min_image_edge=min_image_edge,
             batch_size=batch_size,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             image_bands=image_bands,
             image_resolution=image_resolution,
             image_dtype=image_dtype,
@@ -709,7 +709,7 @@ def delayed_pipeline(
     device: str,
     min_image_edge: int,
     batch_size: int,
-    buffer_distance: int,
+    image_width: int,
     image_bands: list[str],
     image_resolution: int,
     image_dtype: str,
@@ -736,7 +736,7 @@ def delayed_pipeline(
     device : Device to be used for featurization.
     min_image_edge : Minimum image edge size.
     batch_size : Batch size for featurization.
-    buffer_distance : Buffer distance for fetching satellite images.
+    image_width : Desired width of the image to be fetched (in meters).
     image_bands : List of satellite image bands to be used for featurization.
     image_resolution : Resolution of satellite images to be used for featurization.
     image_dtype : Data type of satellite images to be used for featurization.
@@ -761,7 +761,7 @@ def delayed_pipeline(
 
     data_loader = dask.delayed(create_data_loader)(
         points_gdf_with_stac=points_gdf_with_stac,
-        buffer_distance=buffer_distance,
+        image_width=image_width,
         image_bands=image_bands,
         image_resolution=image_resolution,
         image_dtype=image_dtype,
@@ -796,7 +796,7 @@ def get_features_without_parallelization(
     image_resolution: int,
     image_dtype: str,
     image_bands: list,
-    buffer_distance: int,
+    image_width: int,
     min_image_edge: int,
     seasonal: bool,
     year: int,
@@ -824,7 +824,7 @@ def get_features_without_parallelization(
     image_resolution : Resolution of satellite images to be used for featurization.
     image_dtype : Data type of satellite images to be used for featurization.
     image_bands : List of satellite image bands to be used for featurization.
-    buffer_distance : Buffer distance for fetching satellite images.
+    image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
     seasonal : Whether to use seasonal satellite images for featurization.
     year : Year to be used for featurization.
@@ -862,7 +862,7 @@ def get_features_without_parallelization(
             image_bands=image_bands,
             image_resolution=image_resolution,
             image_dtype=image_dtype,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             batch_size=batch_size,
             image_composite_method=image_composite_method,
         )
