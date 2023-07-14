@@ -1,31 +1,31 @@
 import logging
 import math
 from datetime import datetime
-from typing import Generator
+from typing import Generator, List
 
 import dask.delayed
 import dask_geopandas as dask_gpd
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import torch.nn
 import torch.nn as nn
 from dask import delayed
 from dask.distributed import Client, LocalCluster, as_completed, wait
 
 import mosaiks.utils as utl
-from mosaiks.featurize import create_features_from_image_array
 
-# for fully-delayd pipeline
+# for fully-delayed pipeline
+from mosaiks.featurize import create_features_from_image_array
 from mosaiks.fetch import create_data_loader, fetch_image_refs
+from mosaiks.pipeline import run_pipeline
 
 __all__ = [
     "get_local_dask_cluster_and_client",
+    "run_pipeline_with_parallelization",
     "run_queued_futures_pipeline",
-    "run_batched_delayed_pipeline",
+    "run_batched_pipeline",
     "run_unbatched_delayed_pipeline",
     "delayed_pipeline",
-    "get_features_without_parallelization",
 ]
 
 
@@ -188,7 +188,7 @@ def run_queued_futures_pipeline(
             break
 
         future = client.submit(
-            get_features_without_parallelization,
+            run_pipeline,
             points_gdf=partition,
             model=model,
             satellite_name=satellite_name,
@@ -223,7 +223,7 @@ def run_queued_futures_pipeline(
         logging.info(f"Adding partition {i}")
 
         new_future = client.submit(
-            get_features_without_parallelization,
+            run_pipeline,
             points_gdf=partition,
             model=model,
             satellite_name=satellite_name,
@@ -294,7 +294,7 @@ def get_dask_gdf(
     return points_dgdf
 
 
-def run_batched_delayed_pipeline(
+def run_batched_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
@@ -475,7 +475,7 @@ def run_batch(
         str_id = str(partition_id).zfill(3)  # makes 1 into '001'
 
         # this can be swapped for delayed_pipeline(...)
-        delayed_task = dask.delayed(get_features_without_parallelization)(
+        delayed_task = dask.delayed(run_pipeline)(
             points_gdf=partition,
             model=model,
             satellite_name=satellite_name,
@@ -711,104 +711,136 @@ def delayed_pipeline(
     return delayed_task
 
 
-# TODO: Not the best name for this function, and also maybe not the best location?
-def get_features_without_parallelization(
+def run_pipeline_with_parallelization(
     points_gdf: gpd.GeoDataFrame,
-    model: torch.nn.Module,
+    model: nn.Module,
     satellite_name: str,
     image_resolution: int,
     image_dtype: str,
-    image_bands: list,
+    image_bands: List[str],
     image_width: int,
     min_image_edge: int,
+    sort_points_by_hilbert_distance: bool,
     seasonal: bool,
     year: int,
     search_start: str,
     search_end: str,
     image_composite_method: str,
     stac_api_name: str,
-    num_features: int,
-    batch_size: int,
-    device: str,
-    col_names: list,
+    n_mosaiks_features: int,
+    mosaiks_batch_size: int,  # TODO - What is this?
+    model_device: str,
+    dask_n_concurrent_tasks: int,
+    dask_chunksize: int,
+    dask_n_workers: int,
+    dask_threads_per_worker: int,
+    mosaiks_col_names: list,
     save_folder_path: str = None,
-    save_filename: str = "",
+    save_filename: str = "features.csv",
     return_df: bool = True,
 ) -> pd.DataFrame:  # or None
     """
-    For a given DataFrame of coordinate points, this function runs the necessary
-    functions and optionally saves resulting mosaiks features to file. No Dask is necessary.
+    For a given DataFrame of coordinate points, this function runs the `run_pipeline()`
+    function on batches of datapoints in parallel using Dask.
 
-    Parameters
+    Parameters:
     -----------
     points_gdf : GeoDataFrame of points to be featurized.
     model: PyTorch model to be used for featurization.
-    satellite_name : Name of satellite to be used for featurization.
-    image_resolution : Resolution of satellite images to be used for featurization.
-    image_dtype : Data type of satellite images to be used for featurization.
-    image_bands : List of satellite image bands to be used for featurization.
-    image_width : Desired width of the image to be fetched (in meters).
-    min_image_edge : Minimum image edge size.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
-    search_start : Start date for satellite image search.
-    search_end : End date for satellite image search.
-    image_composite_method : Mosaic composite to be used for featurization.
-    stac_api_name : Name of STAC API to be used for satellite image search.
-    num_features : number of mosaiks features.
-    device : Device to be used for featurization.
-    batch_size : Batch size for featurization.
-    col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
-    save_folder_path : Path to folder where features will be saved. Default is None.
-    save_filename : Name of file where features will be saved. Default is "".
+    satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a". Defaults to "landsat-8-c2-l2".
+    image_resolution: resolution of the satellite images in meters. Defaults to 30.
+    image_dtype: data type of the satellite images. Defaults to "int16". All options - "int16", "int32", and "float"
+    image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
+    image_width: Desired width of the image to be fetched (in meters). Default 3000m.
+    min_image_edge: minimum image edge in meters. Defaults to 1000.
+    sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before fetching images. Defaults to True.
+    seasonal: whether to get seasonal images. Defaults to False.
+    year: year to get seasonal images for in format YYYY. Only needed if seasonal = True. Defaults to None.
+    search_start: start date for image search in format YYYY-MM-DD. Defaults to "2013-01-01".
+    search_end: end date for image search in format YYYY-MM-DD. Defaults to "2013-12-31".
+    image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
+    stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
+    n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
+    mosaiks_batch_size: batch size for mosaiks filters. Defaults to 10.
+    model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
+    dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
+    dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
+    dask_n_workers: number of Dask workers to use. Defaults to 4.
+    dask_threads_per_worker: number of threads per Dask worker to use. Defaults to 4.
+    mosaiks_col_names: column names for the mosaiks features. Defaults to None.
+    save_filename : Name of file where features will be saved. Default is "features.csv".
     return_df : Whether to return the features as a DataFrame. Default is True.
 
     Returns
     --------
     None or DataFrame
+
     """
+    # TODO - just make this a temp folder inside cwd without any structure
+    save_folder_path_temp = utl.make_output_folder_path(
+        satellite_name=satellite_name,
+        year=search_start.split("-")[0],
+        n_mosaiks_features=n_mosaiks_features,
+        root_folder=None,
+        coords_dataset_name="temp",
+    )
+    save_folder_path_temp.mkdir(parents=True, exist_ok=True)
 
-    try:
-        points_gdf_with_stac = fetch_image_refs(
-            points_gdf=points_gdf,
-            satellite_name=satellite_name,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
-            image_composite_method=image_composite_method,
-            stac_api_name=stac_api_name,
-        )
+    # Create dask client
+    cluster, client = get_local_dask_cluster_and_client(
+        n_workers=dask_n_workers, threads_per_worker=dask_threads_per_worker
+    )
 
-        data_loader = create_data_loader(
-            points_gdf_with_stac=points_gdf_with_stac,
-            image_bands=image_bands,
-            image_resolution=image_resolution,
-            image_dtype=image_dtype,
-            image_width=image_width,
-            batch_size=batch_size,
-            image_composite_method=image_composite_method,
-        )
+    logging.info(
+        f"Dask client created. Dashboard link: {client.dashboard_link}\n"
+        "Running featurization in parallel with:\n"
+        f"{dask_n_concurrent_tasks} concurrent tasks running on\n"
+        f"{dask_n_workers} workers\n"
+        f"{dask_threads_per_worker} threads per worker\n"
+    )
 
-        X_features = create_features_from_image_array(
-            dataloader=data_loader,
-            n_features=num_features,
-            model=model,
-            device=device,
-            min_image_edge=min_image_edge,
-        )
+    # Run in batches in parallel
+    run_batched_pipeline(
+        points_gdf=points_gdf,
+        client=client,
+        model=model,
+        satellite_name=satellite_name,
+        image_resolution=image_resolution,
+        image_dtype=image_dtype,
+        image_bands=image_bands,
+        image_width=image_width,
+        min_image_edge=min_image_edge,
+        sort_points=sort_points_by_hilbert_distance,
+        seasonal=seasonal,
+        year=year,
+        search_start=search_start,
+        search_end=search_end,
+        image_composite_method=image_composite_method,
+        stac_api_name=stac_api_name,
+        num_features=n_mosaiks_features,
+        batch_size=mosaiks_batch_size,
+        device=model_device,
+        n_concurrent=dask_n_concurrent_tasks,
+        chunksize=dask_chunksize,
+        col_names=mosaiks_col_names,
+        save_folder_path=save_folder_path_temp,
+    )
 
-        df = utl.make_result_df(
-            features=X_features,
-            context_gdf=points_gdf_with_stac,
-            mosaiks_col_names=col_names,
-        )
+    # Close dask client
+    client.close()
+    cluster.close()
 
-        if save_folder_path is not None:
-            utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
+    # Load checkpoint files and combine
+    logging.info("Loading and combining checkpoint files...")
+    checkpoint_filenames = utl.get_filtered_filenames(
+        folder_path=save_folder_path_temp, prefix="df_"
+    )
+    combined_df = utl.load_and_combine_dataframes(
+        folder_path=save_folder_path_temp, filenames=checkpoint_filenames
+    )
 
-        if return_df:
-            return df
+    if save_folder_path is not None:
+        utl.save_dataframe(df=combined_df, file_path=save_folder_path / save_filename)
 
-    except Exception as e:
-        logging.warn(e)
+    if return_df:
+        return combined_df

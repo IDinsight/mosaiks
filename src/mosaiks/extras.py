@@ -1,7 +1,7 @@
 import pandas as pd
 
 import mosaiks.utils as utl
-from mosaiks.pipeline import get_features
+from mosaiks import get_features
 
 
 def load_and_save_features(

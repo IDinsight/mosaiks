@@ -25,12 +25,12 @@ def check_satellite_name(satellite_name: str) -> None:
         )
 
 
-def check_stac_api_name(stac_api: str) -> None:
+def check_stac_api_name(stac_api_name: str) -> None:
     """Check that stac api name is valid."""
-    if stac_api not in valid_stac_api_names:
+    if stac_api_name not in valid_stac_api_names:
         raise ValueError(
             f"STAC api must be one of {list(valid_stac_api_names)},\
-            not {stac_api}"
+            not {stac_api_name}"
         )
 
 

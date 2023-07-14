@@ -11,7 +11,7 @@ from mosaiks import utils as utl
 from mosaiks.dask import (
     get_local_dask_cluster_and_client,
     get_partitions_generator,
-    run_batched_delayed_pipeline,
+    run_batched_pipeline,
     run_queued_futures_pipeline,
     run_unbatched_delayed_pipeline,
 )
@@ -84,7 +84,7 @@ def test_run_queued_futures(
         search_start=config_dict["search_start"],
         search_end=config_dict["search_end"],
         image_composite_method=config_dict["image_composite_method"],
-        stac_api_name=config_dict["stac_api"],
+        stac_api_name=config_dict["stac_api_name"],
         num_features=config_dict["n_mosaiks_features"],
         batch_size=config_dict["mosaiks_batch_size"],
         device=config_dict["model_device"],
@@ -100,7 +100,7 @@ def test_run_queued_futures(
 
 
 @pytest.mark.slow
-def test_run_batched_delayed_pipeline(
+def test_run_batched_pipeline(
     sample_test_data: pd.DataFrame,
     config_dict: dict,
 ):
@@ -116,7 +116,7 @@ def test_run_batched_delayed_pipeline(
     folder_path.mkdir(parents=True, exist_ok=True)
     cluster, client = get_local_dask_cluster_and_client(1, 1)
 
-    run_batched_delayed_pipeline(
+    run_batched_pipeline(
         points_gdf,
         client,
         model,
@@ -132,7 +132,7 @@ def test_run_batched_delayed_pipeline(
         search_start=config_dict["search_start"],
         search_end=config_dict["search_end"],
         image_composite_method=config_dict["image_composite_method"],
-        stac_api_name=config_dict["stac_api"],
+        stac_api_name=config_dict["stac_api_name"],
         num_features=config_dict["n_mosaiks_features"],
         batch_size=config_dict["mosaiks_batch_size"],
         device=config_dict["model_device"],
@@ -172,7 +172,7 @@ def test_run_unbatched_delayed_pipeline(
         config_dict["satellite_name"],
         config_dict["search_start"],
         config_dict["search_end"],
-        config_dict["stac_api"],
+        config_dict["stac_api_name"],
         config_dict["seasonal"],
         config_dict["year"],
         config_dict["image_composite_method"],

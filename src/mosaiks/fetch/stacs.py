@@ -268,20 +268,20 @@ def _add_overlapping_stac_items(
     return gdf
 
 
-def get_stac_api(api_name: str) -> pystac_client.Client:
+def get_stac_api(stac_api_name: str) -> pystac_client.Client:
     """Get a STAC API client for a given API name."""
 
-    if api_name == "planetary-compute":
+    if stac_api_name == "planetary-compute":
         stac_api = pystac_client.Client.open(
             "https://planetarycomputer.microsoft.com/api/stac/v1",
             modifier=planetary_computer.sign_inplace,
         )
-    elif api_name == "earth":
+    elif stac_api_name == "earth":
         stac_api = pystac_client.Client.open(
             "https://earth-search.aws.element84.com/v0"
         )
     else:
-        raise NotImplementedError(f"STAC api {api_name} is not implemented")
+        raise NotImplementedError(f"STAC api {stac_api_name} is not implemented")
 
     return stac_api
 

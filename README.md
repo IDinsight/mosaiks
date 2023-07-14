@@ -192,7 +192,7 @@ def get_features(
     search_start: str = "2013-01-01",
     search_end: str = "2013-12-31",
     mosaic_composite: str = "least_cloudy", # or all
-    stac_api: str = "planetary-compute", # or "earth-search"
+    stac_api_name: str = "planetary-compute", # or "earth-search"
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
     mosaiks_batch_size: int = 10,
@@ -228,7 +228,7 @@ year: null
 search_start: "2013-01-01"
 search_end: "2013-12-31"
 mosaic_composite: "least_cloudy"  # or "all"
-stac_api: "planetary-compute"  # or "earth-search"
+stac_api_name: "planetary-compute"  # or "earth-search"
 n_mosaiks_features: 4000
 mosaiks_kernel_size: 3
 mosaiks_batch_size: 10
