@@ -93,9 +93,12 @@ def test_run_queued_futures(
         chunksize=config_dict["dask_chunksize"],
         save_folder_path=folder_path,
     )
+
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
-    client.shutdown()
+    client.close()
+    cluster.close()
+
     assert num_files == 2
 
 
@@ -141,9 +144,11 @@ def test_run_batched_pipeline(
         col_names=columns,
         save_folder_path=folder_path,
     )
+
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
-    client.shutdown()
+    client.close()
+    cluster.close()
 
     assert num_files == 2
 
@@ -191,6 +196,7 @@ def test_run_unbatched_delayed_pipeline(
 
     num_files = len(listdir(folder_path))
     rmtree(folder_path)
-    client.shutdown()
+    client.close()
+    cluster.close()
 
     assert num_files == 2
