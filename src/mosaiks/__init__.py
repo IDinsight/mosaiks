@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
 
@@ -47,8 +47,8 @@ def get_features(
     parallelize: bool = False,
     dask_n_concurrent_tasks: int = 8,
     dask_chunksize: int = 500,
-    dask_n_workers: int = 4,
-    dask_threads_per_worker: int = 4,
+    dask_n_workers: Optional[int] = None,
+    dask_threads_per_worker: Optional[int] = None,
     dask_sort_points_by_hilbert_distance: bool = True,
     mosaiks_col_names: list = None,
     setup_rasterio_env: bool = True,
@@ -80,8 +80,8 @@ def get_features(
     parallelize: whether to use Dask parallel processing. Defaults to False.
     dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
-    dask_n_workers: number of Dask workers to use. Defaults to 4.
-    dask_threads_per_worker: number of threads per Dask worker to use. Defaults to 4.
+    n_workers : Number of workers to use. If None, let Dask decide (uses all available cores).
+    threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
     setup_rasterio_env: whether to set up rasterio environment variables. Defaults to True.

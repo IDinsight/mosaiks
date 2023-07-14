@@ -1,7 +1,7 @@
 import logging
 import math
 from datetime import datetime
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 import dask.delayed
 import dask_geopandas as dask_gpd
@@ -30,26 +30,25 @@ __all__ = [
 
 
 def get_local_dask_cluster_and_client(
-    n_workers: int = 4, threads_per_worker: int = 4
+    n_workers: Optional[int] = None,
+    threads_per_worker: Optional[int] = None,
 ) -> tuple:
     """
     Get a local dask cluster and client.
 
     Parameters
     -----------
-    n_workers : Number of workers to use.
-    threads_per_worker : Number of threads per worker.
+    threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
+    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
 
     Returns
     --------
-    Dask client.
+    Dask cluster and client.
     """
 
     cluster = LocalCluster(
         n_workers=n_workers,
-        processes=True,  # TODO - is this necessary?
         threads_per_worker=threads_per_worker,
-        silence_logs=logging.ERROR,
     )
     client = Client(cluster)
     return cluster, client
@@ -714,8 +713,8 @@ def run_pipeline_with_parallelization(
     model_device: str,
     dask_n_concurrent_tasks: int,
     dask_chunksize: int,
-    dask_n_workers: int,
-    dask_threads_per_worker: int,
+    dask_n_workers: Optional[int],
+    dask_threads_per_worker: Optional[int],
     sort_points_by_hilbert_distance: bool,
     mosaiks_col_names: list,
     save_folder_path: str = None,
@@ -746,8 +745,8 @@ def run_pipeline_with_parallelization(
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
     dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
-    dask_n_workers: number of Dask workers to use. Defaults to 4.
-    dask_threads_per_worker: number of threads per Dask worker to use. Defaults to 4.
+    threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
+    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
     save_filename : Name of file where features will be saved. Default is "features.csv".
@@ -808,8 +807,8 @@ def run_pipeline_with_parallelization(
     )
 
     # Close dask client
-    client.close()
-    cluster.close()
+    # client.close()
+    # cluster.close()
 
     # Load checkpoint files and combine
     logging.info("Loading and combining checkpoint files...")
@@ -824,4 +823,4 @@ def run_pipeline_with_parallelization(
         utl.save_dataframe(df=combined_df, file_path=save_folder_path / save_filename)
 
     if return_df:
-        return combined_df
+        return combined_df, client
