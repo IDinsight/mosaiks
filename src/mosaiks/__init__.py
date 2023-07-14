@@ -34,7 +34,6 @@ def get_features(
     image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"],
     image_width: int = 3000,
     min_image_edge: int = 30,
-    sort_points_by_hilbert_distance: bool = True,
     seasonal: bool = False,
     year: int = None,
     search_start: str = "2013-01-01",
@@ -50,6 +49,7 @@ def get_features(
     dask_chunksize: int = 500,
     dask_n_workers: int = 4,
     dask_threads_per_worker: int = 4,
+    dask_sort_points_by_hilbert_distance: bool = True,
     mosaiks_col_names: list = None,
     setup_rasterio_env: bool = True,
 ) -> pd.DataFrame:  # or None
@@ -67,7 +67,6 @@ def get_features(
     image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
     image_width: Desired width of the image to be fetched (in meters). Default 3000m.
     min_image_edge: minimum image edge in meters. Defaults to 1000.
-    sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before fetching images. Defaults to True.
     seasonal: whether to get seasonal images. Defaults to False.
     year: year to get seasonal images for in format YYYY. Only needed if seasonal = True. Defaults to None.
     search_start: start date for image search in format YYYY-MM-DD. Defaults to "2013-01-01".
@@ -83,6 +82,7 @@ def get_features(
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
     dask_n_workers: number of Dask workers to use. Defaults to 4.
     dask_threads_per_worker: number of threads per Dask worker to use. Defaults to 4.
+    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
     setup_rasterio_env: whether to set up rasterio environment variables. Defaults to True.
 
@@ -152,7 +152,6 @@ def get_features(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            sort_points_by_hilbert_distance=sort_points_by_hilbert_distance,
             seasonal=seasonal,
             year=year,
             search_start=search_start,
@@ -165,6 +164,7 @@ def get_features(
             dask_chunksize=dask_chunksize,
             dask_n_workers=dask_n_workers,
             dask_threads_per_worker=dask_threads_per_worker,
+            sort_points_by_hilbert_distance=dask_sort_points_by_hilbert_distance,
             mosaiks_col_names=mosaiks_col_names,
             save_folder_path=None,  # TODO - pass this up to the get_features() function?
         )

@@ -704,7 +704,6 @@ def run_pipeline_with_parallelization(
     image_bands: List[str],
     image_width: int,
     min_image_edge: int,
-    sort_points_by_hilbert_distance: bool,
     seasonal: bool,
     year: int,
     search_start: str,
@@ -717,6 +716,7 @@ def run_pipeline_with_parallelization(
     dask_chunksize: int,
     dask_n_workers: int,
     dask_threads_per_worker: int,
+    sort_points_by_hilbert_distance: bool,
     mosaiks_col_names: list,
     save_folder_path: str = None,
     save_filename: str = "features.csv",
@@ -736,7 +736,6 @@ def run_pipeline_with_parallelization(
     image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
     image_width: Desired width of the image to be fetched (in meters). Default 3000m.
     min_image_edge: minimum image edge in meters. Defaults to 1000.
-    sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before fetching images. Defaults to True.
     seasonal: whether to get seasonal images. Defaults to False.
     year: year to get seasonal images for in format YYYY. Only needed if seasonal = True. Defaults to None.
     search_start: start date for image search in format YYYY-MM-DD. Defaults to "2013-01-01".
@@ -749,6 +748,7 @@ def run_pipeline_with_parallelization(
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
     dask_n_workers: number of Dask workers to use. Defaults to 4.
     dask_threads_per_worker: number of threads per Dask worker to use. Defaults to 4.
+    sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
     save_filename : Name of file where features will be saved. Default is "features.csv".
     return_df : Whether to return the features as a DataFrame. Default is True.
