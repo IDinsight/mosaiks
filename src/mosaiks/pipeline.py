@@ -133,7 +133,7 @@ def get_features(
             image_resolution=image_resolution,
             image_dtype=image_dtype,
             image_bands=image_bands,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             min_image_edge=min_image_edge,
             seasonal=seasonal,
             year=year,
