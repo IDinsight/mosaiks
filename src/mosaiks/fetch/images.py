@@ -1,5 +1,6 @@
 import logging
 import math
+import warnings
 from typing import List
 
 import geopandas as gpd
@@ -11,6 +12,10 @@ from pystac.item import Item
 from torch.utils.data import DataLoader, Dataset
 
 from mosaiks.fetch.stacs import fetch_stac_item_from_id
+
+# temp warning suppress for stackstac 0.4.4's  UserWarning @ stackstac/prepare.py:364
+# "pd.to_datetime() - UserWarning: The argument 'infer_datetime_format'"
+warnings.filterwarnings("ignore", category=UserWarning)
 
 __all__ = [
     "create_data_loader",
