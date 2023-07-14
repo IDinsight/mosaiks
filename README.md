@@ -55,21 +55,22 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
 2. **Import test data. In this case, we are creating random GPS coordinates**
 
     ```python
-    import pandas as pd
-    import numpy as np
-
-    # Create a dataframe with 10 rows of random lats and longs in Uttar Pradesh, India
-    df = pd.DataFrame(np.random.rand(10, 2)/10 + [26.5, 80.5], columns=['lat', 'lon'])
+    # Example: Select 5 coordinates in Uttar Pradesh, India
+    lats = [26.51268717, 26.55187804, 26.54949092, 26.54105597, 26.54843896]
+    lons = [80.51489844, 80.54864309, 80.57813289, 80.51412136, 80.52254959]
     ```
 
-3. **Execute a default run of the `get_features` function:**
+3. **Execute a run of the `get_features` function:**
 
     ```python
     from mosaiks import get_features
 
     df_featurised = get_features(
-        df['lat'].values,
-        df['lon'].values
+        lats,
+        lons,
+        image_width=1000,
+        search_start="2013-01-01",
+        search_end="2013-12-31",
     )
 
     df_featurised
@@ -83,9 +84,12 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
 
     ```python
     df_featurised = get_features(
-        df["lat"].values,
-        df["lon"].values,
-        parallelize=False
+        lats,
+        lons,
+        image_width=1000,
+        search_start="2013-01-01",
+        search_end="2013-12-31",
+        parallelize=False,
     )
 
     df_featurised
@@ -95,18 +99,25 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
 
     In situations where you want to load data, run featurisation, and save features on disk, quietly, you can use the `load_and_save_features`:
 
-    ```python
-    # Create and Save test data
-    df = pd.DataFrame(np.random.rand(10, 2)/10 + [26.5, 80.5], columns=["lat", "lon"])
+        ```python
+    # Save test data to file to load later
+    import pandas as pd
+
+    df = pd.DataFrame({"lat": lats, "lon": lons})
     df.to_csv("test_data.csv")
 
-    # Run the load and save function
+    # Loading points, featurise images, and save features to file.
     from mosaiks.extras import load_and_save_features
 
     load_and_save_features(
         input_file_path="test_data.csv",
+        lat_col="lat",
+        lon_col="lon",
         path_to_save_data="test_features.csv",
-        context_cols_to_keep_from_input=["lat", "lon"]
+        image_width=1000,
+        search_start="2013-01-01",
+        search_end="2013-12-31",
+        context_cols_to_keep_from_input=["lat", "lon"],
     )
     ```
 
@@ -170,7 +181,7 @@ def get_features(
     image_resolution: int = 30,
     image_dtype: str = "int16", # or "int32" or "float"
     image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, see FAQs below
-    buffer_distance: int = 1200,
+    image_width: int = 3000,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
     seasonal: bool = False,
@@ -209,7 +220,7 @@ image_bands:
   - "SR_B5"
   - "SR_B6"
   - "SR_B7"
-buffer_distance: 1200
+image_width: 3000
 min_image_edge: 30
 sort_points_by_hilbert_distance: true
 seasonal: false

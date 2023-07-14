@@ -23,7 +23,7 @@ def fetch_image_crop(
     lon: float,
     lat: float,
     stac_items: list[Item],
-    buffer_distance: int,
+    image_width: int,
     bands: List[str],
     resolution: int,
     dtype: str = "int16",
@@ -32,7 +32,7 @@ def fetch_image_crop(
 ) -> np.array:
     """
     Fetches a crop of satellite imagery referenced by the given STAC item(s),
-    centered around the given point and with the given buffer_distance.
+    centered around the given point and with the given image_width.
 
     If multiple STAC items are given, the median composite of the images is returned.
 
@@ -41,7 +41,8 @@ def fetch_image_crop(
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
     stac_items : list of STAC Items to fetch imagery for.
-    buffer_distance : buffer_distance in meters around the centerpoint to fetch imagery
+    image_width : Desired width of the image to be fetched (in meters).
+        A buffer of image_width / 2 will be taken around the centerpoint.
     bands : List of bands to fetch
     resolution : Resolution of the image to fetch
     dtype : Data type of the image to fetch. Defaults to "int16".
@@ -59,8 +60,8 @@ def fetch_image_crop(
     if stac_items is None or all(x is None for x in stac_items):
         size = (
             len(bands),
-            math.ceil(2 * buffer_distance / resolution + 1),
-            math.ceil(2 * buffer_distance / resolution + 1),
+            math.ceil(image_width / resolution + 1),
+            math.ceil(image_width / resolution + 1),
         )
         return np.ones(size) * np.nan
 
@@ -73,6 +74,7 @@ def fetch_image_crop(
     crs = stac_items_not_none[0].properties["proj:epsg"]
 
     proj_latlon_to_stac = pyproj.Transformer.from_crs(4326, crs, always_xy=True)
+    buffer_distance = image_width // 2 + 1
     x_utm, y_utm = proj_latlon_to_stac.transform(lon, lat)
     x_min, x_max = x_utm - buffer_distance, x_utm + buffer_distance
     y_min, y_max = y_utm - buffer_distance, y_utm + buffer_distance
@@ -137,7 +139,7 @@ def create_data_loader(
     image_bands: List[str],
     image_resolution: int,
     image_dtype: str,
-    buffer_distance: int,
+    image_width: int,
     batch_size: int,
     image_composite_method: str = "least_cloudy",
 ) -> DataLoader:
@@ -152,7 +154,7 @@ def create_data_loader(
     image_bands : The bands to use for the image crops
     image_resolution : The resolution to use for the image crops
     image_dtype : The data type to use for the image crops
-    buffer_distance : The buffer distance in meters to use for the image crops
+    image_width : Desired width of the image to be fetched (in meters).
     batch_size : The batch size to use for the DataLoader
     image_composite_method : The type of composite to make if multiple images are given.
         Defaults to "least_cloudy".
@@ -167,7 +169,7 @@ def create_data_loader(
     dataset = CustomDataset(
         points_list,
         stac_item_list,
-        buffer_distance=buffer_distance,
+        image_width=image_width,
         bands=image_bands,
         resolution=image_resolution,
         dtype=image_dtype,
@@ -190,7 +192,7 @@ class CustomDataset(Dataset):
         self,
         points: np.array,
         items: List[Item],
-        buffer_distance: int,
+        image_width: int,
         bands: List[str],
         resolution: int,
         dtype: str = "int16",
@@ -201,7 +203,7 @@ class CustomDataset(Dataset):
         ----------
         points : Array of points to sample from
         items : List of STAC items to sample from
-        buffer_distance : Buffer distance in meters around each point to sample from
+        image_width : Desired width of the image to be fetched (in meters).
         bands : List of bands to sample
         resolution : Resolution of the image to sample
         dtype : Data type of the image to sample. Defaults to "int16".
@@ -212,7 +214,7 @@ class CustomDataset(Dataset):
 
         self.points = points
         self.items = items
-        self.buffer = buffer_distance
+        self.image_width = image_width
         self.bands = bands
         self.resolution = resolution
         self.dtype = dtype
@@ -242,7 +244,7 @@ class CustomDataset(Dataset):
                 lon=lon,
                 lat=lat,
                 stac_items=stac_items,
-                buffer_distance=self.buffer,
+                image_width=self.image_width,
                 bands=self.bands,
                 resolution=self.resolution,
                 dtype=self.dtype,
@@ -268,7 +270,7 @@ def fetch_image_crop_from_stac_id(
     stac_id: str,
     lon: float,
     lat: float,
-    buffer_distance: int,
+    image_width: int,
     bands: List[str],
     resolution: int,
     dtype: str = "int16",
@@ -293,7 +295,7 @@ def fetch_image_crop_from_stac_id(
     stac_id : The STAC ID of the image to fetch
     lon : Longitude of the centerpoint to fetch imagery for
     lat : Latitude of the centerpoint to fetch imagery for
-    buffer_distance : Buffer in meters around the centerpoint for fetching imagery
+    image_width : Desired width of the image to be fetched (in meters).
     bands : The satellite image bands to fetch
     resolution : The resolution of the image to fetch
     dtype : The data type of the image to fetch. Defaults to "int16".
@@ -319,7 +321,7 @@ def fetch_image_crop_from_stac_id(
             lon=lon,
             lat=lat,
             stac_items=stac_items,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             bands=bands,
             resolution=resolution,
             dtype=dtype,

@@ -199,7 +199,7 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
     """
 
     rows_list = []
-    for item in item_collection:
+    for i, item in enumerate(item_collection):
 
         stac_crs = item.properties["proj:epsg"]
 

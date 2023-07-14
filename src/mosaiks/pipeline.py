@@ -33,7 +33,7 @@ def get_features(
     image_resolution: int = 30,
     image_dtype: str = "int16",
     image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"],
-    buffer_distance: int = 1200,
+    image_width: int = 3000,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
     seasonal: bool = False,
@@ -68,7 +68,7 @@ def get_features(
     image_resolution: resolution of the satellite images in meters. Defaults to 30.
     image_dtype: data type of the satellite images. Defaults to "int16". All options - "int16", "int32", and "float"
     image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
-    buffer_distance: buffer distance in meters. Defaults to 1000.
+    image_width: Desired width of the image to be fetched (in meters). Default 3000m.
     min_image_edge: minimum image edge in meters. Defaults to 1000.
     sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before fetching images. Defaults to True.
     seasonal: whether to get seasonal images. Defaults to False.
@@ -180,7 +180,7 @@ def get_features(
             image_resolution=image_resolution,
             image_dtype=image_dtype,
             image_bands=image_bands,
-            buffer_distance=buffer_distance,
+            image_width=image_width,
             min_image_edge=min_image_edge,
             sort_points=sort_points_by_hilbert_distance,
             seasonal=seasonal,
