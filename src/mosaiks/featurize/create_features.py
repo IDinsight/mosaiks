@@ -16,7 +16,7 @@ def create_features_from_image_array(
 
     Parameters:
     -----------
-    dataloader: A dataloader object that yields batches of images.
+    dataloader: A dataloader object that lazily yields images.
     n_features: The number of features to extract from each image.
     model: A model that extracts features from images.
     device: The device to run the model on.
