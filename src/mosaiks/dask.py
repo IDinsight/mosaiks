@@ -49,8 +49,18 @@ def get_local_dask_cluster_and_client(
     cluster = LocalCluster(
         n_workers=n_workers,
         threads_per_worker=threads_per_worker,
+        silence_logs=logging.ERROR,
     )
     client = Client(cluster)
+
+    # get number of workers and threads actually used by the client
+    logging.info(
+        f"\n\nDask client created with "
+        f"{len(client.scheduler_info()['workers'])} workers and "
+        f"{sum(client.nthreads().values())} total threads.\n"
+        f"Dashboard link: {client.dashboard_link}\n\n"
+    )
+
     return cluster, client
 
 
@@ -268,7 +278,7 @@ def get_dask_gdf(
         Point objects.
     chunksize : The number of points per partition to use creating the Dask
         GeoDataFrame.
-    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance before
+    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance before splitting the dataframe into partitions.
 
     Returns
     -------
@@ -750,6 +760,7 @@ def run_pipeline_with_parallelization(
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
+    save_folder_path : Path to folder where features will be saved. Default is None.
     save_filename : Name of file where features will be saved. Default is "features.csv".
     return_df : Whether to return the features as a DataFrame. Default is True.
 
@@ -771,14 +782,6 @@ def run_pipeline_with_parallelization(
     # Create dask client
     cluster, client = get_local_dask_cluster_and_client(
         n_workers=n_workers, threads_per_worker=threads_per_worker
-    )
-
-    logging.info(
-        f"Dask client created. Dashboard link: {client.dashboard_link}\n"
-        "Running featurization in parallel with:\n"
-        f"{n_concurrent_tasks} concurrent tasks running on\n"
-        f"{n_workers} workers\n"
-        f"{threads_per_worker} threads per worker\n"
     )
 
     # Run in batches in parallel
