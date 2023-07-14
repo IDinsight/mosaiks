@@ -57,7 +57,7 @@ def get_local_dask_cluster_and_client(
 def get_partitions_generator(
     points_gdf: gpd.GeoDataFrame,
     chunksize: int,
-    sort_by_hilbert: bool = False,
+    sort_points_by_hilbert_distance: bool = False,
 ) -> Generator[gpd.GeoDataFrame, None, None]:
     """
     Given a GeoDataFrame, this function creates a generator that returns chunksize
@@ -69,15 +69,15 @@ def get_partitions_generator(
     -----------
     points_gdf : GeoDataFrame of points to be featurized.
     chunksize : Number of points to be featurized per iteration.
-    sort_by_hilbert : Whether to sort the points by their Hilbert distance.
+    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance.
 
     Returns
     --------
     Generator
     """
 
-    if sort_by_hilbert:
-        points_gdf = _sort_by_hilbert_distance(points_gdf)
+    if sort_points_by_hilbert_distance:
+        points_gdf = _sort_points_by_hilbert_distance(points_gdf)
 
     num_chunks = math.ceil(len(points_gdf) / chunksize)
 
@@ -90,7 +90,7 @@ def get_partitions_generator(
         yield points_gdf.iloc[i * chunksize : (i + 1) * chunksize]
 
 
-def _sort_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+def _sort_points_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Sort the points in the GeoDataFrame by their Hilbert distance."""
 
     ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
@@ -111,7 +111,7 @@ def run_queued_futures_pipeline(
     image_bands: list[str],
     image_width: int,
     min_image_edge: int,
-    sort_points: bool,
+    sort_points_by_hilbert_distance: bool,
     seasonal: bool,
     year: int,
     search_start: str,
@@ -143,7 +143,7 @@ def run_queued_futures_pipeline(
     image_bands : List of bands to be used for generating the image.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum edge length of the image to be generated.
-    sort_points : Whether to sort the points by their Hilbert distance.
+    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance.
     seasonal : Whether to use seasonal imagery.
     year : Year of imagery to be used.
     search_start : Start date of imagery to be used.
@@ -166,7 +166,7 @@ def run_queued_futures_pipeline(
     partitions = get_partitions_generator(
         points_gdf,
         chunksize,
-        sort_points,
+        sort_points_by_hilbert_distance,
     )
 
     # kickoff "n_concurrent" number of tasks. Each of these will be replaced by a new
@@ -255,7 +255,9 @@ def run_queued_futures_pipeline(
 
 
 def get_dask_gdf(
-    points_gdf: gpd.GeoDataFrame, chunksize: int, sort_by_hilbert: bool = True
+    points_gdf: gpd.GeoDataFrame,
+    chunksize: int,
+    sort_points_by_hilbert_distance: bool = True,
 ) -> dask_gpd.GeoDataFrame:
     """
     Split the gdf up by the given chunksize. To be used to create Dask Delayed jobs.
@@ -266,15 +268,15 @@ def get_dask_gdf(
         Point objects.
     chunksize : The number of points per partition to use creating the Dask
         GeoDataFrame.
-    sort_by_hilbert : Whether to sort the points by their Hilbert distance before
+    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance before
 
     Returns
     -------
     points_dgdf: Dask GeoDataFrame split into partitions of size `chunksize`.
     """
 
-    if sort_by_hilbert:
-        points_gdf = _sort_by_hilbert_distance(points_gdf)
+    if sort_points_by_hilbert_distance:
+        points_gdf = _sort_points_by_hilbert_distance(points_gdf)
 
     points_dgdf = dask_gpd.from_geopandas(
         points_gdf,
@@ -299,7 +301,7 @@ def run_batched_pipeline(
     image_bands: list[str],
     image_width: int,
     min_image_edge: int,
-    sort_points: bool,
+    sort_points_by_hilbert_distance: bool,
     seasonal: bool,
     year: int,
     search_start: str,
@@ -349,7 +351,7 @@ def run_batched_pipeline(
     dask_gdf = get_dask_gdf(
         points_gdf,
         chunksize,
-        sort_points,
+        sort_points_by_hilbert_distance,
     )
     partitions = dask_gdf.to_delayed()
 
@@ -514,7 +516,7 @@ def run_unbatched_delayed_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
-    sort_points: bool,
+    sort_points_by_hilbert_distance: bool,
     satellite_name: str,
     search_start: str,
     search_end: str,
@@ -542,7 +544,7 @@ def run_unbatched_delayed_pipeline(
     points_gdf : GeoDataFrame of coordinate points.
     client : Dask client.
     model : PyTorch model to be used for featurization.
-    sort_points : Whether to sort the points by their Hilbert distance.
+    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance.
     satellite_name : Name of satellite to be used for featurization.
     search_start : Start date for satellite image search.
     search_end : End date for satellite image search.
@@ -569,7 +571,7 @@ def run_unbatched_delayed_pipeline(
     dask_gdf = get_dask_gdf(
         points_gdf,
         chunksize,
-        sort_points,
+        sort_points_by_hilbert_distance,
     )
     partitions = dask_gdf.to_delayed()
 
@@ -711,10 +713,10 @@ def run_pipeline_with_parallelization(
     stac_api_name: str,
     n_mosaiks_features: int,
     model_device: str,
-    dask_n_concurrent_tasks: int,
-    dask_chunksize: int,
-    dask_n_workers: Optional[int],
-    dask_threads_per_worker: Optional[int],
+    n_concurrent_tasks: int,
+    chunksize: int,
+    n_workers: Optional[int],
+    threads_per_worker: Optional[int],
     sort_points_by_hilbert_distance: bool,
     mosaiks_col_names: list,
     save_folder_path: str = None,
@@ -743,10 +745,9 @@ def run_pipeline_with_parallelization(
     stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
-    dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
-    dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
+    n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
+    chunksize: number of datapoints per data partition in Dask. Defaults to 500.
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
-    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
     save_filename : Name of file where features will be saved. Default is "features.csv".
@@ -769,15 +770,15 @@ def run_pipeline_with_parallelization(
 
     # Create dask client
     cluster, client = get_local_dask_cluster_and_client(
-        n_workers=dask_n_workers, threads_per_worker=dask_threads_per_worker
+        n_workers=n_workers, threads_per_worker=threads_per_worker
     )
 
     logging.info(
         f"Dask client created. Dashboard link: {client.dashboard_link}\n"
         "Running featurization in parallel with:\n"
-        f"{dask_n_concurrent_tasks} concurrent tasks running on\n"
-        f"{dask_n_workers} workers\n"
-        f"{dask_threads_per_worker} threads per worker\n"
+        f"{n_concurrent_tasks} concurrent tasks running on\n"
+        f"{n_workers} workers\n"
+        f"{threads_per_worker} threads per worker\n"
     )
 
     # Run in batches in parallel
@@ -791,7 +792,7 @@ def run_pipeline_with_parallelization(
         image_bands=image_bands,
         image_width=image_width,
         min_image_edge=min_image_edge,
-        sort_points=sort_points_by_hilbert_distance,
+        sort_points_by_hilbert_distance=sort_points_by_hilbert_distance,
         seasonal=seasonal,
         year=year,
         search_start=search_start,
@@ -800,8 +801,8 @@ def run_pipeline_with_parallelization(
         stac_api_name=stac_api_name,
         num_features=n_mosaiks_features,
         device=model_device,
-        n_concurrent=dask_n_concurrent_tasks,
-        chunksize=dask_chunksize,
+        n_concurrent=n_concurrent_tasks,
+        chunksize=chunksize,
         col_names=mosaiks_col_names,
         save_folder_path=save_folder_path_temp,
     )
