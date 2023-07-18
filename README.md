@@ -1,4 +1,4 @@
-# MOSAIKS Satellite Imagery Featuri ation
+# MOSAIKS Satellite Imagery Featurization
 
 MOSAIKS is a Python package that performs parallelized encoding of satellite imagery into easy-to-use features using the MOSAIKS algorithm and Dask for parallel processing. This package enables users to generate feature vectors based on satellite images by providing a list of latitudes and longitudes and Microsoft's Planetary Computer API key. It supports various satellites, image sizes, time periods, and parallelization options.
 
