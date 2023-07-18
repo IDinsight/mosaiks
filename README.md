@@ -2,7 +2,7 @@
 
 MOSAIKS is a Python package that performs parallelized encoding of satellite imagery into easy-to-use features using the MOSAIKS algorithm and Dask for parallel processing. This package enables users to generate feature vectors based on satellite images by providing a list of latitudes and longitudes and Microsoft's Planetary Computer API key. It supports various satellites, image sizes, time periods, and parallelization options.
 
-We implement the MOSAIKS algorithm based on work by [Rolf et al., 2021](https://www.nature.com/articles/s41467-021-24638-z). The authors of this paper implement MOSAIKS using Google Maps images (mostly 2018), and also provide some pre-computed features based on Planet imagery from 2019 [here](https://www.mosaiks.org/).
+We implement the MOSAIKS algorithm based on work by [Rolf et al., 2021](https://www.nature.com/articles/s41467-021-24638-z) based on random convolutional features. The authors of this paper The authors of this paper make a global cross-section of pre-computed features using Planet imagery from 2019 available at [mosaiks.org](https://www.mosaiks.org/), along with tutorials and related research.
 
 This package extends the functionality of the original MOSAIKS implementation in the following ways:
 
@@ -15,7 +15,10 @@ This package extends the functionality of the original MOSAIKS implementation in
 
 The package has been tested via [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) on Landsat-8 or Sentinel-2 imagery. **Please note this package has only been tested on Python 3.10 and 3.11**. Using other versions of Python are expected to raise errors due to dependency conflicts.
 
-For more detailed information on this package and how to use it, please see [this blog post](link to technical blog post). For information on preview and potential use cases for this package, please see [this blog post](link to non-technical blog post)
+For more detailed information on this package and how to use it, please see [this blog post](link to technical blog post). For information on preview and potential use cases for this package, please see [this blog post](link to non-technical blog post).  For more information on MOSAIKS and previous use cases see the MOSAIKS website here [link to MOSAIKS.org].
+
+Users of this package should reference both the package as : [insert pip generated reference] and the MOSAIKS RCF algorithm as: Rolf, Esther, et al. "A generalizable and accessible approach to machine learning with global satellite imagery." _Nature communications_ 12.1 (2021): 4392.
+
 
 ## Quick Start
 This section highlights a demo to help you get features ASAP.
