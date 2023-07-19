@@ -10,6 +10,7 @@ def load_and_save_features(
     lat_col: str = "Lat",
     lon_col: str = "Lon",
     context_cols_to_keep_from_input: list = None,
+    index_col=None,
     **kwargs,
 ) -> None:
     """
@@ -21,11 +22,12 @@ def load_and_save_features(
     path_to_save_data : Path to save data, in either .csv or .parquet format.
     lat_col : Name of latitude column in input data, default is "Lat".
     lon_col : Name of longitude column in input data, default is "Lon".
-    context_cols_to_keep_from_input : List of context columns to add to final dataframe from input data
+    context_cols_to_keep_from_input : List of context columns to add to final dataframe from input data.
+    index_col : Index or name of column in input data to use as the index, default is None.
     kwargs: config parameters for `get_features`. See `get_features` docstring for more details and default values.
     """
     # Load data
-    points_df = utl.load_dataframe(input_file_path)
+    points_df = utl.load_dataframe(input_file_path, index_col=index_col)
 
     # Get features
     features_df = get_features(points_df[lat_col], points_df[lon_col], **kwargs)

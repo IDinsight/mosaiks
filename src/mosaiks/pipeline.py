@@ -1,5 +1,3 @@
-import logging
-
 import geopandas as gpd
 import pandas as pd
 import torch.nn
@@ -7,8 +5,6 @@ import torch.nn
 import mosaiks.utils as utl
 from mosaiks.featurize import create_features_from_image_array
 from mosaiks.fetch import create_data_loader, fetch_image_refs
-
-logging.basicConfig(level=logging.INFO)
 
 
 def run_pipeline(
