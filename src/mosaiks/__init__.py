@@ -5,6 +5,7 @@ import os
 from typing import List, Optional
 
 import pandas as pd
+from dask.distributed import Client
 
 import mosaiks.checks as checks
 import mosaiks.utils as utl
@@ -47,6 +48,7 @@ def get_features(
     parallelize: bool = False,
     dask_n_concurrent_tasks: Optional[int] = None,
     dask_chunksize: int = 500,
+    dask_client: Optional[Client] = None,
     dask_n_workers: Optional[int] = None,
     dask_threads_per_worker: Optional[int] = None,
     dask_sort_points_by_hilbert_distance: bool = True,
@@ -79,6 +81,7 @@ def get_features(
     parallelize: whether to use Dask parallel processing. Defaults to False.
     dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to None, which sets the total number of tasks to number of threads.
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
+    dask_client : Premade Dask client to use. If None, we create a new LocalCluster based on n_workers and threads_per_worker.
     n_workers : Number of workers to use. If None, let Dask decide (uses all available cores).
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
@@ -158,6 +161,7 @@ def get_features(
             n_mosaiks_features=n_mosaiks_features,
             model_device=model_device,
             n_concurrent_tasks=dask_n_concurrent_tasks,
+            client=dask_client,
             chunksize=dask_chunksize,
             n_workers=dask_n_workers,
             threads_per_worker=dask_threads_per_worker,

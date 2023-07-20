@@ -41,6 +41,7 @@ def run_pipeline_with_parallelization(
     model_device: str,
     n_concurrent_tasks: int,
     chunksize: int,
+    client: Optional[Client],
     n_workers: Optional[int],
     threads_per_worker: Optional[int],
     sort_points_by_hilbert_distance: bool,
@@ -73,6 +74,7 @@ def run_pipeline_with_parallelization(
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
     n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to None, which sets the total number of tasks to number of threads.
     chunksize: number of datapoints per data partition in Dask. Defaults to 500.
+    client : Dask client. If None, create a local cluster and client.
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
@@ -92,9 +94,15 @@ def run_pipeline_with_parallelization(
     logging.info(f"Temporary directory: {temp_dir}")
 
     try:
-        cluster, client = get_local_dask_cluster_and_client(
-            n_workers=n_workers, threads_per_worker=threads_per_worker
-        )
+        # Create a temporary dask client if one not given
+        if client is None:
+            logging.info("Creating a local Dask cluster and client...")
+            cluster, client = get_local_dask_cluster_and_client(
+                n_workers=n_workers, threads_per_worker=threads_per_worker
+            )
+            temp_client = True
+        else:
+            temp_client = False
 
         failed_partitions = run_batched_pipeline(
             points_gdf=points_gdf,
@@ -120,11 +128,13 @@ def run_pipeline_with_parallelization(
             col_names=mosaiks_col_names,
             output_folderpath=temp_dir,
         )
-        logging.warn(f"Failed partitions: {failed_partitions}.")
+        if failed_partitions:
+            logging.warn(f"Failed partitions: {failed_partitions}.")
 
         # IMPORTANT: Close dask client
-        client.close()
-        cluster.close()
+        if temp_client:
+            client.close()
+            cluster.close()
 
         # Load checkpoint files and combine
         logging.info("Loading and combining checkpoint files...")
@@ -139,12 +149,10 @@ def run_pipeline_with_parallelization(
         # Delete temporary directory
         shutil.rmtree(temp_dir)
 
-        if output_folderpath is not None:
-            utl.save_dataframe(
-                df=combined_df, file_path=output_folderpath / save_filename
-            )
-        if return_df:
-            return combined_df
+    if output_folderpath is not None:
+        utl.save_dataframe(df=combined_df, file_path=output_folderpath / save_filename)
+    if return_df:
+        return combined_df
 
 
 def run_batched_pipeline(
@@ -433,7 +441,7 @@ def get_dask_gdf(
     )
 
     logging.info(
-        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
+        f"Running {points_dgdf.npartitions} partition of {chunksize} points each."
     )
 
     return points_dgdf
