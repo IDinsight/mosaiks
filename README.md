@@ -92,7 +92,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         image_width=1000,
         parallelize=False,
     )
-
+    
     df_featurised
     ```
 
@@ -100,7 +100,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
 
     In situations where you want to load data, run featurisation, and save features on disk, quietly, you can use the `load_and_save_features`:
 
-        ```python
+   ```python
     # Save test data to file to load later
     import pandas as pd
 
