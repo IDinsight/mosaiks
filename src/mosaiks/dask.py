@@ -1,9 +1,8 @@
 import logging
-import math
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Generator, List, Optional
+from typing import List, Optional
 
 import dask.delayed
 import dask_geopandas as dask_gpd
@@ -11,23 +10,15 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import torch.nn as nn
-from dask import delayed
-from dask.distributed import Client, LocalCluster, as_completed, wait
+from dask.distributed import Client, LocalCluster, as_completed
 
 import mosaiks.utils as utl
-
-# for fully-delayed pipeline
-from mosaiks.featurize import create_features_from_image_array
-from mosaiks.fetch import create_data_loader, fetch_image_refs
 from mosaiks.pipeline import run_pipeline
 
 __all__ = [
     "get_local_dask_cluster_and_client",
     "run_pipeline_with_parallelization",
-    "run_queued_futures_pipeline",
     "run_batched_pipeline",
-    "run_unbatched_delayed_pipeline",
-    "delayed_pipeline",
 ]
 
 
@@ -105,7 +96,7 @@ def run_pipeline_with_parallelization(
             n_workers=n_workers, threads_per_worker=threads_per_worker
         )
 
-        run_batched_pipeline(
+        failed_partitions = run_batched_pipeline(
             points_gdf=points_gdf,
             client=client,
             model=model,
@@ -129,6 +120,7 @@ def run_pipeline_with_parallelization(
             col_names=mosaiks_col_names,
             output_folderpath=temp_dir,
         )
+        logging.warn(f"Failed partitions: {failed_partitions}.")
 
         # IMPORTANT: Close dask client
         client.close()
@@ -139,7 +131,6 @@ def run_pipeline_with_parallelization(
         checkpoint_filenames = utl.get_filtered_filenames(
             folder_path=temp_dir, prefix="df_"
         )
-
         combined_df = utl.load_and_combine_dataframes(
             folder_path=temp_dir, filenames=checkpoint_filenames
         )
@@ -148,289 +139,12 @@ def run_pipeline_with_parallelization(
         # Delete temporary directory
         shutil.rmtree(temp_dir)
 
-    if output_folderpath is not None:
-        utl.save_dataframe(df=combined_df, file_path=output_folderpath / save_filename)
-
-    if return_df:
-        return combined_df
-
-
-def get_local_dask_cluster_and_client(
-    n_workers: Optional[int] = None,
-    threads_per_worker: Optional[int] = None,
-) -> tuple:
-    """
-    Get a local dask cluster and client.
-
-    Parameters
-    -----------
-    threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
-    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
-
-    Returns
-    --------
-    Dask cluster and client.
-    """
-
-    cluster = LocalCluster(
-        n_workers=n_workers,
-        threads_per_worker=threads_per_worker,
-        silence_logs=logging.ERROR,
-    )
-    client = Client(cluster)
-
-    # get number of workers and threads actually used by the client
-    logging.info(
-        f"\n\nDask client created with "
-        f"{len(client.scheduler_info()['workers'])} workers and "
-        f"{sum(client.nthreads().values())} total threads.\n"
-        f"Dashboard link: {client.dashboard_link}\n\n"
-    )
-
-    return cluster, client
-
-
-def get_partitions_generator(
-    points_gdf: gpd.GeoDataFrame,
-    chunksize: int,
-    sort_points_by_hilbert_distance: bool = False,
-) -> Generator[gpd.GeoDataFrame, None, None]:
-    """
-    Given a GeoDataFrame, this function creates a generator that returns chunksize
-    number of rows per iteration.
-
-    To be used for submitting Dask Futures.
-
-    Parameters
-    -----------
-    points_gdf : GeoDataFrame of points to be featurized.
-    chunksize : Number of points to be featurized per iteration.
-    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance.
-
-    Returns
-    --------
-    Generator
-    """
-
-    if sort_points_by_hilbert_distance:
-        points_gdf = _sort_points_by_hilbert_distance(points_gdf)
-
-    num_chunks = math.ceil(len(points_gdf) / chunksize)
-
-    logging.info(
-        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions "
-        f"results in {num_chunks} partitions."
-    )
-
-    for i in range(num_chunks):
-        yield points_gdf.iloc[i * chunksize : (i + 1) * chunksize]
-
-
-def _sort_points_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Sort the points in the GeoDataFrame by their Hilbert distance."""
-
-    ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
-    hilbert_distance = ddf.hilbert_distance().compute()
-    points_gdf["hilbert_distance"] = hilbert_distance
-    points_gdf = points_gdf.sort_values("hilbert_distance")
-
-    return points_gdf
-
-
-def run_queued_futures_pipeline(
-    points_gdf: gpd.GeoDataFrame,
-    client: Client,
-    model: nn.Module,
-    satellite_name: str,
-    image_resolution: int,
-    image_dtype: str,
-    image_bands: list[str],
-    image_width: int,
-    min_image_edge: int,
-    sort_points_by_hilbert_distance: bool,
-    seasonal: bool,
-    year: int,
-    search_start: str,
-    search_end: str,
-    image_composite_method: str,
-    stac_api_name: str,
-    num_features: int,
-    device: str,
-    col_names: list,
-    n_concurrent_tasks: int,
-    chunksize: int,
-    output_folderpath: str,
-) -> None:
-    """
-    For a given GeoDataFrame of coordinate points, this function partitions it
-    and submit each partition to be processed as a Future on the Dask client.
-
-    Initially, only as many partitions are submitted as there are threads. As each
-    partition is completed, another partition is submitted to the client.
-
-    Parameters
-    -----------
-    points_gdf : GeoDataFrame of points to be featurized.
-    client : Dask client.
-    model : PyTorch model to be used for featurization.
-    satellite_name : Name of the satellite to be used for featurization.
-    image_resolution : Resolution of the image to be generated.
-    image_dtype : Data type of the image to be generated.
-    image_bands : List of bands to be used for generating the image.
-    image_width : Desired width of the image to be fetched (in meters).
-    min_image_edge : Minimum edge length of the image to be generated.
-    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance.
-    seasonal : Whether to use seasonal imagery.
-    year : Year of imagery to be used.
-    search_start : Start date of imagery to be used.
-    search_end : End date of imagery to be used.
-    image_composite_method : Mosaic composite to be used.
-    stac_api_name : Name of the STAC API to be used.
-    num_features : Number of features to be extracted from the model.
-    device : Device to be used for featurization.
-    col_names : List of column names to be used for saving the features.
-    n_concurrent_tasks : Number of concurrent partitions to be submitted to the client.
-    chunksize : Number of points to be featurized per partition.
-    output_folderpath : Path to folder where features will be saved.
-
-    Returns
-    --------
-    None
-    """
-
-    # make generator for spliting up the data into partitions
-    partitions = get_partitions_generator(
-        points_gdf,
-        chunksize,
-        sort_points_by_hilbert_distance,
-    )
-
-    # if n_concurrent_tasks is not specified, use all available threads
-    if n_concurrent_tasks is None:
-        n_concurrent_tasks = sum(client.nthreads().values())
-    # if there are less partitions to run than concurrent tasks, run all partitions
-    n_concurrent_tasks = min(len(partitions), n_concurrent_tasks)
-
-    # kickoff "n_concurrent_tasks" number of tasks. Each of these will be replaced by a new
-    # task upon completion.
-    now = datetime.now().strftime("%d-%b %H:%M:%S")
-    logging.info(f"{now} Trying to kick off initial {n_concurrent_tasks} partitions...")
-    initial_futures_list = []
-    for i in range(n_concurrent_tasks):
-        try:
-            partition = next(partitions)
-        except StopIteration:
-            logging.info(
-                f"There are less partitions than processors. All {i} partitions running."
+        if output_folderpath is not None:
+            utl.save_dataframe(
+                df=combined_df, file_path=output_folderpath / save_filename
             )
-            wait(initial_futures_list)
-            break
-
-        future = client.submit(
-            run_pipeline,
-            points_gdf=partition,
-            model=model,
-            satellite_name=satellite_name,
-            image_resolution=image_resolution,
-            image_dtype=image_dtype,
-            image_bands=image_bands,
-            image_width=image_width,
-            min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
-            image_composite_method=image_composite_method,
-            stac_api_name=stac_api_name,
-            num_features=num_features,
-            device=device,
-            col_names=col_names,
-            output_folderpath=output_folderpath,
-            save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
-            return_df=False,
-        )
-        initial_futures_list.append(future)
-
-    # get generator that returns futures as they are completed
-    as_completed_generator = as_completed(initial_futures_list)
-
-    # only run each remaining partitions once a previous task has completed
-    for partition in partitions:
-        i += 1
-        completed_future = next(as_completed_generator)
-        logging.info(f"Adding partition {i}")
-
-        new_future = client.submit(
-            run_pipeline,
-            points_gdf=partition,
-            model=model,
-            satellite_name=satellite_name,
-            image_resolution=image_resolution,
-            image_dtype=image_dtype,
-            image_bands=image_bands,
-            image_width=image_width,
-            min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
-            image_composite_method=image_composite_method,
-            stac_api_name=stac_api_name,
-            num_features=num_features,
-            device=device,
-            col_names=col_names,
-            output_folderpath=output_folderpath,
-            save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
-            return_df=False,
-        )
-        as_completed_generator.add(new_future)
-
-    # wait for all futures to process
-    for completed_future in as_completed_generator:
-        pass
-
-    now = datetime.now().strftime("%d-%b %H:%M:%S")
-    logging.info(f"{now} Finished.")
-
-
-# ALTERNATIVE - BATCHED DASK DELAYED ###################################################
-
-
-def get_dask_gdf(
-    points_gdf: gpd.GeoDataFrame,
-    chunksize: int,
-    sort_points_by_hilbert_distance: bool = True,
-) -> dask_gpd.GeoDataFrame:
-    """
-    Split the gdf up by the given chunksize. To be used to create Dask Delayed jobs.
-
-    Parameters
-    ----------
-    points_dgdf : A GeoDataFrame with a column named "geometry" containing shapely
-        Point objects.
-    chunksize : The number of points per partition to use creating the Dask
-        GeoDataFrame.
-    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance before splitting the dataframe into partitions.
-
-    Returns
-    -------
-    points_dgdf: Dask GeoDataFrame split into partitions of size `chunksize`.
-    """
-
-    if sort_points_by_hilbert_distance:
-        points_gdf = _sort_points_by_hilbert_distance(points_gdf)
-
-    points_dgdf = dask_gpd.from_geopandas(
-        points_gdf,
-        chunksize=chunksize,
-        sort=False,
-    )
-
-    logging.info(
-        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
-    )
-
-    return points_dgdf
+        if return_df:
+            return combined_df
 
 
 def run_batched_pipeline(
@@ -653,188 +367,84 @@ def run_batch(
     return failed_ids
 
 
-# ALTERNATIVE - UNBATCHED DASK DELAYED  ################################################
-
-
-def run_unbatched_delayed_pipeline(
-    points_gdf: gpd.GeoDataFrame,
-    client: Client,
-    model: nn.Module,
-    sort_points_by_hilbert_distance: bool,
-    satellite_name: str,
-    search_start: str,
-    search_end: str,
-    stac_api_name: str,
-    seasonal: bool,
-    year: int,
-    image_composite_method: str,
-    num_features: int,
-    device: str,
-    min_image_edge: int,
-    image_width: int,
-    image_bands: list[str],
-    image_resolution: int,
-    image_dtype: str,
-    col_names: list,
-    chunksize: int,
-    output_folderpath: str,
-) -> list[delayed]:
+def get_local_dask_cluster_and_client(
+    n_workers: Optional[int] = None,
+    threads_per_worker: Optional[int] = None,
+) -> tuple:
     """
-    Given a GeoDataFrame of coordinate points, partitions it, creates a list of each
-    partition's respective Dask Delayed tasks, and runs the tasks.
+    Get a local dask cluster and client.
+
+    Parameters
+    -----------
+    threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
+    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
+
+    Returns
+    --------
+    Dask cluster and client.
+    """
+
+    cluster = LocalCluster(
+        n_workers=n_workers,
+        threads_per_worker=threads_per_worker,
+        silence_logs=logging.ERROR,
+    )
+    client = Client(cluster)
+
+    # get number of workers and threads actually used by the client
+    logging.info(
+        f"\n\nDask client created with "
+        f"{len(client.scheduler_info()['workers'])} workers and "
+        f"{sum(client.nthreads().values())} total threads.\n"
+        f"Dashboard link: {client.dashboard_link}\n\n"
+    )
+
+    return cluster, client
+
+
+def get_dask_gdf(
+    points_gdf: gpd.GeoDataFrame,
+    chunksize: int,
+    sort_points_by_hilbert_distance: bool = True,
+) -> dask_gpd.GeoDataFrame:
+    """
+    Split the gdf up by the given chunksize. To be used to create Dask Delayed jobs.
 
     Parameters
     ----------
-    points_gdf : GeoDataFrame of coordinate points.
-    client : Dask client.
-    model : PyTorch model to be used for featurization.
-    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance.
-    satellite_name : Name of satellite to be used for featurization.
-    search_start : Start date for satellite image search.
-    search_end : End date for satellite image search.
-    stac_api_name : Name of STAC API to be used for satellite image search.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
-    image_composite_method : Mosaic composite to be used for featurization.
-    num_features : number of mosaiks features.
-    device : Device to be used for featurization.
-    min_image_edge : Minimum image edge size.
-    image_width : Desired width of the image to be fetched (in meters).
-    image_bands : List of satellite image bands to be used for featurization.
-    image_resolution : Resolution of satellite images to be used for featurization.
-    image_dtype : Data type of satellite images to be used for featurization.
-    col_names : List of column names to be used for the output dataframe.
-    chunksize : Number of points per partition.
-    output_folderpath : Path to folder where features will be saved.
+    points_dgdf : A GeoDataFrame with a column named "geometry" containing shapely
+        Point objects.
+    chunksize : The number of points per partition to use creating the Dask
+        GeoDataFrame.
+    sort_points_by_hilbert_distance : Whether to sort the points by their Hilbert distance before splitting the dataframe into partitions.
 
     Returns
     -------
-    None
+    points_dgdf: Dask GeoDataFrame split into partitions of size `chunksize`.
     """
 
-    dask_gdf = get_dask_gdf(
+    if sort_points_by_hilbert_distance:
+        points_gdf = _sort_points_by_hilbert_distance(points_gdf)
+
+    points_dgdf = dask_gpd.from_geopandas(
         points_gdf,
-        chunksize,
-        sort_points_by_hilbert_distance,
-    )
-    partitions = dask_gdf.to_delayed()
-
-    delayed_tasks = []
-    for i, partition in enumerate(partitions):
-        str_i = str(i).zfill(3)
-        # this can be swapped for dask.delayed(full_pipeline)(...)
-        delayed_task = delayed_pipeline(
-            points_gdf=partition,
-            model=model,
-            satellite_name=satellite_name,
-            search_start=search_start,
-            search_end=search_end,
-            stac_api_name=stac_api_name,
-            seasonal=seasonal,
-            year=year,
-            image_composite_method=image_composite_method,
-            num_features=num_features,
-            device=device,
-            min_image_edge=min_image_edge,
-            image_width=image_width,
-            image_bands=image_bands,
-            image_resolution=image_resolution,
-            image_dtype=image_dtype,
-            col_names=col_names,
-            output_folderpath=output_folderpath,
-            save_filename=f"df_{str_i}.parquet.gzip",
-        )
-        delayed_tasks.append(delayed_task)
-
-    persist_tasks = client.persist(delayed_tasks)
-    wait(persist_tasks)
-
-
-def delayed_pipeline(
-    points_gdf: gpd.GeoDataFrame,
-    model: nn.Module,
-    satellite_name: str,
-    search_start: str,
-    search_end: str,
-    stac_api_name: str,
-    seasonal: bool,
-    year: int,
-    image_composite_method: str,
-    num_features: int,
-    device: str,
-    min_image_edge: int,
-    image_width: int,
-    image_bands: list[str],
-    image_resolution: int,
-    image_dtype: str,
-    col_names: list,
-    output_folderpath: str,
-    save_filename: str,
-) -> dask.delayed:
-    """
-    For a given GeoDataFrame of coordinate points, this function creates the necesary
-    chain of delayed dask operations for image fetching and feaurisation.
-
-    Parameters
-    ----------
-    points_gdf : GeoDataFrame of coordinate points.
-    model : PyTorch model to be used for featurization.
-    satellite_name : Name of satellite to be used for featurization.
-    search_start : Start date for satellite image search.
-    search_end : End date for satellite image search.
-    stac_api_name : Name of STAC API to be used for satellite image search.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
-    image_composite_method : Mosaic composite to be used for featurization.
-    num_features : number of mosaiks features.
-    device : Device to be used for featurization.
-    min_image_edge : Minimum image edge size.
-    image_width : Desired width of the image to be fetched (in meters).
-    image_bands : List of satellite image bands to be used for featurization.
-    image_resolution : Resolution of satellite images to be used for featurization.
-    image_dtype : Data type of satellite images to be used for featurization.
-    col_names : List of column names to be used for the output dataframe.
-    output_folderpath : Path to folder where features will be saved.
-    save_filename : Name of file to save features to.
-
-    Returns:
-        Dask.Delayed object
-    """
-
-    points_gdf_with_stac = dask.delayed(fetch_image_refs)(
-        points_gdf=points_gdf,
-        satellite_name=satellite_name,
-        seasonal=seasonal,
-        year=year,
-        search_start=search_start,
-        search_end=search_end,
-        image_composite_method=image_composite_method,
-        stac_api_name=stac_api_name,
+        chunksize=chunksize,
+        sort=False,
     )
 
-    data_loader = dask.delayed(create_data_loader)(
-        points_gdf_with_stac=points_gdf_with_stac,
-        image_width=image_width,
-        image_bands=image_bands,
-        image_resolution=image_resolution,
-        image_dtype=image_dtype,
-        image_composite_method=image_composite_method,
+    logging.info(
+        f"Distributing {len(points_gdf)} points across {chunksize}-point partitions results in {points_dgdf.npartitions} partitions."
     )
 
-    X_features = dask.delayed(create_features_from_image_array)(
-        dataloader=data_loader,
-        n_features=num_features,
-        model=model,
-        device=device,
-        min_image_edge=min_image_edge,
-    )
+    return points_dgdf
 
-    df = dask.delayed(utl.make_result_df)(
-        features=X_features,
-        context_gdf=points_gdf_with_stac,
-        mosaiks_col_names=col_names,
-    )
-    delayed_task = dask.delayed(utl.save_dataframe)(
-        df=df, file_path=output_folderpath / save_filename
-    )
-    return delayed_task
+
+def _sort_points_by_hilbert_distance(points_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Sort the points in the GeoDataFrame by their Hilbert distance."""
+
+    ddf = dask_gpd.from_geopandas(points_gdf, npartitions=1)
+    hilbert_distance = ddf.hilbert_distance().compute()
+    points_gdf["hilbert_distance"] = hilbert_distance
+    points_gdf = points_gdf.sort_values("hilbert_distance")
+
+    return points_gdf
