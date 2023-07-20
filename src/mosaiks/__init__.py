@@ -140,7 +140,7 @@ def get_features(
             num_features=n_mosaiks_features,
             device=model_device,
             col_names=mosaiks_col_names,
-            output_folderpath=None,  # TODO - pass this up to the get_features() function?
+            output_folderpath=None,
         )
     else:
         return run_pipeline_with_parallelization(
@@ -167,5 +167,5 @@ def get_features(
             threads_per_worker=dask_threads_per_worker,
             sort_points_by_hilbert_distance=dask_sort_points_by_hilbert_distance,
             mosaiks_col_names=mosaiks_col_names,
-            output_folderpath=None,  # TODO - pass this up to the get_features() function?
+            output_folderpath=None,
         )

@@ -16,9 +16,9 @@ import mosaiks.utils as utl
 from mosaiks.pipeline import run_pipeline
 
 __all__ = [
-    "get_local_dask_cluster_and_client",
     "run_pipeline_with_parallelization",
     "run_batched_pipeline",
+    "get_local_dask_cluster_and_client",
 ]
 
 
@@ -233,6 +233,8 @@ def run_batched_pipeline(
     # if there are less partitions to run than concurrent tasks, run all partitions
     n_concurrent_tasks = min(n_partitions, n_concurrent_tasks)
 
+    logging.info(f"Running {n_partitions} partitions in {n_concurrent_tasks} batches.")
+
     failed_ids = []
     checkpoint_indices = list(np.arange(0, n_partitions, n_concurrent_tasks)) + [
         n_partitions
@@ -352,7 +354,7 @@ def run_batch(
             device=device,
             col_names=col_names,
             output_folderpath=output_folderpath,
-            save_filename=f"df_{str_id}.parquet.gzip",
+            save_filename=f"df_{str_id}.parquet",
             dask_key_name=f"features_{str_id}",
             return_df=False,
         )
@@ -367,10 +369,6 @@ def run_batch(
             f_key = completed_future.key
             partition_id = int(f_key.split("features_")[1])
             failed_ids.append(partition_id)
-
-    # prep for next run
-    # client.restart()
-    # sleep(5)
 
     return failed_ids
 
@@ -441,7 +439,7 @@ def get_dask_gdf(
     )
 
     logging.info(
-        f"Running {points_dgdf.npartitions} partition of {chunksize} points each."
+        f"Created {points_dgdf.npartitions} partitions of {chunksize} points each."
     )
 
     return points_dgdf

@@ -5,8 +5,6 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
-os.environ["USE_PYGEOS"] = "0"
-
 
 def load_dataframe(file_path: str, **kwargs) -> pd.DataFrame:
     """
