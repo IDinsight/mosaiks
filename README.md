@@ -80,7 +80,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
 
 4. **Run get_features with Dask parallelization**
 
-    To run the code with the built-in Dask parallelization, set `parallelize` to `True` and `chunksize` to a suitable integer given the size of your dataset.
+    To run the code with the built-in Dask parallelization, set `parallelize` to `True` and `dask_chunksize` to a suitable integer given the size of your dataset.
 
     ```python
     df_featurised = get_features(
