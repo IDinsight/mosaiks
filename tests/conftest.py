@@ -35,8 +35,6 @@ def config_dict():
         "image_width": 2000,
         "min_image_edge": 23,
         "sort_points_by_hilbert_distance": True,
-        "seasonal": False,
-        "year": 2017,
         "datetime": "2013",
         "image_composite_method": "least_cloudy",
         "stac_api": "planetary-compute",

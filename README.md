@@ -185,8 +185,6 @@ def get_features(
     image_width: int = 3000,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
-    seasonal: bool = False,
-    year: int = None,
     mosaic_composite: str = "least_cloudy", # or all
     stac_api: str = "planetary-compute", # or "earth-search"
     n_mosaiks_features: int = 4000,
@@ -224,8 +222,6 @@ image_bands:
 image_width: 3000
 min_image_edge: 30
 sort_points_by_hilbert_distance: true
-seasonal: false
-year: null
 mosaic_composite: "least_cloudy"  # or "all"
 stac_api: "planetary-compute"  # or "earth-search"
 n_mosaiks_features: 4000

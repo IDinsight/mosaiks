@@ -190,8 +190,6 @@ def run_queued_futures_pipeline(
     image_width: int,
     min_image_edge: int,
     sort_points: bool,
-    seasonal: bool,
-    year: int,
     datetime: str or list[str] or callable,
     image_composite_method: str,
     stac_api_name: str,
@@ -222,8 +220,6 @@ def run_queued_futures_pipeline(
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum edge length of the image to be generated.
     sort_points : Whether to sort the points by their Hilbert distance.
-    seasonal : Whether to use seasonal imagery.
-    year : Year of imagery to be used.
     datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     image_composite_method : Mosaic composite to be used.
     stac_api_name : Name of the STAC API to be used.
@@ -272,8 +268,6 @@ def run_queued_futures_pipeline(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
             datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
@@ -306,8 +300,6 @@ def run_queued_futures_pipeline(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
             datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
@@ -378,8 +370,6 @@ def run_batched_delayed_pipeline(
     image_width: int,
     min_image_edge: int,
     sort_points: bool,
-    seasonal: bool,
-    year: int,
     datetime: str or list[str] or callable,
     image_composite_method: bool,
     stac_api_name: str,
@@ -407,8 +397,6 @@ def run_batched_delayed_pipeline(
     image_bands : List of satellite image bands to be used for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
     datetime: date/times for fetching satellite images.
         Same as datetime parameter in pystac.Client.search.
     image_composite_method : Mosaic composite to be used for featurization.
@@ -467,8 +455,6 @@ def run_batched_delayed_pipeline(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
             datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
@@ -493,8 +479,6 @@ def run_batch(
     image_bands: list[str],
     image_width: int,
     min_image_edge: int,
-    seasonal: bool,
-    year: int,
     datetime: str or list[str] or callable,
     image_composite_method: str,
     stac_api_name: str,
@@ -520,8 +504,6 @@ def run_batch(
     image_bands : List of satellite image bands to be used for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
     datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
@@ -553,8 +535,6 @@ def run_batch(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
             datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
@@ -597,8 +577,6 @@ def run_unbatched_delayed_pipeline(
     satellite_name: str,
     datetime: str or list[str] or callable,
     stac_api_name: str,
-    seasonal: bool,
-    year: int,
     image_composite_method: str,
     num_features: int,
     device: str,
@@ -625,8 +603,6 @@ def run_unbatched_delayed_pipeline(
     satellite_name : Name of satellite to be used for featurization.
     datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     stac_api_name : Name of STAC API to be used for satellite image search.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
     image_composite_method : Mosaic composite to be used for featurization.
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
@@ -662,8 +638,6 @@ def run_unbatched_delayed_pipeline(
             satellite_name=satellite_name,
             datetime=datetime,
             stac_api_name=stac_api_name,
-            seasonal=seasonal,
-            year=year,
             image_composite_method=image_composite_method,
             num_features=num_features,
             device=device,
@@ -689,8 +663,6 @@ def delayed_pipeline(
     satellite_name: str,
     datetime: str or list[str] or callable,
     stac_api_name: str,
-    seasonal: bool,
-    year: int,
     image_composite_method: str,
     num_features: int,
     device: str,
@@ -715,8 +687,6 @@ def delayed_pipeline(
     satellite_name : Name of satellite to be used for featurization.
     datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     stac_api_name : Name of STAC API to be used for satellite image search.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
     image_composite_method : Mosaic composite to be used for featurization.
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
@@ -737,8 +707,6 @@ def delayed_pipeline(
     points_gdf_with_stac = dask.delayed(fetch_image_refs)(
         points_gdf=points_gdf,
         satellite_name=satellite_name,
-        seasonal=seasonal,
-        year=year,
         datetime=datetime,
         image_composite_method=image_composite_method,
         stac_api_name=stac_api_name,
@@ -783,8 +751,6 @@ def get_features_without_parallelization(
     image_bands: list,
     image_width: int,
     min_image_edge: int,
-    seasonal: bool,
-    year: int,
     datetime: str or list[str] or callable,
     image_composite_method: str,
     stac_api_name: str,
@@ -810,8 +776,6 @@ def get_features_without_parallelization(
     image_bands : List of satellite image bands to be used for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
     datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
@@ -830,10 +794,8 @@ def get_features_without_parallelization(
 
     try:
         points_gdf_with_stac = fetch_image_refs(
-            points_gdf=points_gdf,
+            points_gdf_with_stac=points_gdf,
             satellite_name=satellite_name,
-            seasonal=seasonal,
-            year=year,
             datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,

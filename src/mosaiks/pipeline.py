@@ -38,8 +38,6 @@ def get_features(
     image_width: int = 3000,
     min_image_edge: int = 30,
     sort_points_by_hilbert_distance: bool = True,
-    seasonal: bool = False,
-    year: int = None,
     image_composite_method: str = "least_cloudy",
     stac_api: str = "planetary-compute",
     n_mosaiks_features: int = 4000,
@@ -80,9 +78,6 @@ def get_features(
     min_image_edge: minimum image edge in meters. Defaults to 1000.
     sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before
         fetching images. Defaults to True.
-    seasonal: whether to get seasonal images. Defaults to False.
-    year: year to get seasonal images for in format YYYY.
-        Only needed if seasonal = True. Defaults to None.
     image_composite_method: how to composite multiple images for same GPS location.
         Options are "least_cloudy" (pick least cloudy image) or "all" (get all images
         and average across them). Defaults to "least_cloudy".
@@ -176,8 +171,6 @@ def get_features(
             image_width=image_width,
             min_image_edge=min_image_edge,
             sort_points=sort_points_by_hilbert_distance,
-            seasonal=seasonal,
-            year=year,
             datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api,
@@ -214,8 +207,6 @@ def get_features(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
             datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api,

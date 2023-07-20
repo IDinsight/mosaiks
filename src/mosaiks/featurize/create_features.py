@@ -49,6 +49,7 @@ def create_features_from_image_array(
             else:
                 # logging.warn("No image found")
                 pass
+
     return features_array
 
 
