@@ -50,7 +50,6 @@ def get_features(
     dask_n_workers: Optional[int] = None,
     dask_threads_per_worker: Optional[int] = None,
     dask_sort_points_by_hilbert_distance: bool = True,
-    mosaiks_col_names: list = None,
     setup_rasterio_env: bool = True,
 ) -> pd.DataFrame:  # or None
     """
@@ -83,7 +82,6 @@ def get_features(
     n_workers : Number of workers to use. If None, let Dask decide (uses all available cores).
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
-    mosaiks_col_names: column names for the mosaiks features. Defaults to None.
     setup_rasterio_env: whether to set up rasterio environment variables. Defaults to True.
 
     Returns
@@ -109,8 +107,7 @@ def get_features(
     # Convert points to gdf
     points_gdf = utl.df_w_latlons_to_gdf(points_df)
 
-    if mosaiks_col_names is None:
-        mosaiks_col_names = [f"mosaiks_{i}" for i in range(n_mosaiks_features)]
+    mosaiks_col_names = [f"mosaiks_{i}" for i in range(n_mosaiks_features)]
 
     # Create model
     model = RCF(

@@ -200,7 +200,6 @@ def get_features(
     dask_chunksize: int = 500,
     dask_n_workers: int = 4,
     dask_threads_per_worker: int = 4,
-    mosaiks_col_names: list = None,
     setup_rasterio_env: bool = True,
 ) -> pd.DataFrame
 ```
@@ -235,7 +234,6 @@ dask_n_concurrent_tasks: 8
 dask_chunksize: 500
 dask_n_workers: 4
 dask_threads_per_worker: 4
-mosaiks_col_names: null
 setup_rasterio_env: true
 
 ```
