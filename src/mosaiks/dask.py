@@ -1,6 +1,8 @@
 import logging
 import math
+import shutil
 from datetime import datetime
+from pathlib import Path
 from typing import Generator, List, Optional
 
 import dask.delayed
@@ -92,59 +94,59 @@ def run_pipeline_with_parallelization(
     None or DataFrame
 
     """
-    # TODO - just make this a temp folder inside cwd without any structure
-    save_folder_path_temp = utl.make_output_folder_path(
-        satellite_name=satellite_name,
-        year=search_start.split("-")[0],
-        n_mosaiks_features=n_mosaiks_features,
-        root_folder=None,
-        coords_dataset_name="temp",
-    )
-    save_folder_path_temp.mkdir(parents=True, exist_ok=True)
 
-    # Create dask client
-    cluster, client = get_local_dask_cluster_and_client(
-        n_workers=n_workers, threads_per_worker=threads_per_worker
-    )
+    # create a temporary directory
+    date_time_now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    temp_dir = Path.cwd() / f"dask_{date_time_now}"
+    logging.info(f"Temporary directory: {temp_dir}")
 
-    # Run in batches in parallel
-    run_batched_pipeline(
-        points_gdf=points_gdf,
-        client=client,
-        model=model,
-        satellite_name=satellite_name,
-        image_resolution=image_resolution,
-        image_dtype=image_dtype,
-        image_bands=image_bands,
-        image_width=image_width,
-        min_image_edge=min_image_edge,
-        sort_points_by_hilbert_distance=sort_points_by_hilbert_distance,
-        seasonal=seasonal,
-        year=year,
-        search_start=search_start,
-        search_end=search_end,
-        image_composite_method=image_composite_method,
-        stac_api_name=stac_api_name,
-        num_features=n_mosaiks_features,
-        device=model_device,
-        n_concurrent_tasks=n_concurrent_tasks,
-        chunksize=chunksize,
-        col_names=mosaiks_col_names,
-        save_folder_path=save_folder_path_temp,
-    )
+    try:
+        cluster, client = get_local_dask_cluster_and_client(
+            n_workers=n_workers, threads_per_worker=threads_per_worker
+        )
 
-    # Close dask client
-    client.close()
-    cluster.close()
+        run_batched_pipeline(
+            points_gdf=points_gdf,
+            client=client,
+            model=model,
+            satellite_name=satellite_name,
+            image_resolution=image_resolution,
+            image_dtype=image_dtype,
+            image_bands=image_bands,
+            image_width=image_width,
+            min_image_edge=min_image_edge,
+            sort_points_by_hilbert_distance=sort_points_by_hilbert_distance,
+            seasonal=seasonal,
+            year=year,
+            search_start=search_start,
+            search_end=search_end,
+            image_composite_method=image_composite_method,
+            stac_api_name=stac_api_name,
+            num_features=n_mosaiks_features,
+            device=model_device,
+            n_concurrent_tasks=n_concurrent_tasks,
+            chunksize=chunksize,
+            col_names=mosaiks_col_names,
+            save_folder_path=temp_dir,
+        )
 
-    # Load checkpoint files and combine
-    logging.info("Loading and combining checkpoint files...")
-    checkpoint_filenames = utl.get_filtered_filenames(
-        folder_path=save_folder_path_temp, prefix="df_"
-    )
-    combined_df = utl.load_and_combine_dataframes(
-        folder_path=save_folder_path_temp, filenames=checkpoint_filenames
-    )
+        # IMPORTANT: Close dask client
+        client.close()
+        cluster.close()
+
+        # Load checkpoint files and combine
+        logging.info("Loading and combining checkpoint files...")
+        checkpoint_filenames = utl.get_filtered_filenames(
+            folder_path=temp_dir, prefix="df_"
+        )
+
+        combined_df = utl.load_and_combine_dataframes(
+            folder_path=temp_dir, filenames=checkpoint_filenames
+        )
+
+    finally:
+        # Delete temporary directory
+        shutil.rmtree(temp_dir)
 
     if save_folder_path is not None:
         utl.save_dataframe(df=combined_df, file_path=save_folder_path / save_filename)
