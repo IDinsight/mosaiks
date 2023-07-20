@@ -31,10 +31,14 @@ Ensure you have all requirements set up:
 2. Install the MOSAIKS package -
 
     ```sh
-    pip install git+https://github.com/IDinsight/mosaiks@main
+    pip install git+https://github.com/IDinsight/mosaiks@main # via GitHub
+    ```
+    or
+    ```sh
+    pip install mosaiks # via PyPI
     ```
 
-3. Acquire the Planetary Computer API key from [Microsoft Planetary Computer (MPC)](https://planetarycomputer.microsoft.com/). We provide detailed instructions for getting an API key in the FAQs section of this README.
+4. Acquire the Planetary Computer API key from [Microsoft Planetary Computer (MPC)](https://planetarycomputer.microsoft.com/). We provide detailed instructions for getting an API key in the FAQs section of this README.
 
     In your terminal, run the following and fill in the API key prompt -
 
