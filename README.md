@@ -15,9 +15,9 @@ This package extends the functionality of the original MOSAIKS implementation in
 
 The package has been tested via [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) on Landsat-8 or Sentinel-2 imagery. **Please note this package has only been tested on Python 3.10 and 3.11**. Using other versions of Python are expected to raise errors due to dependency conflicts.
 
-For more detailed information on this package and how to use it, please see [this blog post](link to technical blog post). For information on preview and potential use cases for this package, please see [this blog post](link to non-technical blog post).  For more information on MOSAIKS and previous use cases see the MOSAIKS website here [link to MOSAIKS.org].
+For more detailed information on this package and how to use it, please see [this blog post](https://idinsight.github.io/tech-blog/blog/mosaiks_part_1/). For information on preview and potential use cases for this package, please see [this blog post](https://www.idinsight.org/article/mosaiks-making-satellite-imagery-easy-to-use/).  For more information on MOSAIKS and previous use cases see the MOSAIKS website [here](https://www.mosaiks.org/).
 
-Users of this package should reference both the package as : [insert pip generated reference] and the MOSAIKS RCF algorithm as: Rolf, Esther, et al. "A generalizable and accessible approach to machine learning with global satellite imagery." _Nature communications_ 12.1 (2021): 4392.
+Users of this package should acknowledge *IDinsight* and reference the MOSAIKS RCF algorithm as: Rolf, Esther, et al. "A generalizable and accessible approach to machine learning with global satellite imagery." _Nature communications_ 12.1 (2021): 4392.
 
 
 ## Quick Start
