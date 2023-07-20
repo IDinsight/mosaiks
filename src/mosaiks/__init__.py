@@ -45,7 +45,7 @@ def get_features(
     mosaiks_random_seed_for_filters: int = 768,
     model_device: str = "cpu",
     parallelize: bool = False,
-    dask_n_concurrent_tasks: int = 8,
+    dask_n_concurrent_tasks: Optional[int] = None,
     dask_chunksize: int = 500,
     dask_n_workers: Optional[int] = None,
     dask_threads_per_worker: Optional[int] = None,
@@ -78,7 +78,7 @@ def get_features(
     mosaiks_random_seed_for_filters: random seed for mosaiks filters. Defaults to 768.
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
     parallelize: whether to use Dask parallel processing. Defaults to False.
-    dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
+    dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to None, which sets the total number of tasks to number of threads.
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
     n_workers : Number of workers to use. If None, let Dask decide (uses all available cores).
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).

@@ -78,7 +78,7 @@ def run_pipeline_with_parallelization(
     stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
     model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
-    n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
+    n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to None, which sets the total number of tasks to number of threads.
     chunksize: number of datapoints per data partition in Dask. Defaults to 500.
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
@@ -127,7 +127,7 @@ def run_pipeline_with_parallelization(
         stac_api_name=stac_api_name,
         num_features=n_mosaiks_features,
         device=model_device,
-        n_concurrent=n_concurrent_tasks,
+        n_concurrent_tasks=n_concurrent_tasks,
         chunksize=chunksize,
         col_names=mosaiks_col_names,
         save_folder_path=save_folder_path_temp,
@@ -255,7 +255,7 @@ def run_queued_futures_pipeline(
     num_features: int,
     device: str,
     col_names: list,
-    n_concurrent: int,
+    n_concurrent_tasks: int,
     chunksize: int,
     save_folder_path: str,
 ) -> None:
@@ -287,7 +287,7 @@ def run_queued_futures_pipeline(
     num_features : Number of features to be extracted from the model.
     device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features.
-    n_concurrent : Number of concurrent partitions to be submitted to the client.
+    n_concurrent_tasks : Number of concurrent partitions to be submitted to the client.
     chunksize : Number of points to be featurized per partition.
     save_folder_path : Path to folder where features will be saved.
 
@@ -303,12 +303,18 @@ def run_queued_futures_pipeline(
         sort_points_by_hilbert_distance,
     )
 
-    # kickoff "n_concurrent" number of tasks. Each of these will be replaced by a new
+    # if n_concurrent_tasks is not specified, use all available threads
+    if n_concurrent_tasks is None:
+        n_concurrent_tasks = sum(client.nthreads().values())
+    # if there are less partitions to run than concurrent tasks, run all partitions
+    n_concurrent_tasks = min(len(partitions), n_concurrent_tasks)
+
+    # kickoff "n_concurrent_tasks" number of tasks. Each of these will be replaced by a new
     # task upon completion.
     now = datetime.now().strftime("%d-%b %H:%M:%S")
-    logging.info(f"{now} Trying to kick off initial {n_concurrent} partitions...")
+    logging.info(f"{now} Trying to kick off initial {n_concurrent_tasks} partitions...")
     initial_futures_list = []
-    for i in range(n_concurrent):
+    for i in range(n_concurrent_tasks):
         try:
             partition = next(partitions)
         except StopIteration:
@@ -444,7 +450,7 @@ def run_batched_pipeline(
     stac_api_name: str,
     num_features: int,
     device: str,
-    n_concurrent: int,
+    n_concurrent_tasks: int,
     chunksize: int,
     col_names: list[str],
     save_folder_path: str,
@@ -497,14 +503,16 @@ def run_batched_pipeline(
         partitions = [partitions[i] for i in partition_ids]
         n_partitions = len(partitions)
 
-    if n_partitions < n_concurrent:
-        logging.info(
-            f"n_partitions is smaller than n_concurrent. Running all {n_partitions} partitions."
-        )
-        n_concurrent = n_partitions
+    # if n_concurrent_tasks is not specified, use all available threads
+    if n_concurrent_tasks is None:
+        n_concurrent_tasks = sum(client.nthreads().values())
+    # if there are less partitions to run than concurrent tasks, run all partitions
+    n_concurrent_tasks = min(n_partitions, n_concurrent_tasks)
 
     failed_ids = []
-    checkpoint_indices = list(np.arange(0, n_partitions, n_concurrent)) + [n_partitions]
+    checkpoint_indices = list(np.arange(0, n_partitions, n_concurrent_tasks)) + [
+        n_partitions
+    ]
     for p_start_id, p_end_id in zip(checkpoint_indices[:-1], checkpoint_indices[1:]):
         now = datetime.now().strftime("%d-%b %H:%M:%S")
         logging.info(f"{now} Running batch: {p_start_id} to {p_end_id - 1}")
