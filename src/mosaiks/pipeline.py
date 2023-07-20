@@ -25,7 +25,7 @@ def run_pipeline(
     num_features: int,
     device: str,
     col_names: list,
-    save_folder_path: str = None,
+    output_folderpath: str = None,
     save_filename: str = "features.csv",
     return_df: bool = True,
 ) -> pd.DataFrame:  # or None
@@ -52,7 +52,7 @@ def run_pipeline(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
-    save_folder_path : Path to folder where features will be saved. Default is None.
+    output_folderpath : Path to folder where features will be saved. Default is None.
     save_filename : Name of file where features will be saved. Default is "features.csv".
     return_df : Whether to return the features as a DataFrame. Default is True.
 
@@ -95,8 +95,8 @@ def run_pipeline(
         mosaiks_col_names=col_names,
     )
 
-    if save_folder_path is not None:
-        utl.save_dataframe(df=df, file_path=save_folder_path / save_filename)
+    if output_folderpath is not None:
+        utl.save_dataframe(df=df, file_path=output_folderpath / save_filename)
 
     if return_df:
         return df

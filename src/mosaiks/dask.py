@@ -54,7 +54,7 @@ def run_pipeline_with_parallelization(
     threads_per_worker: Optional[int],
     sort_points_by_hilbert_distance: bool,
     mosaiks_col_names: list,
-    save_folder_path: str = None,
+    output_folderpath: str = None,
     save_filename: str = "features.csv",
     return_df: bool = True,
 ) -> pd.DataFrame:  # or None
@@ -85,7 +85,7 @@ def run_pipeline_with_parallelization(
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
-    save_folder_path : Path to folder where features will be saved. Default is None.
+    output_folderpath : Path to folder where features will be saved. Default is None.
     save_filename : Name of file where features will be saved. Default is "features.csv".
     return_df : Whether to return the features as a DataFrame. Default is True.
 
@@ -127,7 +127,7 @@ def run_pipeline_with_parallelization(
             n_concurrent_tasks=n_concurrent_tasks,
             chunksize=chunksize,
             col_names=mosaiks_col_names,
-            save_folder_path=temp_dir,
+            output_folderpath=temp_dir,
         )
 
         # IMPORTANT: Close dask client
@@ -148,8 +148,8 @@ def run_pipeline_with_parallelization(
         # Delete temporary directory
         shutil.rmtree(temp_dir)
 
-    if save_folder_path is not None:
-        utl.save_dataframe(df=combined_df, file_path=save_folder_path / save_filename)
+    if output_folderpath is not None:
+        utl.save_dataframe(df=combined_df, file_path=output_folderpath / save_filename)
 
     if return_df:
         return combined_df
@@ -259,7 +259,7 @@ def run_queued_futures_pipeline(
     col_names: list,
     n_concurrent_tasks: int,
     chunksize: int,
-    save_folder_path: str,
+    output_folderpath: str,
 ) -> None:
     """
     For a given GeoDataFrame of coordinate points, this function partitions it
@@ -291,7 +291,7 @@ def run_queued_futures_pipeline(
     col_names : List of column names to be used for saving the features.
     n_concurrent_tasks : Number of concurrent partitions to be submitted to the client.
     chunksize : Number of points to be featurized per partition.
-    save_folder_path : Path to folder where features will be saved.
+    output_folderpath : Path to folder where features will be saved.
 
     Returns
     --------
@@ -345,7 +345,7 @@ def run_queued_futures_pipeline(
             num_features=num_features,
             device=device,
             col_names=col_names,
-            save_folder_path=save_folder_path,
+            output_folderpath=output_folderpath,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
             return_df=False,
         )
@@ -379,7 +379,7 @@ def run_queued_futures_pipeline(
             num_features=num_features,
             device=device,
             col_names=col_names,
-            save_folder_path=save_folder_path,
+            output_folderpath=output_folderpath,
             save_filename=f"df_{str(i).zfill(3)}.parquet.gzip",
             return_df=False,
         )
@@ -455,7 +455,7 @@ def run_batched_pipeline(
     n_concurrent_tasks: int,
     chunksize: int,
     col_names: list[str],
-    save_folder_path: str,
+    output_folderpath: str,
     partition_ids: list[int] = None,
 ) -> list[int]:
     """
@@ -482,7 +482,7 @@ def run_batched_pipeline(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features.
-    save_folder_path : Path to folder where features will be saved.
+    output_folderpath : Path to folder where features will be saved.
     partition_ids : Optional. List of partition indexes to be used for featurization.
 
     Returns
@@ -543,7 +543,7 @@ def run_batched_pipeline(
             num_features=num_features,
             device=device,
             col_names=col_names,
-            save_folder_path=save_folder_path,
+            output_folderpath=output_folderpath,
         )
 
     return failed_ids
@@ -569,7 +569,7 @@ def run_batch(
     num_features: int,
     device: str,
     col_names: list,
-    save_folder_path: str,
+    output_folderpath: str,
 ) -> list[int]:
     """
     Run a batch of partitions and save the result for each partition to a parquet file.
@@ -596,7 +596,7 @@ def run_batch(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
-    save_folder_path : Path to folder where features will be saved.
+    output_folderpath : Path to folder where features will be saved.
 
     Returns
     -------
@@ -629,7 +629,7 @@ def run_batch(
             num_features=num_features,
             device=device,
             col_names=col_names,
-            save_folder_path=save_folder_path,
+            output_folderpath=output_folderpath,
             save_filename=f"df_{str_id}.parquet.gzip",
             dask_key_name=f"features_{str_id}",
             return_df=False,
@@ -677,7 +677,7 @@ def run_unbatched_delayed_pipeline(
     image_dtype: str,
     col_names: list,
     chunksize: int,
-    save_folder_path: str,
+    output_folderpath: str,
 ) -> list[delayed]:
     """
     Given a GeoDataFrame of coordinate points, partitions it, creates a list of each
@@ -705,7 +705,7 @@ def run_unbatched_delayed_pipeline(
     image_dtype : Data type of satellite images to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
     chunksize : Number of points per partition.
-    save_folder_path : Path to folder where features will be saved.
+    output_folderpath : Path to folder where features will be saved.
 
     Returns
     -------
@@ -741,7 +741,7 @@ def run_unbatched_delayed_pipeline(
             image_resolution=image_resolution,
             image_dtype=image_dtype,
             col_names=col_names,
-            save_folder_path=save_folder_path,
+            output_folderpath=output_folderpath,
             save_filename=f"df_{str_i}.parquet.gzip",
         )
         delayed_tasks.append(delayed_task)
@@ -768,7 +768,7 @@ def delayed_pipeline(
     image_resolution: int,
     image_dtype: str,
     col_names: list,
-    save_folder_path: str,
+    output_folderpath: str,
     save_filename: str,
 ) -> dask.delayed:
     """
@@ -794,7 +794,7 @@ def delayed_pipeline(
     image_resolution : Resolution of satellite images to be used for featurization.
     image_dtype : Data type of satellite images to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
-    save_folder_path : Path to folder where features will be saved.
+    output_folderpath : Path to folder where features will be saved.
     save_filename : Name of file to save features to.
 
     Returns:
@@ -835,6 +835,6 @@ def delayed_pipeline(
         mosaiks_col_names=col_names,
     )
     delayed_task = dask.delayed(utl.save_dataframe)(
-        df=df, file_path=save_folder_path / save_filename
+        df=df, file_path=output_folderpath / save_filename
     )
     return delayed_task

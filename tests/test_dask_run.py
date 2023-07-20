@@ -88,9 +88,9 @@ def test_run_queued_futures(
         num_features=config_dict["n_mosaiks_features"],
         device=config_dict["model_device"],
         col_names=columns,
-        n_concurrent=config_dict["dask_n_concurrent_tasks"],
+        n_concurrent_tasks=config_dict["dask_n_concurrent_tasks"],
         chunksize=config_dict["dask_chunksize"],
-        save_folder_path=folder_path,
+        output_folderpath=folder_path,
     )
 
     num_files = len(listdir(folder_path))
@@ -137,10 +137,10 @@ def test_run_batched_pipeline(
         stac_api_name=config_dict["stac_api_name"],
         num_features=config_dict["n_mosaiks_features"],
         device=config_dict["model_device"],
-        n_concurrent=config_dict["dask_n_concurrent_tasks"],
+        n_concurrent_tasks=config_dict["dask_n_concurrent_tasks"],
         chunksize=config_dict["dask_chunksize"],
         col_names=columns,
-        save_folder_path=folder_path,
+        output_folderpath=folder_path,
     )
 
     num_files = len(listdir(folder_path))
@@ -188,7 +188,7 @@ def test_run_unbatched_delayed_pipeline(
         config_dict["image_dtype"],
         col_names=columns,
         chunksize=config_dict["dask_chunksize"],
-        save_folder_path=folder_path,
+        output_folderpath=folder_path,
     )
 
     num_files = len(listdir(folder_path))

@@ -116,7 +116,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         input_file_path="test_data.csv",
         lat_col="lat",
         lon_col="lon",
-        path_to_save_data="test_features.csv",
+        output_folderpath="test_features.csv",
         image_width=1000,
         search_start="2013-01-01",
         search_end="2013-12-31",
@@ -247,7 +247,7 @@ To save data to S3, you can simply set the output data path to an S3 bucket, as 
 ```python
 load_and_save_features(
         input_file_path="test_data.csv",
-        path_to_save_data="s3://gs-test-then-delete/test_pr.parquet.gzip",
+        output_folderpath="s3://gs-test-then-delete/test_pr.parquet.gzip",
         context_cols_to_keep_from_input=["lat", "lon"]
     )
 ```

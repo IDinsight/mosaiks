@@ -1,11 +1,9 @@
 import os
-from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import yaml
 
 os.environ["USE_PYGEOS"] = "0"
 
@@ -103,51 +101,6 @@ def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
     all_filenames = os.listdir(folder_path)
     filtered_filenames = [file for file in all_filenames if file.startswith(prefix)]
     return sorted(filtered_filenames)
-
-
-# TODO - what to do with this?
-def make_output_folder_path(
-    satellite_name: str,
-    year: int,
-    n_mosaiks_features: int,
-    root_folder: Optional[Path] = None,
-    coords_dataset_name: str = "temp",
-) -> Path:
-    """
-    Get the path to the folder where the mosaiks features should be saved.
-
-    Parameters
-    ----------
-    satellite_name : The name of the satellite.
-    year : The year of the satellite data.
-    n_mosaiks_features : The number of features used for mosaiks.
-    coords_dataset_name : The name of the coords dataset used for featurization. Default is 'temp'.
-    """
-
-    if root_folder is None:
-        root_folder = Path.cwd() / "data"
-
-    folder_path = (
-        root_folder
-        / "mosaiks_features"
-        / satellite_name
-        / str(year)
-        / coords_dataset_name
-        / str(n_mosaiks_features)
-    )
-
-    return folder_path
-
-
-# TODO - what to do with this?
-def get_mosaiks_package_link(branch="main") -> str:
-    """
-    Make an authenticated link to the mosaiks package. Note that the GITHUB_TOKEN
-    environment variable must be set for this to work.
-    """
-
-    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
-    return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks@{branch}"
 
 
 def make_result_df(
