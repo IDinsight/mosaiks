@@ -96,7 +96,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         image_width=1000,
         parallelize=False,
     )
-    
+
     df_featurised
     ```
 
