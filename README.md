@@ -71,10 +71,9 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
     df_featurised = get_features(
         lats,
         lons,
+        datetime="2017", # or ["2013-01-01", "2013-12-31"] or ...
         image_width=1000,
-        search_start="2013-01-01",
-        search_end="2013-12-31",
-    )
+        )
 
     df_featurised
     ```
@@ -89,9 +88,8 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
     df_featurised = get_features(
         lats,
         lons,
+        datetime="2017",
         image_width=1000,
-        search_start="2013-01-01",
-        search_end="2013-12-31",
         parallelize=False,
     )
 
@@ -116,10 +114,9 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         input_file_path="test_data.csv",
         lat_col="lat",
         lon_col="lon",
+        datetime="2017",
         path_to_save_data="test_features.csv",
         image_width=1000,
-        search_start="2013-01-01",
-        search_end="2013-12-31",
         context_cols_to_keep_from_input=["lat", "lon"],
     )
     ```
@@ -179,6 +176,7 @@ Here are all the parameters and defaults that `get_features` uses (`load_and_sav
 def get_features(
     latitudes: List[float],
     longitudes: List[float],
+    datetime: str or List[str] or callable,
     parallelize: bool = True,
     satellite_name: str = "landsat-8-c2-l2", # or "sentinel-2-l2a"
     image_resolution: int = 30,
@@ -189,8 +187,6 @@ def get_features(
     sort_points_by_hilbert_distance: bool = True,
     seasonal: bool = False,
     year: int = None,
-    search_start: str = "2013-01-01",
-    search_end: str = "2013-12-31",
     mosaic_composite: str = "least_cloudy", # or all
     stac_api: str = "planetary-compute", # or "earth-search"
     n_mosaiks_features: int = 4000,
@@ -213,6 +209,7 @@ def get_features(
 You can also feed all of these parameters through a .yml file, read the file, and then input the parameters as **kwargs. Here is an example .yml file for the parameters that can be re-used:
 
 ```yml
+datetime: "2017"
 parallelize: true
 satellite_name: "landsat-8-c2-l2"  # or "sentinel-2-l2a"
 image_resolution: 30
@@ -229,8 +226,6 @@ min_image_edge: 30
 sort_points_by_hilbert_distance: true
 seasonal: false
 year: null
-search_start: "2013-01-01"
-search_end: "2013-12-31"
 mosaic_composite: "least_cloudy"  # or "all"
 stac_api: "planetary-compute"  # or "earth-search"
 n_mosaiks_features: 4000
@@ -270,9 +265,13 @@ AWS_SECRET_ACCESS_KEY
 AWS_DEFAULT_REGION
 ```
 
-### - Where can I learn more about the satellite images?
+### - How do I choose satellite parameters?
 
-You can explore Microsoft Planetary Computer's [data catalog]([here](https://planetarycomputer.microsoft.com/explore)). It includes information about the satellites and links for further reading. You can also find information on the best image bands to use for images from the [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/) satellites.
+We have tested this package for 2 satellites: Sentinel-2 and Landsat-8.
+Sentinel-2 images are available starting from 23. June 2015 (relevant for `datetime`) at 100m resolution (`image_resolution`) for 13 spectral bands (`image_bands`).
+Landsat-8 images are available starting 11. February 2013, at 30m resolution and for 11 spectral bands.
+
+You can explore Microsoft Planetary Computer's [data catalog]([here](https://planetarycomputer.microsoft.com/explore)) to learn more -- it includes information about the satellites and links for further reading. You can also find information on the best image bands to use for images from the [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/) satellites.
 
 ### - How do I contribute to this repo as a developer?
 

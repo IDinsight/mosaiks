@@ -20,7 +20,11 @@ def test_points_with_stac_with_all_composite(sample_test_data: gpd.GeoDataFrame)
     points_gdf = utl.df_w_latlons_to_gdf(sample_test_data)
     stac_api = get_stac_api("planetary-compute")
     return fetch_stac_items(
-        points_gdf, "landsat-8-c2-l2", "2013-04-01", "2014-03-31", stac_api, "all"
+        points_gdf,
+        satellite_name="landsat-8-c2-l2",
+        datetime=["2013-04-01", "2014-03-31"],
+        stac_api=stac_api,
+        image_composite_method="all",
     )
 
 
@@ -33,11 +37,10 @@ def test_points_with_stac_with_least_cloudy_composite(
     stac_api = get_stac_api("planetary-compute")
     return fetch_stac_items(
         points_gdf,
-        "landsat-8-c2-l2",
-        "2013-04-01",
-        "2014-03-31",
-        stac_api,
-        "least_cloudy",
+        satellite_name="landsat-8-c2-l2",
+        datetime=["2013-04-01", "2014-03-31"],
+        stac_api=stac_api,
+        image_composite_method="least_cloudy",
     )
 
 
@@ -75,11 +78,10 @@ def test_points_with_stac_null(sample_test_null_data: gpd.GeoDataFrame):
     stac_api = get_stac_api("planetary-compute")
     return fetch_stac_items(
         points_gdf,
-        "landsat-8-c2-l2",
-        "2013-04-01",
-        "2014-03-31",
-        stac_api,
-        "least_cloudy",
+        satellite_name="landsat-8-c2-l2",
+        datetime=["2013-04-01", "2014-03-31"],
+        stac_api=stac_api,
+        image_composite_method="least_cloudy",
     )
 
 

@@ -29,6 +29,7 @@ RASTERIO_CONFIG = {
 def get_features(
     latitudes: List[float],
     longitudes: List[float],
+    datetime: str or List[str] or callable,
     parallelize: bool = True,
     satellite_name: str = "landsat-8-c2-l2",
     image_resolution: int = 30,
@@ -39,8 +40,6 @@ def get_features(
     sort_points_by_hilbert_distance: bool = True,
     seasonal: bool = False,
     year: int = None,
-    search_start: str = "2013-01-01",
-    search_end: str = "2013-12-31",
     image_composite_method: str = "least_cloudy",
     stac_api: str = "planetary-compute",
     n_mosaiks_features: int = 4000,
@@ -68,35 +67,46 @@ def get_features(
     -----------
     latitudes: list of latitudes
     longitudes: list of longitudes
+    datetime: date/times for fetching satellite images. See the STAC API documentation
+        (https://pystac-client.readthedocs.io/en/latest/api.html#pystac_client.Client)
+        for `.search`'s `datetime` parameter for more details
     parallelize: whether to use Dask parallel processing
-    satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a". Defaults to "landsat-8-c2-l2".
+    satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or
+        "sentinel-2-l2a". Defaults to "landsat-8-c2-l2".
     image_resolution: resolution of the satellite images in meters. Defaults to 30.
     image_dtype: data type of the satellite images. Defaults to "int16". All options - "int16", "int32", and "float"
     image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
     image_width: Desired width of the image to be fetched (in meters). Default 3000m.
     min_image_edge: minimum image edge in meters. Defaults to 1000.
-    sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before fetching images. Defaults to True.
+    sort_points_by_hilbert_distance: whether to sort points by Hilbert distance before
+        fetching images. Defaults to True.
     seasonal: whether to get seasonal images. Defaults to False.
-    year: year to get seasonal images for in format YYYY. Only needed if seasonal = True. Defaults to None.
-    search_start: start date for image search in format YYYY-MM-DD. Defaults to "2013-01-01".
-    search_end: end date for image search in format YYYY-MM-DD. Defaults to "2013-12-31".
-    image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
-    stac_api: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
+    year: year to get seasonal images for in format YYYY.
+        Only needed if seasonal = True. Defaults to None.
+    image_composite_method: how to composite multiple images for same GPS location.
+        Options are "least_cloudy" (pick least cloudy image) or "all" (get all images
+        and average across them). Defaults to "least_cloudy".
+    stac_api: which STAC API to use. Options are "planetary-compute" or "earth-search".
+        Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
     mosaiks_kernel_size: kernel size for mosaiks filters. Defaults to 3.
     mosaiks_batch_size: batch size for mosaiks filters. Defaults to 10.
     mosaiks_random_seed_for_filters: random seed for mosaiks filters. Defaults to 768.
-    model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
-    dask_client_type: type of Dask client to use. Options are "local" or "gateway". Defaults to "local".
+    model_device: compute device for mosaiks model. Options are "cpu" or "cuda".
+        Defaults to "cpu".
+    dask_client_type: type of Dask client to use. Options are "local" or "gateway".
+        Defaults to "local".
     dask_n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to 8.
     dask_chunksize: number of datapoints per data partition in Dask. Defaults to 500.
-    dask_n_workers: number of Dask workers to use. Only needed if dask_client_type = "local". Defaults to 4.
+    dask_n_workers: number of Dask workers to use.
+        Only needed if dask_client_type = "local". Defaults to 4.
     dask_threads_per_worker: number of threads per Dask worker to use. Defaults to 4.
     dask_worker_cores: number of cores per Dask worker to use. Defaults to 4.
     dask_worker_memory: amount of memory per Dask worker to use in GB. Defaults to 2.
     dask_pip_install: whether to install mosaiks in Dask workers. Defaults to False.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
-    setup_rasterio_env: whether to set up rasterio environment variables. Defaults to True.
+    setup_rasterio_env: whether to set up rasterio environment variables.
+        Defaults to True.
 
     Returns
     --------
@@ -112,7 +122,6 @@ def get_features(
     checks.check_latitudes_and_longitudes(latitudes, longitudes)
     checks.check_satellite_name(satellite_name)
     checks.check_stac_api_name(stac_api)
-    checks.check_search_dates(search_start, search_end)
 
     # Make points df
     logging.info("Formatting data and creating model...")
@@ -138,7 +147,6 @@ def get_features(
         # Make folder for temporary checkpoints
         save_folder_path_temp = utl.make_output_folder_path(
             satellite_name=satellite_name,
-            year=search_start.split("-")[0],
             n_mosaiks_features=n_mosaiks_features,
         )
         os.makedirs(save_folder_path_temp, exist_ok=True)
@@ -170,8 +178,7 @@ def get_features(
             sort_points=sort_points_by_hilbert_distance,
             seasonal=seasonal,
             year=year,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api,
             num_features=n_mosaiks_features,
@@ -209,8 +216,7 @@ def get_features(
             min_image_edge=min_image_edge,
             seasonal=seasonal,
             year=year,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api,
             num_features=n_mosaiks_features,

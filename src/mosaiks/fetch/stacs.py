@@ -18,8 +18,7 @@ def fetch_image_refs(
     satellite_name: str,
     seasonal: bool,
     year: int,
-    search_start: str,
-    search_end: str,
+    datetime: str,
     image_composite_method: str,
     stac_api_name: str,
 ) -> gpd.GeoDataFrame:
@@ -34,8 +33,7 @@ def fetch_image_refs(
     satellite_name : Name of MPC-hosted satellite.
     seasonal: Whether to fetch seasonal STAC items.
     year: The year to fetch seasonal STAC items for.
-    search_start : Date formatted as YYYY-MM-DD.
-    search_end : Date formatted as YYYY-MM-DD.
+    datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     image_composite_method : how to composite multiple images for same GPS location.
     stac_api_name: The name of the STAC API to use.
 
@@ -58,8 +56,7 @@ def fetch_image_refs(
         points_gdf_with_stac = fetch_stac_items(
             points_gdf=points_gdf,
             satellite_name=satellite_name,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             stac_api=stac_api,
             image_composite_method=image_composite_method,
         )
@@ -100,8 +97,7 @@ def fetch_seasonal_stac_items(
         season_points_gdf = fetch_stac_items(
             points_gdf=points_gdf_copy,
             satellite_name=satellite_name,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=[search_start, search_end],
             stac_api=stac_api,
             image_composite_method=image_composite_method,
         )
@@ -120,8 +116,7 @@ def fetch_seasonal_stac_items(
 def fetch_stac_items(
     points_gdf: gpd.GeoDataFrame,
     satellite_name: str,
-    search_start: str,
-    search_end: str,
+    datetime: str or list[str] or callable,
     stac_api: pystac_client.Client,
     image_composite_method: str,
 ) -> gpd.GeoDataFrame:
@@ -132,8 +127,7 @@ def fetch_stac_items(
     ----------
     points_gdf : A GeoDataFrame
     satellite_name : Name of MPC-hosted satellite
-    search_start : Date formatted as YYYY-MM-DD
-    search_end : Date formatted as YYYY-MM-DD
+    datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     stac_api: The pystac_client.Client object to use for searching for image refs. Output of `get_stac_api`
     image_composite_method : Whether to store "all" images found or just the "least_cloudy"
 
@@ -155,7 +149,7 @@ def fetch_stac_items(
         search_results = stac_api.search(
             collections=[satellite_name],
             intersects=points_union,
-            datetime=[search_start, search_end],
+            datetime=datetime,
             query={"eo:cloud_cover": {"lt": 10}},
             limit=500,  # this limit seems arbitrary
         )

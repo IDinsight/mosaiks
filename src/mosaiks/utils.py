@@ -106,7 +106,7 @@ def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
 
 
 def make_output_folder_path(
-    satellite_name, year, n_mosaiks_features, dataset_name: str = "temp"
+    satellite_name, n_mosaiks_features, dataset_name: str = "temp"
 ) -> Path:
     """
     Get the path to the folder where the mosaiks features should be saved.
@@ -114,7 +114,6 @@ def make_output_folder_path(
     Parameters
     ----------
     satellite_name : The name of the satellite.
-    year : The year of the satellite data.
     n_mosaiks_features : The number of features used for mosaiks.
     dataset_name : The name of the dataset used for featurization. Default is 'temp'.
     """
@@ -123,7 +122,6 @@ def make_output_folder_path(
         data_path
         / "00_raw/mosaiks"
         / satellite_name
-        / str(year)
         / dataset_name
         / str(n_mosaiks_features)
     )
