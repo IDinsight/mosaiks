@@ -17,10 +17,10 @@ The package has been tested via [Microsoft Planetary Computer](https://planetary
 
 For more detailed information on this package and how to use it, please see [this blog post](https://idinsight.github.io/tech-blog/blog/mosaiks_part_1/). For information on preview and potential use cases for this package, please see [this blog post](https://www.idinsight.org/?post_type=article&p=20518&preview=true).  For more information on MOSAIKS and previous use cases, see the MOSAIKS website [here](https://www.mosaiks.org/).
 
-Users of this package should acknowledge *IDinsight* and reference the MOSAIKS RCF algorithm as Rolf, Esther, et al. "A generalizable and accessible approach to machine learning with global satellite imagery." _Nature communications_ 12.1 (2021): 4392.
-
+Users of this package should acknowledge *IDinsight* and reference the MOSAIKS RCF algorithm as Rolf, Esther, et al. "A generalizable and accessible approach to machine learning with global satellite imagery." *Nature communications* 12.1 (2021): 4392.
 
 ## Quick Start
+
 This section highlights a demo to help you get features ASAP.
 
 ### Step 1: Set-up
@@ -33,7 +33,9 @@ Ensure you have all requirements set up:
     ```sh
     pip install git+https://github.com/IDinsight/mosaiks@main # via GitHub
     ```
+
     or
+
     ```sh
     pip install mosaiks # via PyPI
     ```
@@ -103,31 +105,6 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
 
     Check out `get_features`' docs for parameters to control the in-built parallelization scheme.
 
-5. **Run Utility function to load data and save features**
-
-    In situations where you want to load data, run featurisation, and save features on disk quietly, you can use the `load_and_save_features`:
-
-   ```python
-    # Save test data to file to load later
-    import pandas as pd
-
-    df = pd.DataFrame({"lat": lats, "lon": lons})
-    df.to_csv("test_data.csv")
-
-    # Loading points, featurise images, and save features to file.
-    from mosaiks.extras import load_and_save_features
-
-    load_and_save_features(
-        input_file_path="test_data.csv",
-        output_file_path="outputs/test_features.csv",
-        datetime="2017",
-        lat_col="lat",
-        lon_col="lon",
-        image_width=3000,
-        context_cols_to_keep_from_input=["lat", "lon"],
-    )
-    ```
-
 ## Core functionality of the system
 
 The high-level flow of our featurisation pipeline is the following:
@@ -159,6 +136,7 @@ The high-level flow of our featurisation pipeline is the following:
 ## FAQs
 
 ### - How do I get access to the Planetary Computer API key?
+
 If you are running mosaiks locally or on a non-MPC server, then you need an access token for the satellite image database.
 
 1. If you do not have an MPC account, go [here](https://planetarycomputer.microsoft.com/explore). You should see a “Request Access” button in the top right corner.
@@ -175,9 +153,9 @@ If you are running mosaiks locally or on a non-MPC server, then you need an acce
 
 5. More information is available [here](https://planetarycomputer.microsoft.com/docs/reference/sas/).
 
-### - Can you tell me about all the parameters that I can use in the `get_features` and `load_and_save_features`?
+### - Can you tell me about all the parameters that I can use in the `get_features`?
 
-Here are all the parameters and defaults that `get_features` uses (`load_and_save_features` also accepts these):
+Here are all the parameters and defaults that `get_features` uses:
 
 ```python
 def get_features(
@@ -234,26 +212,6 @@ dask_n_workers: 4
 dask_threads_per_worker: 4
 setup_rasterio_env: true
 
-```
-
-### - How do I save intermediate data to S3?
-
-To save data to S3, you can simply set the output data path to an S3 bucket, as we simply pass this onto Pandas. Example code:
-
-```python
-load_and_save_features(
-        input_file_path="test_data.csv",
-        output_file_path="s3://gs-test-then-delete/test_pr.parquet.gzip",
-        context_cols_to_keep_from_input=["lat", "lon"]
-    )
-```
-
-One requirement for this is to setup the following AWS environment variables:
-
-```yaml
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_DEFAULT_REGION
 ```
 
 ### - How do I choose satellite parameters?

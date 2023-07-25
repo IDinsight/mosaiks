@@ -48,7 +48,7 @@ def test_run_batched_pipeline(
         n_concurrent_tasks=config_dict["dask_n_concurrent_tasks"],
         chunksize=config_dict["dask_chunksize"],
         col_names=columns,
-        output_folderpath=folder_path,
+        temp_folderpath=folder_path,
     )
 
     num_files = len(listdir(folder_path))

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import List
 
 import geopandas as gpd
@@ -25,8 +26,7 @@ def run_pipeline(
     num_features: int,
     device: str,
     col_names: list,
-    output_folderpath: str = None,
-    save_filename: str = "features.csv",
+    output_filepath: Path = None,
     return_df: bool = True,
 ) -> pd.DataFrame:  # or None
     """
@@ -51,8 +51,7 @@ def run_pipeline(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
-    output_folderpath : Path to folder where features will be saved. Default is None.
-    save_filename : Name of file where features will be saved. Default is "features.csv".
+    output_filepath : Path to file where features will be saved. Must have .csv or .parquet or .parquet.gzip format. Default is None.
     return_df : Whether to return the features as a DataFrame. Default is True.
 
     Returns
@@ -91,13 +90,11 @@ def run_pipeline(
         mosaiks_col_names=col_names,
     )
 
-    if output_folderpath is not None:
+    if output_filepath is not None:
         try:
-            utl.save_dataframe(df=df, file_path=output_folderpath / save_filename)
+            utl.save_dataframe(df=df, file_path=output_filepath)
         except Exception as e:
-            logging.error(
-                f"Failed to save dataframe to {output_folderpath / save_filename}."
-            )
+            logging.error(f"Failed to save dataframe to {output_filepath}.")
             logging.error(e)
 
     if return_df:

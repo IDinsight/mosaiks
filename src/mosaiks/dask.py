@@ -43,9 +43,6 @@ def run_pipeline_with_parallelization(
     threads_per_worker: Optional[int],
     sort_points_by_hilbert_distance: bool,
     mosaiks_col_names: list,
-    output_folderpath: str = None,
-    save_filename: str = "features.csv",
-    return_df: bool = True,
 ) -> pd.DataFrame:  # or None
     """
     For a given DataFrame of coordinate points, this function runs the `run_pipeline()`
@@ -72,9 +69,6 @@ def run_pipeline_with_parallelization(
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
     sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
     mosaiks_col_names: column names for the mosaiks features. Defaults to None.
-    output_folderpath : Path to folder where features will be saved. Default is None.
-    save_filename : Name of file where features will be saved. Default is "features.csv".
-    return_df : Whether to return the features as a DataFrame. Default is True.
 
     Returns
     --------
@@ -116,7 +110,7 @@ def run_pipeline_with_parallelization(
             n_concurrent_tasks=n_concurrent_tasks,
             chunksize=chunksize,
             col_names=mosaiks_col_names,
-            output_folderpath=temp_dir,
+            temp_folderpath=temp_dir,
         )
         if failed_partitions:
             logging.warn(f"Failed partitions: {failed_partitions}.")
@@ -139,18 +133,7 @@ def run_pipeline_with_parallelization(
         # Delete temporary directory
         shutil.rmtree(temp_dir)
 
-    if output_folderpath is not None:
-        try:
-            utl.save_dataframe(
-                df=combined_df, file_path=output_folderpath / save_filename
-            )
-        except Exception as e:
-            logging.error(
-                f"Failed to save dataframe to {output_folderpath / save_filename}."
-            )
-            logging.error(e)
-    if return_df:
-        return combined_df
+    return combined_df
 
 
 def run_batched_pipeline(
@@ -172,7 +155,7 @@ def run_batched_pipeline(
     n_concurrent_tasks: int,
     chunksize: int,
     col_names: list[str],
-    output_folderpath: str,
+    temp_folderpath: str,
     partition_ids: list[int] = None,
 ) -> list[int]:
     """
@@ -197,7 +180,7 @@ def run_batched_pipeline(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     col_names : List of column names to be used for saving the features.
-    output_folderpath : Path to folder where features will be saved.
+    temp_folderpath : Path to folder where features will be saved.
     partition_ids : Optional. List of partition indexes to be used for featurization.
 
     Returns
@@ -257,7 +240,7 @@ def run_batched_pipeline(
             num_features=num_features,
             device=device,
             col_names=col_names,
-            output_folderpath=output_folderpath,
+            temp_folderpath=temp_folderpath,
         )
 
     return failed_ids
@@ -280,7 +263,7 @@ def run_batch(
     num_features: int,
     device: str,
     col_names: list,
-    output_folderpath: str,
+    temp_folderpath: str,
 ) -> list[int]:
     """
     Run a batch of partitions and save the result for each partition to a parquet file.
@@ -304,7 +287,7 @@ def run_batch(
     num_features : number of mosaiks features.
     device : Device to be used for featurization.
     col_names : List of column names to be used for the output dataframe.
-    output_folderpath : Path to folder where features will be saved.
+    temp_folderpath : Path to folder where features will be saved.
 
     Returns
     -------
@@ -334,8 +317,7 @@ def run_batch(
             num_features=num_features,
             device=device,
             col_names=col_names,
-            output_folderpath=output_folderpath,
-            save_filename=f"df_{str_id}.parquet",
+            output_filepath=temp_folderpath / f"df_{str_id}.parquet",
             dask_key_name=f"features_{str_id}",
             return_df=False,
         )
