@@ -43,20 +43,3 @@ def check_stac_api_name(stac_api_name: str) -> None:
             f"STAC api must be one of {list(valid_stac_api_names)},\
             not {stac_api_name}"
         )
-
-
-def check_search_dates(search_start_date: str, search_end_date: str) -> None:
-    """Check that search dates are valid."""
-    # Check date formats: datetime.strptime will raise a ValueError if the format is
-    # wrong
-    datetime.strptime(search_start_date, "%Y-%m-%d")
-    datetime.strptime(search_end_date, "%Y-%m-%d")
-
-    # Check that search start date is before search end date
-    if datetime.strptime(search_start_date, "%Y-%m-%d") > datetime.strptime(
-        search_end_date, "%Y-%m-%d"
-    ):
-        raise ValueError(
-            f"Search start date {search_start_date} must be before search end date\
-            {search_end_date}"
-        )

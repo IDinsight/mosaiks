@@ -1,3 +1,6 @@
+import logging
+from typing import List
+
 import geopandas as gpd
 import pandas as pd
 import torch.nn
@@ -16,10 +19,7 @@ def run_pipeline(
     image_bands: list,
     image_width: int,
     min_image_edge: int,
-    seasonal: bool,
-    year: int,
-    search_start: str,
-    search_end: str,
+    datetime: str or List[str] or callable,
     image_composite_method: str,
     stac_api_name: str,
     num_features: int,
@@ -43,10 +43,9 @@ def run_pipeline(
     image_bands : List of satellite image bands to be used for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
-    search_start : Start date for satellite image search.
-    search_end : End date for satellite image search.
+    datetime: date/times for fetching satellite images. See the STAC API documentation
+        (https://pystac-client.readthedocs.io/en/latest/api.html#pystac_client.Client)
+        for `.search`'s `datetime` parameter for more details
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
@@ -64,10 +63,7 @@ def run_pipeline(
     points_gdf_with_stac = fetch_image_refs(
         points_gdf=points_gdf,
         satellite_name=satellite_name,
-        seasonal=seasonal,
-        year=year,
-        search_start=search_start,
-        search_end=search_end,
+        datetime=datetime,
         image_composite_method=image_composite_method,
         stac_api_name=stac_api_name,
     )
@@ -96,7 +92,13 @@ def run_pipeline(
     )
 
     if output_folderpath is not None:
-        utl.save_dataframe(df=df, file_path=output_folderpath / save_filename)
+        try:
+            utl.save_dataframe(df=df, file_path=output_folderpath / save_filename)
+        except Exception as e:
+            logging.error(
+                f"Failed to save dataframe to {output_folderpath / save_filename}."
+            )
+            logging.error(e)
 
     if return_df:
         return df

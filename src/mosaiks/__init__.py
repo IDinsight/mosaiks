@@ -29,16 +29,13 @@ RASTERIO_CONFIG = {
 def get_features(
     latitudes: List[float],
     longitudes: List[float],
+    datetime: str or List[str] or callable,
     satellite_name: str = "landsat-8-c2-l2",
     image_resolution: int = 30,
     image_dtype: str = "int16",
     image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"],
     image_width: int = 3000,
     min_image_edge: int = 30,
-    seasonal: bool = False,
-    year: int = None,
-    search_start: str = "2013-01-01",
-    search_end: str = "2013-12-31",
     image_composite_method: str = "least_cloudy",
     stac_api_name: str = "planetary-compute",
     n_mosaiks_features: int = 4000,
@@ -62,16 +59,15 @@ def get_features(
     -----------
     latitudes: list of latitudes
     longitudes: list of longitudes
+    datetime: date/times for fetching satellite images. See the STAC API documentation
+        (https://pystac-client.readthedocs.io/en/latest/api.html#pystac_client.Client)
+        for `.search`'s `datetime` parameter for more details.
     satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a". Defaults to "landsat-8-c2-l2".
     image_resolution: resolution of the satellite images in meters. Defaults to 30.
     image_dtype: data type of the satellite images. Defaults to "int16". All options - "int16", "int32", and "float"
     image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
     image_width: Desired width of the image to be fetched (in meters). Default 3000m.
     min_image_edge: minimum image edge in meters. Defaults to 1000.
-    seasonal: whether to get seasonal images. Defaults to False.
-    year: year to get seasonal images for in format YYYY. Only needed if seasonal = True. Defaults to None.
-    search_start: start date for image search in format YYYY-MM-DD. Defaults to "2013-01-01".
-    search_end: end date for image search in format YYYY-MM-DD. Defaults to "2013-12-31".
     image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
     stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
@@ -101,7 +97,6 @@ def get_features(
     checks.check_latitudes_and_longitudes(latitudes, longitudes)
     checks.check_satellite_name(satellite_name)
     checks.check_stac_api_name(stac_api_name)
-    checks.check_search_dates(search_start, search_end)
 
     # Make points df
     logging.info("Formatting data and creating model...")
@@ -131,10 +126,7 @@ def get_features(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=n_mosaiks_features,
@@ -152,10 +144,7 @@ def get_features(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             n_mosaiks_features=n_mosaiks_features,

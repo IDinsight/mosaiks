@@ -138,5 +138,4 @@ def make_result_df(
         features_df["stac_id"] = context_gdf["stac_item"].map(
             lambda item: item.id if item is not None else None
         )
-
     return features_df

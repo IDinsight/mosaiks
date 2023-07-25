@@ -1,6 +1,6 @@
 import logging
 import shutil
-from datetime import datetime
+from datetime import datetime as dt
 from pathlib import Path
 from typing import List, Optional
 
@@ -31,10 +31,7 @@ def run_pipeline_with_parallelization(
     image_bands: List[str],
     image_width: int,
     min_image_edge: int,
-    seasonal: bool,
-    year: int,
-    search_start: str,
-    search_end: str,
+    datetime: str or list[str] or callable,
     image_composite_method: str,
     stac_api_name: str,
     n_mosaiks_features: int,
@@ -64,10 +61,7 @@ def run_pipeline_with_parallelization(
     image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
     image_width: Desired width of the image to be fetched (in meters). Default 3000m.
     min_image_edge: minimum image edge in meters. Defaults to 1000.
-    seasonal: whether to get seasonal images. Defaults to False.
-    year: year to get seasonal images for in format YYYY. Only needed if seasonal = True. Defaults to None.
-    search_start: start date for image search in format YYYY-MM-DD. Defaults to "2013-01-01".
-    search_end: end date for image search in format YYYY-MM-DD. Defaults to "2013-12-31".
+    datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
     stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
     n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
@@ -85,11 +79,10 @@ def run_pipeline_with_parallelization(
     Returns
     --------
     None or DataFrame
-
     """
 
     # create a temporary directory
-    date_time_now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    date_time_now = dt.now().strftime("%Y-%m-%d_%H-%M-%S")
     temp_dir = Path.cwd() / f"dask_{date_time_now}"
     logging.info(f"Temporary directory: {temp_dir}")
 
@@ -115,10 +108,7 @@ def run_pipeline_with_parallelization(
             image_width=image_width,
             min_image_edge=min_image_edge,
             sort_points_by_hilbert_distance=sort_points_by_hilbert_distance,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=n_mosaiks_features,
@@ -150,7 +140,15 @@ def run_pipeline_with_parallelization(
         shutil.rmtree(temp_dir)
 
     if output_folderpath is not None:
-        utl.save_dataframe(df=combined_df, file_path=output_folderpath / save_filename)
+        try:
+            utl.save_dataframe(
+                df=combined_df, file_path=output_folderpath / save_filename
+            )
+        except Exception as e:
+            logging.error(
+                f"Failed to save dataframe to {output_folderpath / save_filename}."
+            )
+            logging.error(e)
     if return_df:
         return combined_df
 
@@ -166,10 +164,7 @@ def run_batched_pipeline(
     image_width: int,
     min_image_edge: int,
     sort_points_by_hilbert_distance: bool,
-    seasonal: bool,
-    year: int,
-    search_start: str,
-    search_end: str,
+    datetime: str or list[str] or callable,
     image_composite_method: bool,
     stac_api_name: str,
     num_features: int,
@@ -195,10 +190,8 @@ def run_batched_pipeline(
     image_bands : List of satellite image bands to be used for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
-    search_start : Start date for satellite image search.
-    search_end : End date for satellite image search.
+    sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
+    datetime: date/times for fetching satellite images. Same as datetime parameter in pystac.Client.search.
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
@@ -240,7 +233,7 @@ def run_batched_pipeline(
         n_partitions
     ]
     for p_start_id, p_end_id in zip(checkpoint_indices[:-1], checkpoint_indices[1:]):
-        now = datetime.now().strftime("%d-%b %H:%M:%S")
+        now = dt.now().strftime("%d-%b %H:%M:%S")
         logging.info(f"{now} Running batch: {p_start_id} to {p_end_id - 1}")
 
         batch_indices = list(range(p_start_id, p_end_id))
@@ -258,10 +251,7 @@ def run_batched_pipeline(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,
@@ -284,10 +274,7 @@ def run_batch(
     image_bands: list[str],
     image_width: int,
     min_image_edge: int,
-    seasonal: bool,
-    year: int,
-    search_start: str,
-    search_end: str,
+    datetime: str or list[str] or callable,
     image_composite_method: str,
     stac_api_name: str,
     num_features: int,
@@ -311,10 +298,7 @@ def run_batch(
     image_bands : List of satellite image bands to be used for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
-    seasonal : Whether to use seasonal satellite images for featurization.
-    year : Year to be used for featurization.
-    search_start : Start date for satellite image search.
-    search_end : End date for satellite image search.
+    datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
     num_features : number of mosaiks features.
@@ -344,10 +328,7 @@ def run_batch(
             image_bands=image_bands,
             image_width=image_width,
             min_image_edge=min_image_edge,
-            seasonal=seasonal,
-            year=year,
-            search_start=search_start,
-            search_end=search_end,
+            datetime=datetime,
             image_composite_method=image_composite_method,
             stac_api_name=stac_api_name,
             num_features=num_features,

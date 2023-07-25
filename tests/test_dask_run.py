@@ -27,7 +27,7 @@ def test_run_batched_pipeline(
     columns = ["feature_%d" % i for i in range(config_dict["n_mosaiks_features"])]
     folder_path = Path("tests/data/test_output_batch_delayed/")
     folder_path.mkdir(parents=True, exist_ok=True)
-    cluster, client = get_local_dask_cluster_and_client(1, 1)
+    cluster, client = get_local_dask_cluster_and_client(2, 2)
 
     run_batched_pipeline(
         points_gdf,
@@ -40,10 +40,7 @@ def test_run_batched_pipeline(
         image_width=config_dict["image_width"],
         min_image_edge=config_dict["min_image_edge"],
         sort_points_by_hilbert_distance=config_dict["sort_points_by_hilbert_distance"],
-        seasonal=config_dict["seasonal"],
-        year=config_dict["year"],
-        search_start=config_dict["search_start"],
-        search_end=config_dict["search_end"],
+        datetime=config_dict["datetime"],
         image_composite_method=config_dict["image_composite_method"],
         stac_api_name=config_dict["stac_api_name"],
         num_features=config_dict["n_mosaiks_features"],
