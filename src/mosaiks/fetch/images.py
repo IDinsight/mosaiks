@@ -154,7 +154,8 @@ def create_data_loader(
     Parameters
     ----------
     points_gdf_with_stac : A GeoDataFrame with the points we want to fetch imagery for
-        alongside the STAC item references to pictures for each point
+        alongside the STAC item references to pictures for each point. The stac_item
+        entry for each row should be a list of stac items that cover that point.
     image_bands : The bands to use for the image crops
     image_resolution : The resolution to use for the image crops
     image_dtype : The data type to use for the image crops
@@ -167,11 +168,10 @@ def create_data_loader(
     data_loader : A PyTorch DataLoader which returns cropped images as tensors
     """
 
-    stac_item_list = points_gdf_with_stac.stac_item.tolist()
-    points_list = points_gdf_with_stac[["Lon", "Lat"]].to_numpy()
     dataset = CustomDataset(
-        points_list,
-        stac_item_list,
+        latitudes=points_gdf_with_stac["Lat"].to_numpy(),
+        longitudes=points_gdf_with_stac["Lon"].to_numpy(),
+        stac_items=points_gdf_with_stac["stac_item"].tolist(),
         image_width=image_width,
         bands=image_bands,
         resolution=image_resolution,
@@ -186,8 +186,9 @@ def create_data_loader(
 class CustomDataset(Dataset):
     def __init__(
         self,
-        points: np.array,
-        items: List[Item],
+        latitudes: np.array,
+        longitudes: np.array,
+        stac_items: List[Item],
         image_width: int,
         bands: List[str],
         resolution: int,
@@ -197,8 +198,9 @@ class CustomDataset(Dataset):
         """
         Parameters
         ----------
-        points : Array of points to sample from
-        items : List of STAC items to sample from
+        latitudes : Array of latitudes to sample from
+        longitudes : Array of longitudes to sample from
+        stac_items : List of STAC items to sample from
         image_width : Desired width of the image to be fetched (in meters).
         bands : List of bands to sample
         resolution : Resolution of the image to sample
@@ -208,8 +210,9 @@ class CustomDataset(Dataset):
         image_composite_method : The type of composite to make if multiple images are given.
         """
 
-        self.points = points
-        self.items = items
+        self.latitudes = latitudes
+        self.longitudes = longitudes
+        self.stac_items = stac_items
         self.image_width = image_width
         self.bands = bands
         self.resolution = resolution
@@ -219,7 +222,7 @@ class CustomDataset(Dataset):
     def __len__(self):
         """Returns the number of points in the dataset"""
 
-        return self.points.shape[0]
+        return len(self.latitudes)
 
     def __getitem__(self, idx: int) -> torch.Tensor:
         """
@@ -232,8 +235,9 @@ class CustomDataset(Dataset):
         out_image : Image tensor of shape (C, H, W)
         """
 
-        lon, lat = self.points[idx]
-        stac_items = self.items[idx]
+        lat = self.latitudes[idx]
+        lon = self.longitudes[idx]
+        stac_items = self.stac_items[idx]
 
         try:
             image = fetch_image_crop(

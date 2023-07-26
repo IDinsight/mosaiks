@@ -35,7 +35,7 @@ def run_pipeline(
 
     Parameters
     -----------
-    points_gdf : GeoDataFrame of points to be featurized.
+    points_gdf : GeoDataFrame of points to be featurized. Must have latitude and longitude columns called "Lat" and "Lon".
     model: PyTorch model to be used for featurization.
     satellite_name : Name of satellite to be used for featurization.
     image_resolution : Resolution of satellite images to be used for featurization.

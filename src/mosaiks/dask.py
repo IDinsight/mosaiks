@@ -78,6 +78,7 @@ def run_pipeline_with_parallelization(
     # create a temporary directory
     date_time_now = dt.now().strftime("%Y-%m-%d_%H-%M-%S")
     temp_dir = Path.cwd() / f"dask_{date_time_now}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
     logging.info(f"Temporary directory: {temp_dir}")
 
     try:
