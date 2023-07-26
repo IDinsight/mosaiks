@@ -209,7 +209,9 @@ def _run_batched_pipeline(
     # if there are less partitions to run than concurrent tasks, run all partitions
     n_concurrent_tasks = min(n_partitions, n_concurrent_tasks)
 
-    logging.info(f"Running {n_partitions} partitions in {n_concurrent_tasks} batches.")
+    logging.info(
+        f"Running {n_partitions} partitions in batches of {n_concurrent_tasks} at a time."
+    )
 
     failed_ids = []
     checkpoint_indices = list(np.arange(0, n_partitions, n_concurrent_tasks)) + [
