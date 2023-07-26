@@ -162,35 +162,35 @@ def get_features(
     latitudes: List[float],
     longitudes: List[float],
     datetime: str or List[str] or callable,
-    parallelize: bool = True,
     satellite_name: str = "landsat-8-c2-l2", # or "sentinel-2-l2a"
-    image_resolution: int = 30,
-    image_dtype: str = "int16", # or "int32" or "float"
+    image_resolution: int = 30, # or 10 for Sentinel
     image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, see FAQs below
     image_width: int = 3000,
     min_image_edge: int = 30,
-    sort_points_by_hilbert_distance: bool = True,
-    mosaic_composite: str = "least_cloudy", # or all
+    image_composite_method: str = "least_cloudy",   # or "all" to create a multi-image median composite before featurisation
+    image_dtype: str = "int16", # or "int32" or "float". "int8" not supported.
     stac_api_name: str = "planetary-compute", # or "earth-search"
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
-    model_device: str = "cpu", # or "cuda"
-    dask_n_concurrent_tasks: int = 8,
+    mosaiks_random_seed_for_filters: int = 768,
+    model_device: str = "cpu",  # or "cuda" if NVIDIA GPU available
+    parallelize: bool = False,
     dask_chunksize: int = 500,
-    dask_n_workers: int = 4,
-    dask_threads_per_worker: int = 4,
+    dask_client: Optional[Client] = None, # Provide to override the default per-run LocalCluster creation
+    dask_n_workers: Optional[int] = None, # Set to None to auto-select maximum
+    dask_threads_per_worker: Optional[int] = None, # Set to None to auto-select maximum
+    dask_n_concurrent_tasks: Optional[int] = None, # Set to None to set equal to number of threads
+    dask_sort_points_by_hilbert_distance: bool = True,
     setup_rasterio_env: bool = True,
 ) -> pd.DataFrame
 ```
 
-You can also feed all of these parameters through a .yml file, read the file, and then input the parameters as **kwargs. Here is an example .yml file for the parameters that can be re-used:
+You can also set these parameters in a `.yml` file, read the file, and then input the parameters as **kwargs. Here is an example of a `.yml` file with some common project-specific parameters set, leaving everything else as default:
 
 ```yml
-datetime: "2017"
-parallelize: true
-satellite_name: "landsat-8-c2-l2"  # or "sentinel-2-l2a"
-image_resolution: 30
-image_dtype: "int16"  # or "int32" or "float"
+datetime: "2017",
+satellite_name: "landsat-8-c2-l2",
+image_resolution: 30,
 image_bands:
   - "SR_B2"
   - "SR_B3"
@@ -198,20 +198,12 @@ image_bands:
   - "SR_B5"
   - "SR_B6"
   - "SR_B7"
-image_width: 3000
-min_image_edge: 30
-sort_points_by_hilbert_distance: true
-mosaic_composite: "least_cloudy"  # or "all"
-stac_api_name: "planetary-compute"  # or "earth-search"
-n_mosaiks_features: 4000
-mosaiks_kernel_size: 3
-model_device: "cpu"  # or "cuda"
-dask_n_concurrent_tasks: 8
-dask_chunksize: 500
-dask_n_workers: 4
-dask_threads_per_worker: 4
-setup_rasterio_env: true
-
+image_width: 3000,
+image_composite_method: "least_cloudy",
+n_mosaiks_features: 4000,
+model_device: "cpu", # or "gpu" if NVIDIA GPU available
+parallelize: True,
+dask_chunksize: 500,
 ```
 
 ### • How do I choose satellite parameters?

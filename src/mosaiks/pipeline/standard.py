@@ -35,28 +35,26 @@ def run_pipeline(
 
     Parameters
     -----------
-    points_gdf : GeoDataFrame of points to be featurized. Must have latitude and longitude columns called "Lat" and "Lon".
+    points_gdf : GeoDataFrame of points to be featurized.
     model: PyTorch model to be used for featurization.
-    satellite_name : Name of satellite to be used for featurization.
-    image_resolution : Resolution of satellite images to be used for featurization.
-    image_dtype : Data type of satellite images to be used for featurization.
-    image_bands : List of satellite image bands to be used for featurization.
-    image_width : Desired width of the image to be fetched (in meters).
-    min_image_edge : Minimum image edge size.
-    datetime: date/times for fetching satellite images. See the STAC API documentation
-        (https://pystac-client.readthedocs.io/en/latest/api.html#pystac_client.Client)
-        for `.search`'s `datetime` parameter for more details
-    image_composite_method : Mosaic composite to be used for featurization.
-    stac_api_name : Name of STAC API to be used for satellite image search.
-    num_features : number of mosaiks features.
-    device : Device to be used for featurization.
-    col_names : List of column names to be used for saving the features. Default is None, in which case the column names will be "mosaiks_0", "mosaiks_1", etc.
+    satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a".
+    image_resolution: resolution of the satellite images in meters. Set depending on satellite.
+    image_dtype: data type of the satellite images. Suggested "int16". All options - "int16", "int32", and "float"
+    image_bands: list of bands to use for the satellite images. Suggested ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
+    image_width: Desired width of the image to be fetched (in meters). Suggested 3000m for landsat.
+    min_image_edge: minimum image edge in meters. Suggested 1000.
+    datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
+    image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Suggested "least_cloudy" for speed.
+    stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Suggested "planetary-compute".
+    num_features: number of mosaiks features to generate. Suggested 1000-4000.
+    device: compute device for mosaiks model. Options are "cpu" or "cuda".
+    col_names: column names for the mosaiks features.
     output_filepath : Path to file where features will be saved. Must have .csv or .parquet or .parquet.gzip format. Default is None.
     return_df : Whether to return the features as a DataFrame. Default is True.
 
     Returns
     --------
-    None or DataFrame
+    None or DataFrame depending on the "return_df" parameter.
     """
 
     points_gdf_with_stac = fetch_image_refs(

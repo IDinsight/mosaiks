@@ -35,14 +35,14 @@ def run_parallel_pipeline(
     stac_api_name: str,
     n_mosaiks_features: int,
     model_device: str,
+    mosaiks_col_names: list,
     n_concurrent_tasks: int,
     chunksize: int,
     client: Optional[Client],
     n_workers: Optional[int],
     threads_per_worker: Optional[int],
     sort_points_by_hilbert_distance: bool,
-    mosaiks_col_names: list,
-) -> pd.DataFrame:  # or None
+) -> pd.DataFrame:
     """
     For a given DataFrame of coordinate points, this function runs the `run_pipeline()`
     function on batches of datapoints in parallel using Dask.
@@ -51,27 +51,27 @@ def run_parallel_pipeline(
     -----------
     points_gdf : GeoDataFrame of points to be featurized.
     model: PyTorch model to be used for featurization.
-    satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a". Defaults to "landsat-8-c2-l2".
-    image_resolution: resolution of the satellite images in meters. Defaults to 30.
-    image_dtype: data type of the satellite images. Defaults to "int16". All options - "int16", "int32", and "float"
-    image_bands: list of bands to use for the satellite images. Defaults to ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
-    image_width: Desired width of the image to be fetched (in meters). Default 3000m.
-    min_image_edge: minimum image edge in meters. Defaults to 1000.
+    satellite_name: name of the satellite to use. Options are "landsat-8-c2-l2" or "sentinel-2-l2a".
+    image_resolution: resolution of the satellite images in meters. Set depending on satellite.
+    image_dtype: data type of the satellite images. Suggested "int16". All options - "int16", "int32", and "float"
+    image_bands: list of bands to use for the satellite images. Suggested ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"]. For options, read the satellite docs
+    image_width: Desired width of the image to be fetched (in meters). Suggested 3000m for landsat.
+    min_image_edge: minimum image edge in meters. Suggested 1000.
     datetime : date/times for fetching satellite images. See STAC API docs for `pystac.Client.search`'s `datetime` parameter for more details
-    image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Defaults to "least_cloudy".
-    stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Defaults to "planetary-compute".
-    n_mosaiks_features: number of mosaiks features to generate. Defaults to 4000.
-    model_device: compute device for mosaiks model. Options are "cpu" or "cuda". Defaults to "cpu".
-    n_concurrent_tasks: number of concurrent tasks to run in Dask. Defaults to None, which sets the total number of tasks to number of threads.
-    chunksize: number of datapoints per data partition in Dask. Defaults to 500.
+    image_composite_method: how to composite multiple images for same GPS location. Options are "least_cloudy" (pick least cloudy image) or "all" (get all images and average across them). Suggested "least_cloudy" for speed.
+    stac_api_name: which STAC API to use. Options are "planetary-compute" or "earth-search". Suggested "planetary-compute".
+    n_mosaiks_features: number of mosaiks features to generate. Suggested 1000-4000.
+    model_device: compute device for mosaiks model. Options are "cpu" or "cuda".
+    mosaiks_col_names: column names for the mosaiks features.
+    n_concurrent_tasks: number of concurrent tasks to run in Dask. Suggested None, which sets the total number of tasks to number of threads.
+    chunksize: number of datapoints per data partition in Dask. Suggested 500.
     client : Dask client. If None, create a local cluster and client.
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
-    sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
-    mosaiks_col_names: column names for the mosaiks features. Defaults to None.
+    sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Suggested True.
 
     Returns
     --------
-    None or DataFrame
+    DataFrame
     """
 
     # create a temporary directory
@@ -173,7 +173,7 @@ def _run_batched_pipeline(
     image_bands : List of satellite image bands to be used for featurization.
     image_width : Desired width of the image to be fetched (in meters).
     min_image_edge : Minimum image edge size.
-    sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
+    sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Suggested True.
     datetime: date/times for fetching satellite images. Same as datetime parameter in pystac.Client.search.
     image_composite_method : Mosaic composite to be used for featurization.
     stac_api_name : Name of STAC API to be used for satellite image search.
@@ -346,7 +346,7 @@ def get_local_dask_cluster_and_client(
     Parameters
     -----------
     threads_per_worker : Number of threads per worker. If None, let Dask decide (uses all available threads per core).
-    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Defaults to True.
+    dask_sort_points_by_hilbert_distance: Whether to sort points by Hilbert distance before partitioning them. Suggested True.
 
     Returns
     --------
