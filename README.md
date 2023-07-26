@@ -155,7 +155,9 @@ If you are running mosaiks locally or on a non-MPC server, then you need an acce
 
 ### • Can you tell me about all the parameters that I can use in the `get_features`?
 
-Here are all the parameters and defaults that `get_features` uses:
+Below are all the parameters and defaults that `get_features` uses. 
+
+**NOTE:** You'll probably want to leave most of these as defaults - see the `.yaml` file example that follows for the subset of parameters you most likely want to change.
 
 ```python
 def get_features(
