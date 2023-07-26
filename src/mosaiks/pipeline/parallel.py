@@ -13,16 +13,15 @@ import torch.nn as nn
 from dask.distributed import Client, LocalCluster, as_completed
 
 import mosaiks.utils as utl
-from mosaiks.pipeline import run_pipeline
+from mosaiks.pipeline.standard import run_pipeline
 
 __all__ = [
-    "run_pipeline_with_parallelization",
-    "run_batched_pipeline",
+    "run_parallel_pipeline",
     "get_local_dask_cluster_and_client",
 ]
 
 
-def run_pipeline_with_parallelization(
+def run_parallel_pipeline(
     points_gdf: gpd.GeoDataFrame,
     model: nn.Module,
     satellite_name: str,
@@ -92,7 +91,7 @@ def run_pipeline_with_parallelization(
         else:
             temp_client = False
 
-        failed_partitions = run_batched_pipeline(
+        failed_partitions = _run_batched_pipeline(
             points_gdf=points_gdf,
             client=client,
             model=model,
@@ -137,7 +136,7 @@ def run_pipeline_with_parallelization(
     return combined_df
 
 
-def run_batched_pipeline(
+def _run_batched_pipeline(
     points_gdf: gpd.GeoDataFrame,
     client: Client,
     model: nn.Module,
@@ -189,7 +188,7 @@ def run_batched_pipeline(
     list of failed partition ids
     """
     # make delayed gdf partitions
-    dask_gdf = get_dask_gdf(
+    dask_gdf = _get_dask_gdf(
         points_gdf,
         chunksize,
         sort_points_by_hilbert_distance,
@@ -224,7 +223,7 @@ def run_batched_pipeline(
         batch_p_ids = [partition_ids[i] for i in batch_indices]
         batch_partitions = [partitions[i] for i in batch_indices]
 
-        failed_ids += run_batch(
+        failed_ids += _run_batch(
             partitions=batch_partitions,
             partition_ids=batch_p_ids,
             client=client,
@@ -247,7 +246,7 @@ def run_batched_pipeline(
     return failed_ids
 
 
-def run_batch(
+def _run_batch(
     partitions: list,
     partition_ids: list,
     client: Client,
@@ -372,7 +371,7 @@ def get_local_dask_cluster_and_client(
     return cluster, client
 
 
-def get_dask_gdf(
+def _get_dask_gdf(
     points_gdf: gpd.GeoDataFrame,
     chunksize: int,
     sort_points_by_hilbert_distance: bool = True,

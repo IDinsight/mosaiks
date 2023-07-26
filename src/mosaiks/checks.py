@@ -1,7 +1,5 @@
 """Internal functions for checking inputs to pipeline functions."""
 
-from datetime import datetime
-
 import numpy as np
 
 valid_satellite_names = ["sentinel-2-l2a", "landsat-8-c2-l2"]

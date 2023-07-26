@@ -31,13 +31,13 @@ Ensure you have all requirements set up:
 2. Install the MOSAIKS package -
 
     ```sh
-    pip install git+https://github.com/IDinsight/mosaiks@main # via GitHub
+    pip install git+https://github.com/IDinsight/mosaiks
     ```
 
     or
 
     ```sh
-    pip install mosaiks # via PyPI
+    pip install mosaiks
     ```
 
 4. Acquire the Planetary Computer API key from [Microsoft Planetary Computer (MPC)](https://planetarycomputer.microsoft.com/). We provide detailed instructions for getting an API key in the FAQs section of this README.
@@ -97,7 +97,7 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
         datetime="2017", # or ["2013-01-01", "2013-12-31"] or ...
         image_width=1000,
         parallelize=True,
-        dask_chunksize=500,
+        dask_chunksize=2, # set this to 200+ to see benefits from parallization
     )
 
     df_featurised
@@ -110,32 +110,32 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
 The high-level flow of our featurisation pipeline is the following:
 
 1. The User feeds 'lat' and 'lon' lists for points they want to featurize
-    - The user also adds relevant parameters to the function (see FAQs)
+    - The user also adds relevant parameters to the function (see docstrings and FAQs)
 2. For each GPS coordinate, the function fetches [STAC](https://stacspec.org/en) references to satellite images
-3. Once found, the function fetches the images
+3. Once found, the function fetches the images (either all or only the least cloudy depending on the `image_composite_method` parameter)
 4. Function converts each image into features using the MOSAIKS algorithm
-5. Lastly, the function returns a dataframe with the features, 'lat' and 'lon' columns, and any other columns if specified by the user
+5. Lastly, the function returns a dataframe with the features alongside the STAC references to the image(s) used to create the features from.
 
 ## Repository structure
 
 ```
-├── src -- source code
-│   ├── mosaiks
-│   │   ├── pipeline.py -- pipeline code: takes in GPS coordinates and processing
-│   │   ├── featurize/ -- code for featurisation from images
-│   └   └── fetch/ -- code for fetching images
-├── tests/ -- unit tests
-├── project_config.cfg -- repository configuration
-├── pyproject.toml -- repository install configuration
-├── pytest.ini -- unit test configuration
-├── requirements_test.txt -- unit test package install requirements
-├── requirements_dev.txt -- dev install requirements
-└── requirements.txt -- package install requirements
+ ├── src
+ │   ├── mosaiks
+ │   │   ├── fetch -- fetching images
+ │   │   ├── featurize -- converting images to MOSAIKS features
+ │   └── └── pipeline -- get_features() is here.
+ ├── tests
+ ├── LICENSE
+ ├── README.md
+ ├── README_DEMO.ipynb
+ ├── requirements.txt
+ ├── requirements_dev.txt
+ └── requirements_test.txt
 ```
 
 ## FAQs
 
-### - How do I get access to the Planetary Computer API key?
+### • How do I get access to the Planetary Computer API key?
 
 If you are running mosaiks locally or on a non-MPC server, then you need an access token for the satellite image database.
 
@@ -153,7 +153,7 @@ If you are running mosaiks locally or on a non-MPC server, then you need an acce
 
 5. More information is available [here](https://planetarycomputer.microsoft.com/docs/reference/sas/).
 
-### - Can you tell me about all the parameters that I can use in the `get_features`?
+### • Can you tell me about all the parameters that I can use in the `get_features`?
 
 Here are all the parameters and defaults that `get_features` uses:
 
@@ -214,15 +214,15 @@ setup_rasterio_env: true
 
 ```
 
-### - How do I choose satellite parameters?
+### • How do I choose satellite parameters?
 
 We have tested this package for 2 satellites: Sentinel-2 and Landsat-8.
-Sentinel-2 images are available starting from 23. June 2015 (relevant for `datetime`) at 100m resolution (`image_resolution`) for 13 spectral bands (`image_bands`).
+Sentinel-2 images are available starting from 23. June 2015 (relevant for `datetime`) at 10m resolution (`image_resolution`) for 13 spectral bands (`image_bands`).
 Landsat-8 images are available starting 11th February 2013, at 30m resolution and for 11 spectral bands.
 
 You can explore Microsoft Planetary Computer's [data catalog]([here](https://planetarycomputer.microsoft.com/explore)) to learn more -- it includes information about the satellites and links for further reading. You can also find information on the best image bands to use for images from the [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/) satellites.
 
-### - How do I contribute to this repo as a developer?
+### • How do I contribute to this repo as a developer?
 
 To contribute to this repository, you can make a feature branch and raise a PR (after making sure that the code works and relevant tests pass).
 
@@ -233,6 +233,6 @@ To set up your dev environment, you can go through the following steps:
 3. pip install the two requirements files `requirements_dev.txt` and `requirements_test.txt`.
 4. Start contributing!
 
-### - What if something isn't working for me?
+### • What if something isn't working for me?
 
 We are happy to receive feedback on the package. Please do submit an issue, or if you know how to fix it, make a feature branch and raise a PR!

@@ -7,13 +7,16 @@ import pandas as pd
 import pytest
 
 from mosaiks import utils as utl
-from mosaiks.dask import get_local_dask_cluster_and_client, run_batched_pipeline
 from mosaiks.featurize import RCF
+from mosaiks.pipeline.parallel import (
+    _run_batched_pipeline,
+    get_local_dask_cluster_and_client,
+)
 
 
 # -----Test local dask client-----
 @pytest.mark.slow
-def test_run_batched_pipeline(
+def test__run_batched_pipeline(
     sample_test_data: pd.DataFrame,
     config_dict: dict,
 ):
@@ -29,7 +32,7 @@ def test_run_batched_pipeline(
     folder_path.mkdir(parents=True, exist_ok=True)
     cluster, client = get_local_dask_cluster_and_client(2, 2)
 
-    run_batched_pipeline(
+    _run_batched_pipeline(
         points_gdf,
         client,
         model,
