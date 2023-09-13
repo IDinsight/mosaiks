@@ -1,4 +1,3 @@
-import copy
 from typing import List
 
 import geopandas as gpd
@@ -98,7 +97,6 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
 
     rows_list = []
     for i, item in enumerate(item_collection):
-
         stac_crs = item.properties["proj:epsg"]
 
         # get STAC geometry
@@ -150,7 +148,6 @@ def _add_overlapping_stac_items(
         stac_gdf = stac_gdf.sort_values(by="eo:cloud_cover")
 
     for index, row in gdf.iterrows():
-
         items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
         if len(items_covering_point) == 0:
             gdf.at[index, "stac_item"] = None

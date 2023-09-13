@@ -119,18 +119,17 @@ The high-level flow of our featurisation pipeline is the following:
 ## Repository structure
 
 ```
- ├── src
- │   ├── mosaiks
- │   │   ├── fetch -- fetching images
- │   │   ├── featurize -- converting images to MOSAIKS features
- │   └── └── pipeline -- get_features() is here.
- ├── tests
- ├── LICENSE
- ├── README.md
+ ├── mosaiks
+ │   ├── fetch -- fetching images
+ │   ├── featurize -- converting images to MOSAIKS features
+ │   └── pipeline -- get_features() is here.
+ ├── tests -- pytests (need to install requirements_test to run)
+ ├── README.md -- No but actually, read this.
  ├── README_DEMO.ipynb
  ├── requirements.txt
  ├── requirements_dev.txt
- └── requirements_test.txt
+ ├── requirements_test.txt
+ └── LICENSE
 ```
 
 ## FAQs
