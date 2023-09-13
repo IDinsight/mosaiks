@@ -16,4 +16,5 @@ shapely==2.0.1
 pyproj==3.6.0
 pygeos==0.14
 pyarrow==12.0.1
-s3fs==2023.6.0
+
+ipykernel==6.24.0

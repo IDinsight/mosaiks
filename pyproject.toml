@@ -18,3 +18,8 @@ dynamic = ["version", "dependencies"]
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 version = {attr = "mosaiks.__version__"}
+
+
+[tool.setuptools.packages.find]
+include = ["mosaiks*"]
+exclude = ["tests*"]

@@ -17,10 +17,10 @@ The package has been tested via [Microsoft Planetary Computer](https://planetary
 
 For more detailed information on this package and how to use it, please see [this blog post](https://idinsight.github.io/tech-blog/blog/mosaiks_part_1/). For information on preview and potential use cases for this package, please see [this blog post](https://www.idinsight.org/?post_type=article&p=20518&preview=true).  For more information on MOSAIKS and previous use cases, see the MOSAIKS website [here](https://www.mosaiks.org/).
 
-Users of this package should acknowledge *IDinsight* and reference the MOSAIKS RCF algorithm as Rolf, Esther, et al. "A generalizable and accessible approach to machine learning with global satellite imagery." _Nature communications_ 12.1 (2021): 4392.
-
+Users of this package should acknowledge *IDinsight* and reference the MOSAIKS RCF algorithm as Rolf, Esther, et al. "A generalizable and accessible approach to machine learning with global satellite imagery." *Nature communications* 12.1 (2021): 4392.
 
 ## Quick Start
+
 This section highlights a demo to help you get features ASAP.
 
 ### Step 1: Set-up
@@ -31,11 +31,13 @@ Ensure you have all requirements set up:
 2. Install the MOSAIKS package -
 
     ```sh
-    pip install git+https://github.com/IDinsight/mosaiks@main # via GitHub
+    pip install git+https://github.com/IDinsight/mosaiks
     ```
+
     or
+
     ```sh
-    pip install mosaiks # via PyPI
+    pip install mosaiks
     ```
 
 4. Acquire the Planetary Computer API key from [Microsoft Planetary Computer (MPC)](https://planetarycomputer.microsoft.com/). We provide detailed instructions for getting an API key in the FAQs section of this README.
@@ -82,80 +84,58 @@ The quickest way to test the package is to run it in a notebook. Open up a noteb
     df_featurised
     ```
 
-    The above code executes a default run of the get_features function, which executes the featurisation in parallel using Dask.
+    The above code executes a default run of the get_features function which executes the featurisation.
 
-4. **Run get_features without dask**
+4. **Run get_features with Dask parallelization**
 
-    It is possible that you want to implement your own parallelisation without dask. For that, you could do a non-parallelised run of the function across your own parallelization logic (through code or cloud):
+    To run the code with the built-in Dask parallelization, set `parallelize` to `True` and `dask_chunksize` to a suitable integer given the size of your dataset.
 
     ```python
     df_featurised = get_features(
         lats,
         lons,
-        datetime="2017",
+        datetime="2017", # or ["2013-01-01", "2013-12-31"] or ...
         image_width=1000,
-        parallelize=False,
+        parallelize=True,
+        dask_chunksize=2, # set this to 200+ to see benefits from parallization
     )
 
     df_featurised
     ```
 
-5. **Run Utility function to load data and save features**
-
-    In situations where you want to load data, run featurisation, and save features on disk quietly, you can use the `load_and_save_features`:
-
-   ```python
-    # Save test data to file to load later
-    import pandas as pd
-
-    df = pd.DataFrame({"lat": lats, "lon": lons})
-    df.to_csv("test_data.csv")
-
-    # Loading points, featurise images, and save features to file.
-    from mosaiks.extras import load_and_save_features
-
-    load_and_save_features(
-        input_file_path="test_data.csv",
-        lat_col="lat",
-        lon_col="lon",
-        datetime="2017",
-        path_to_save_data="test_features.csv",
-        image_width=1000,
-        context_cols_to_keep_from_input=["lat", "lon"],
-    )
-    ```
+    Check out `get_features`' docs for parameters to control the in-built parallelization scheme.
 
 ## Core functionality of the system
 
 The high-level flow of our featurisation pipeline is the following:
 
 1. The User feeds 'lat' and 'lon' lists for points they want to featurize
-    - The user also adds relevant parameters to the function (see FAQs)
+    - The user also adds relevant parameters to the function (see docstrings and FAQs)
 2. For each GPS coordinate, the function fetches [STAC](https://stacspec.org/en) references to satellite images
-3. Once found, the function fetches the images
+3. Once found, the function fetches the images (either all or only the least cloudy depending on the `image_composite_method` parameter)
 4. Function converts each image into features using the MOSAIKS algorithm
-5. Lastly, the function returns a dataframe with the features, 'lat' and 'lon' columns, and any other columns if specified by the user
+5. Lastly, the function returns a dataframe with the features alongside the STAC references to the image(s) used to create the features from.
 
 ## Repository structure
 
 ```
-├── src -- source code
-│   ├── mosaiks
-│   │   ├── pipeline.py -- pipeline code: takes in GPS coordinates and processing
-│   │   ├── featurize/ -- code for featurisation from images
-│   └   └── fetch/ -- code for fetching images
-├── tests/ -- unit tests
-├── project_config.cfg -- repository configuration
-├── pyproject.toml -- repository install configuration
-├── pytest.ini -- unit test configuration
-├── requirements_test.txt -- unit test package install requirements
-├── requirements_dev.txt -- dev install requirements
-└── requirements.txt -- package install requirements
+ ├── mosaiks
+ │   ├── fetch -- fetching images
+ │   ├── featurize -- converting images to MOSAIKS features
+ │   └── pipeline -- get_features() is here.
+ ├── tests -- pytests (need to install requirements_test to run)
+ ├── README.md -- No but actually, read this.
+ ├── README_DEMO.ipynb
+ ├── requirements.txt
+ ├── requirements_dev.txt
+ ├── requirements_test.txt
+ └── LICENSE
 ```
 
 ## FAQs
 
-### - How do I get access to the Planetary Computer API key?
+### • How do I get access to the Planetary Computer API key?
+
 If you are running mosaiks locally or on a non-MPC server, then you need an access token for the satellite image database.
 
 1. If you do not have an MPC account, go [here](https://planetarycomputer.microsoft.com/explore). You should see a “Request Access” button in the top right corner.
@@ -172,50 +152,46 @@ If you are running mosaiks locally or on a non-MPC server, then you need an acce
 
 5. More information is available [here](https://planetarycomputer.microsoft.com/docs/reference/sas/).
 
-### - Can you tell me about all the parameters that I can use in the `get_features` and `load_and_save_features`?
+### • Can you tell me about all the parameters that I can use in the `get_features`?
 
-Here are all the parameters and defaults that `get_features` uses (`load_and_save_features` also accepts these):
+Below are all the parameters and defaults that `get_features` uses. 
+
+**NOTE:** You'll probably want to leave most of these as defaults - see the `.yaml` file example that follows for the subset of parameters you most likely want to change.
 
 ```python
 def get_features(
     latitudes: List[float],
     longitudes: List[float],
     datetime: str or List[str] or callable,
-    parallelize: bool = True,
     satellite_name: str = "landsat-8-c2-l2", # or "sentinel-2-l2a"
-    image_resolution: int = 30,
-    image_dtype: str = "int16", # or "int32" or "float"
+    image_resolution: int = 30, # or 10 for Sentinel
     image_bands: List[str] = ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], # For options, see FAQs below
     image_width: int = 3000,
     min_image_edge: int = 30,
-    sort_points_by_hilbert_distance: bool = True,
-    mosaic_composite: str = "least_cloudy", # or all
-    stac_api: str = "planetary-compute", # or "earth-search"
+    image_composite_method: str = "least_cloudy",   # or "all" to create a multi-image median composite before featurisation
+    image_dtype: str = "int16", # or "int32" or "float". "int8" not supported.
+    stac_api_name: str = "planetary-compute", # or "earth-search"
     n_mosaiks_features: int = 4000,
     mosaiks_kernel_size: int = 3,
-    mosaiks_batch_size: int = 10,
-    model_device: str = "cpu", # or "cuda"
-    dask_client_type: str = "local", # or gateway
-    dask_n_concurrent_tasks: int = 8,
+    mosaiks_random_seed_for_filters: int = 768,
+    model_device: str = "cpu",  # or "cuda" if NVIDIA GPU available
+    parallelize: bool = False,
     dask_chunksize: int = 500,
-    dask_n_workers: int = 4,
-    dask_threads_per_worker: int = 4,
-    dask_worker_cores: int = 4,
-    dask_worker_memory: int = 2,
-    dask_pip_install: bool = False,
-    mosaiks_col_names: list = None,
+    dask_client: Optional[Client] = None, # Provide to override the default per-run LocalCluster creation
+    dask_n_workers: Optional[int] = None, # Set to None to auto-select maximum
+    dask_threads_per_worker: Optional[int] = None, # Set to None to auto-select maximum
+    dask_n_concurrent_tasks: Optional[int] = None, # Set to None to set equal to number of threads
+    dask_sort_points_by_hilbert_distance: bool = True,
     setup_rasterio_env: bool = True,
 ) -> pd.DataFrame
 ```
 
-You can also feed all of these parameters through a .yml file, read the file, and then input the parameters as **kwargs. Here is an example .yml file for the parameters that can be re-used:
+You can also set these parameters in a `.yml` file, read the file, and then input the parameters as **kwargs. Here is an example of a `.yml` file with some common project-specific parameters set, leaving everything else as default:
 
 ```yml
-datetime: "2017"
-parallelize: true
-satellite_name: "landsat-8-c2-l2"  # or "sentinel-2-l2a"
-image_resolution: 30
-image_dtype: "int16"  # or "int32" or "float"
+datetime: "2017",
+satellite_name: "landsat-8-c2-l2",
+image_resolution: 30,
 image_bands:
   - "SR_B2"
   - "SR_B3"
@@ -223,57 +199,23 @@ image_bands:
   - "SR_B5"
   - "SR_B6"
   - "SR_B7"
-image_width: 3000
-min_image_edge: 30
-sort_points_by_hilbert_distance: true
-mosaic_composite: "least_cloudy"  # or "all"
-stac_api: "planetary-compute"  # or "earth-search"
-n_mosaiks_features: 4000
-mosaiks_kernel_size: 3
-mosaiks_batch_size: 10
-model_device: "cpu"  # or "cuda"
-dask_client_type: "local"  # or "gateway"
-dask_n_concurrent_tasks: 8
-dask_chunksize: 500
-dask_n_workers: 4
-dask_threads_per_worker: 4
-dask_worker_cores: 4
-dask_worker_memory: 2
-dask_pip_install: false
-mosaiks_col_names: null
-setup_rasterio_env: true
-
+image_width: 3000,
+image_composite_method: "least_cloudy",
+n_mosaiks_features: 4000,
+model_device: "cpu", # or "gpu" if NVIDIA GPU available
+parallelize: True,
+dask_chunksize: 500,
 ```
 
-### - How do I save intermediate data to S3?
-
-To save data to S3, you can simply set the output data path to an S3 bucket, as we simply pass this onto Pandas. Example code:
-
-```python
-load_and_save_features(
-        input_file_path="test_data.csv",
-        path_to_save_data="s3://gs-test-then-delete/test_pr.parquet.gzip",
-        context_cols_to_keep_from_input=["lat", "lon"]
-    )
-```
-
-One requirement for this is to setup the following AWS environment variables:
-
-```yaml
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_DEFAULT_REGION
-```
-
-### - How do I choose satellite parameters?
+### • How do I choose satellite parameters?
 
 We have tested this package for 2 satellites: Sentinel-2 and Landsat-8.
-Sentinel-2 images are available starting from 23. June 2015 (relevant for `datetime`) at 100m resolution (`image_resolution`) for 13 spectral bands (`image_bands`).
+Sentinel-2 images are available starting from 23. June 2015 (relevant for `datetime`) at 10m resolution (`image_resolution`) for 13 spectral bands (`image_bands`).
 Landsat-8 images are available starting 11th February 2013, at 30m resolution and for 11 spectral bands.
 
 You can explore Microsoft Planetary Computer's [data catalog]([here](https://planetarycomputer.microsoft.com/explore)) to learn more -- it includes information about the satellites and links for further reading. You can also find information on the best image bands to use for images from the [Landsat](https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites) and [Sentinel](https://gisgeography.com/sentinel-2-bands-combinations/) satellites.
 
-### - How do I contribute to this repo as a developer?
+### • How do I contribute to this repo as a developer?
 
 To contribute to this repository, you can make a feature branch and raise a PR (after making sure that the code works and relevant tests pass).
 
@@ -284,6 +226,6 @@ To set up your dev environment, you can go through the following steps:
 3. pip install the two requirements files `requirements_dev.txt` and `requirements_test.txt`.
 4. Start contributing!
 
-### - What if something isn't working for me?
+### • What if something isn't working for me?
 
 We are happy to receive feedback on the package. Please do submit an issue, or if you know how to fix it, make a feature branch and raise a PR!

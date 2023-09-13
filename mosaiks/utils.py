@@ -1,13 +1,9 @@
 import os
-from pathlib import Path
 from typing import List
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import yaml
-
-os.environ["USE_PYGEOS"] = "0"
 
 
 def load_dataframe(file_path: str, **kwargs) -> pd.DataFrame:
@@ -103,40 +99,6 @@ def get_filtered_filenames(folder_path: str, prefix: str = "df_") -> List[str]:
     all_filenames = os.listdir(folder_path)
     filtered_filenames = [file for file in all_filenames if file.startswith(prefix)]
     return sorted(filtered_filenames)
-
-
-def make_output_folder_path(
-    satellite_name, n_mosaiks_features, dataset_name: str = "temp"
-) -> Path:
-    """
-    Get the path to the folder where the mosaiks features should be saved.
-
-    Parameters
-    ----------
-    satellite_name : The name of the satellite.
-    n_mosaiks_features : The number of features used for mosaiks.
-    dataset_name : The name of the dataset used for featurization. Default is 'temp'.
-    """
-    data_path = Path(__file__).parents[2].resolve() / "data"
-    folder_path = (
-        data_path
-        / "00_raw/mosaiks"
-        / satellite_name
-        / dataset_name
-        / str(n_mosaiks_features)
-    )
-
-    return folder_path
-
-
-def get_mosaiks_package_link(branch="main") -> str:
-    """Get the link to the mosaiks package."""
-
-    secrets_file = Path(__file__).resolve().parents[2] / "config/secrets.yaml"
-    secrets = yaml.full_load(open(secrets_file))
-
-    GITHUB_TOKEN = secrets["GITHUB_TOKEN"]
-    return f"git+https://{GITHUB_TOKEN}@github.com/IDinsight/mosaiks@{branch}"
 
 
 def make_result_df(

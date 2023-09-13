@@ -1,4 +1,3 @@
-import copy
 from typing import List
 
 import geopandas as gpd
@@ -14,7 +13,7 @@ __all__ = ["fetch_image_refs", "fetch_stac_item_from_id"]
 
 
 def fetch_image_refs(
-    points_gdf_with_stac: gpd.GeoDataFrame,
+    points_gdf: gpd.GeoDataFrame,
     satellite_name: str,
     datetime: str,
     image_composite_method: str,
@@ -40,7 +39,7 @@ def fetch_image_refs(
     """
     stac_api = get_stac_api(stac_api_name)
 
-    points_gdf_with_stac = points_gdf_with_stac.copy()
+    points_gdf_with_stac = points_gdf.copy()
 
     # Check for NaNs in lat lons
     nan_mask = points_gdf_with_stac["Lat"].isna() + points_gdf_with_stac["Lon"].isna()
@@ -98,7 +97,6 @@ def _get_trimmed_stac_shapes_gdf(item_collection: ItemCollection) -> gpd.GeoData
 
     rows_list = []
     for i, item in enumerate(item_collection):
-
         stac_crs = item.properties["proj:epsg"]
 
         # get STAC geometry
@@ -150,7 +148,6 @@ def _add_overlapping_stac_items(
         stac_gdf = stac_gdf.sort_values(by="eo:cloud_cover")
 
     for index, row in gdf.iterrows():
-
         items_covering_point = stac_gdf[stac_gdf.covers(row.geometry)]
         if len(items_covering_point) == 0:
             gdf.at[index, "stac_item"] = None
@@ -166,20 +163,20 @@ def _add_overlapping_stac_items(
     return gdf
 
 
-def get_stac_api(api_name: str) -> pystac_client.Client:
+def get_stac_api(stac_api_name: str) -> pystac_client.Client:
     """Get a STAC API client for a given API name."""
 
-    if api_name == "planetary-compute":
+    if stac_api_name == "planetary-compute":
         stac_api = pystac_client.Client.open(
             "https://planetarycomputer.microsoft.com/api/stac/v1",
             modifier=planetary_computer.sign_inplace,
         )
-    elif api_name == "earth":
+    elif stac_api_name == "earth":
         stac_api = pystac_client.Client.open(
             "https://earth-search.aws.element84.com/v0"
         )
     else:
-        raise NotImplementedError(f"STAC api {api_name} is not implemented")
+        raise NotImplementedError(f"STAC api {stac_api_name} is not implemented")
 
     return stac_api
 

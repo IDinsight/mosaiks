@@ -16,7 +16,7 @@ def create_features_from_image_array(
 
     Parameters:
     -----------
-    dataloader: A dataloader object that yields batches of images.
+    dataloader: A dataloader object that lazily yields images.
     n_features: The number of features to extract from each image.
     model: A model that extracts features from images.
     device: The device to run the model on.
@@ -31,25 +31,22 @@ def create_features_from_image_array(
     features_array = np.full([n_points, n_features], np.nan, dtype=float)
     model.eval().to(device)
 
-    i = -1
-    for images in dataloader:
-        for i, image in enumerate(images, start=i + 1):
-            if image is not None:
-                # in case of single-band image, force-add a band dimension
-                if len(image.shape) == 2:
-                    image = image.unsqueeze(0)
+    for i, image in enumerate(dataloader):
+        if image is not None:
+            # in case of single-band image, force-add a band dimension
+            if len(image.shape) == 2:
+                image = image.unsqueeze(0)
 
-                if (image.shape[1] >= min_image_edge) and (
-                    image.shape[2] >= min_image_edge
-                ):
-                    features_array[i] = featurize(image, model, device)
-                else:
-                    # logging.warn("Image crop too small")
-                    pass
+            if (image.shape[1] >= min_image_edge) and (
+                image.shape[2] >= min_image_edge
+            ):
+                features_array[i] = featurize(image, model, device)
             else:
-                # logging.warn("No image found")
+                # logging.warn("Image crop too small")
                 pass
-
+        else:
+            # logging.warn("No image found")
+            pass
     return features_array
 
 

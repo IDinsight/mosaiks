@@ -3,9 +3,9 @@
 data/
 test_outputs/
 logs/
-config/secrets.env
-config/secrets.yml
-config/secrets.yaml
+**/secrets.env
+**/secrets.yml
+**/secrets.yaml
 **/*.parquet
 **/*.parquet.gzip
 **/.vscode/
