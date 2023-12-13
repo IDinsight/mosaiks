@@ -4,12 +4,12 @@ on:
   pull_request:
     branches:
     - main
-    tags:
-      - '*'
+    types: [closed]
 
 jobs:
-  deploy:
+  merge_job:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
     steps:
     - uses: actions/checkout@v2
 
