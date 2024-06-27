@@ -1,4 +1,5 @@
 import importlib.util
+import re
 
 import requests
 
@@ -9,12 +10,20 @@ def main():
     response = requests.get(url)
     latest_version = response.json()["info"]["version"]
 
-    # Get the installed version number
-    module = importlib.util.spec_from_file_location("mosaiks", "./mosaiks/__init__.py")
-    mosaiks = importlib.util.module_from_spec(module)
-    module.loader.exec_module(mosaiks)
-    installed_version = mosaiks.__version__
+    # Get the version number from file
+    init_file_path = "./mosaiks/__init__.py"
+    version_pattern = r"^__version__ = ['\"]([^'\"]*)['\"]"
 
+    installed_version = None
+
+    with open(init_file_path, "r") as file:
+        for line in file:
+            # Search each line for the version pattern
+            match = re.search(version_pattern, line, re.M)
+            if match:
+                # If a match is found, extract the version number
+                installed_version = match.group(1)
+                break
     # Compare the two version numbers
     if latest_version != installed_version:
         print(
